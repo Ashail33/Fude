@@ -170,9 +170,9 @@ export function glbModel(id: string): Model | null {
 const BONES = {
   hips: /hips|pelvis/i,
   spine: /spine(?!.*[12])|spine$/i,
-  chest: /spine2|spine1|chest/i,
+  chest: /spine0?2$|spine0?1$|chest/i,
   neck: /neck/i,
-  head: /head(?!.*top|.*end)/i,
+  head: /(^|[:_|])head$/i,
   lUp: /left.?up.?leg|l.?thigh|leftupleg/i,
   rUp: /right.?up.?leg|r.?thigh|rightupleg/i,
   lLeg: /left.?leg(?!.*up)|l.?calf|leftleg/i,
@@ -196,6 +196,8 @@ const Y = new THREE.Vector3(0, 1, 0)
 const Z = new THREE.Vector3(0, 0, 1)
 const qa = new THREE.Quaternion()
 const qb = new THREE.Quaternion()
+/** How far to lower the arms from the rig's rest pose (radians). */
+const ARM_DOWN = 0.95
 
 /** Find the named joints of a skinned model; null when it has no usable skeleton. */
 function makeRig(model: THREE.Object3D) {
@@ -240,8 +242,11 @@ function makeRig(model: THREE.Object3D) {
       // arms: relaxed down at the sides, swinging opposite to the legs
       const idle = Math.sin(t * 2.4)
       const talk = talking ? Math.sin(t * 5.5) : 0
-      turn('lArm', X, s * amp * 0.9 + (talking ? 0 : idle * 0.03))
-      turn('rArm', X, -s * amp * 0.9 - (talking ? 0.55 + talk * 0.25 : 0))
+      // rigs rest in an A/T-pose: bring the arms down to the sides first
+      turn('lArm', Z, -ARM_DOWN)
+      turn('rArm', Z, ARM_DOWN)
+      turn('lArm', X, s * amp * 0.6 + (talking ? 0 : idle * 0.03), true)
+      turn('rArm', X, -s * amp * 0.6 - (talking ? 0.55 + talk * 0.25 : 0), true)
       turn('rFore', X, talking ? -0.6 - talk * 0.2 : moving ? -0.25 : -0.08)
       turn('lFore', X, moving ? -0.25 : -0.08)
       // body: lean into a run, a little twist with each stride, breathing when idle

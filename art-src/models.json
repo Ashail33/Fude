@@ -1,10 +1,7 @@
 {
-  "mage": {
-    "url": "https://d8j0ntlcm91z4.cloudfront.net/user_32Gtaw5yTeqBNRnW1bKP181bgml/hf_20260930_212040_d625bbfe-634b-478a-a09a-af3f2e9b3cf0.glb",
-    "turn": -90
-  },
+  "mage": "https://d8j0ntlcm91z4.cloudfront.net/user_32Gtaw5yTeqBNRnW1bKP181bgml/hf_20260930_214707_44e512a8-c6b0-415b-849c-c1b86459e444.glb",
   "fude": "https://d8j0ntlcm91z4.cloudfront.net/user_32Gtaw5yTeqBNRnW1bKP181bgml/hf_20260930_212120_87c7b10c-25b5-4d82-b97f-654bb43e2e07.glb",
   "elder": "https://d8j0ntlcm91z4.cloudfront.net/user_32Gtaw5yTeqBNRnW1bKP181bgml/hf_20260930_213939_eb9e820a-489e-4144-aec8-11dc73a26b37.glb",
-  "merchant": "https://d8j0ntlcm91z4.cloudfront.net/user_32Gtaw5yTeqBNRnW1bKP181bgml/hf_20260930_212229_dae667c4-4c11-4849-907e-c4a81b371c34.glb",
+  "merchant": "https://d8j0ntlcm91z4.cloudfront.net/user_32Gtaw5yTeqBNRnW1bKP181bgml/hf_20260930_214206_841a7a14-04af-4370-81eb-39c0900a0288.glb",
   "guard": "https://d8j0ntlcm91z4.cloudfront.net/user_32Gtaw5yTeqBNRnW1bKP181bgml/hf_20260930_212231_17bceffb-eadf-4679-aa76-fc076446c8be.glb"
 }
