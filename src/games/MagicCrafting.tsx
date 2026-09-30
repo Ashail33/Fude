@@ -171,11 +171,6 @@ function Evolution({ goal, onFinish, setHud }: { goal: number; onFinish: (r: Gam
     [goal, later, onFinish],
   )
 
-  // No riddle possible (shouldn't happen): end gracefully.
-  useEffect(() => {
-    if (!riddle && !ending) end(false, score, solved)
-  }, [riddle, ending, end, score, solved])
-
   const placeRadical = (ch: string, at?: number) => {
     if (reveal || ending) return
     sfx.click()
@@ -279,23 +274,34 @@ function Evolution({ goal, onFinish, setHud }: { goal: number; onFinish: (r: Gam
 
   // Keyboard: Enter fuses / continues, Backspace clears the last slot.
   const keyRef = useRef<(e: KeyboardEvent) => void>(() => {})
-  keyRef.current = (e: KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault()
-      if (reveal) next()
-      else doFuse()
-    } else if (e.key === 'Backspace' && !reveal) {
-      const last = slots.map((s, i) => (s ? i : -1)).filter((i) => i >= 0).pop()
-      if (last !== undefined) clearSlot(last)
+  useEffect(() => {
+    keyRef.current = (e: KeyboardEvent) => {
+      if (e.key === 'Enter') {
+        e.preventDefault()
+        if (reveal) next()
+        else doFuse()
+      } else if (e.key === 'Backspace' && !reveal) {
+        const last = slots.map((s, i) => (s ? i : -1)).filter((i) => i >= 0).pop()
+        if (last !== undefined) clearSlot(last)
+      }
     }
-  }
+  })
   useEffect(() => {
     const h = (e: KeyboardEvent) => keyRef.current(e)
     window.addEventListener('keydown', h)
     return () => window.removeEventListener('keydown', h)
   }, [])
 
-  if (!riddle) return <div className="card center">The grimoire is silent…</div>
+  // No riddle possible (shouldn't happen with the starter radicals).
+  if (!riddle)
+    return (
+      <div className="card center">
+        <p>The grimoire is silent…</p>
+        <button type="button" className="btn btn-primary" onClick={() => end(false, score, solved)} disabled={ending}>
+          <T en="Finish" jp="おわり" />
+        </button>
+      </div>
+    )
 
   const onDrop = (i: number) => (e: DragEvent) => {
     e.preventDefault()
@@ -521,7 +527,7 @@ function World({ goal, onFinish, setHud }: { goal: number; onFinish: (r: GameRes
       sfx.wrong()
       flash('bad')
       setMiscasts((n) => n + 1)
-      setFizzleAt({ r, c, el: selected, k: Date.now() })
+      setFizzleAt({ r, c, el: selected, k: (fizzleAt?.k ?? 0) + 1 })
       const need = obj.elements.map((e) => `${e} (${ELEMENT_INFO[e].reading}, ${ELEMENT_INFO[e].en})`).join(' or ')
       setMsg({ text: `💨 ${selected} is ${info.reading} “${info.en}”. It fizzles! This needs ${need}.`, good: false })
       const m = mana - MISCAST_COST
@@ -597,14 +603,16 @@ function World({ goal, onFinish, setHud }: { goal: number; onFinish: (r: GameRes
 
   // Keyboard: 1–6 choose a spell, Enter continues.
   const keyRef = useRef<(e: KeyboardEvent) => void>(() => {})
-  keyRef.current = (e: KeyboardEvent) => {
-    const n = Number(e.key)
-    if (n >= 1 && n <= palette.length) select(palette[n - 1])
-    else if (e.key === 'Enter' && phase !== 'play') {
-      e.preventDefault()
-      nextObjective()
+  useEffect(() => {
+    keyRef.current = (e: KeyboardEvent) => {
+      const n = Number(e.key)
+      if (n >= 1 && n <= palette.length) select(palette[n - 1])
+      else if (e.key === 'Enter' && phase !== 'play') {
+        e.preventDefault()
+        nextObjective()
+      }
     }
-  }
+  })
   useEffect(() => {
     const h = (e: KeyboardEvent) => keyRef.current(e)
     window.addEventListener('keydown', h)

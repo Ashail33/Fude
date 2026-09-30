@@ -240,12 +240,14 @@ export default function Crossword({ activity, params, onFinish, onExit }: GamePr
 
   // Keyboard: 1–4 pick a kanji option.
   const keyRef = useRef<(e: KeyboardEvent) => void>(() => {})
-  keyRef.current = (e: KeyboardEvent) => {
-    if (!started || !cur?.kanji || curState.solved) return
-    const n = Number(e.key)
-    const opts = palettes.get(cur.id) ?? []
-    if (n >= 1 && n <= opts.length && !curState.tried.includes(opts[n - 1])) submit(opts[n - 1])
-  }
+  useEffect(() => {
+    keyRef.current = (e: KeyboardEvent) => {
+      if (!started || !cur?.kanji || curState.solved) return
+      const n = Number(e.key)
+      const opts = palettes.get(cur.id) ?? []
+      if (n >= 1 && n <= opts.length && !curState.tried.includes(opts[n - 1])) submit(opts[n - 1])
+    }
+  })
   useEffect(() => {
     const h = (e: KeyboardEvent) => keyRef.current(e)
     window.addEventListener('keydown', h)
