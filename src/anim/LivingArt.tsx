@@ -13,6 +13,7 @@ import { deformGrid, floatPose, profilePad, reducedProfile, type Dyn, type Profi
 import { hexRgb, MeshRenderer } from './gl'
 import { profileFor, sceneFor } from './profiles'
 import { coverRect, sceneUv, type SceneMotion } from './scene'
+import { cueOf } from './cue'
 import { CRITICAL, Reactor, Spring, type Cue } from './spring'
 import { onTick, prefersReducedMotion } from './ticker'
 import './anim.css'
@@ -23,20 +24,6 @@ export interface LivingArtHandle {
   /** Fire a reaction: dir −1 left / +1 right / 0 either, k = strength. */
   cue(c: Cue, dir?: number, k?: number): void
   reset(): void
-}
-
-const CUES: ReadonlySet<string> = new Set<Cue>(['hit', 'crit', 'attack', 'attack-big', 'defeat', 'spawn', 'hop', 'dodge', 'talk'])
-
-/** Map a free-form state string (e.g. a battle CSS class list) to a cue. */
-export function cueOf(s: string | undefined | null): Cue | null {
-  if (!s) return null
-  const parts = s.split(/\s+/)
-  if (parts.includes('lunge')) return parts.includes('big') ? 'attack-big' : 'attack'
-  if (parts.includes('dying')) return 'defeat'
-  if (parts.includes('crit')) return 'crit'
-  if (parts.includes('idle-bounce')) return 'hop'
-  for (const p of parts) if (CUES.has(p)) return p as Cue
-  return null
 }
 
 /** Increments per live GL renderer so effects re-bind to the new canvas. */
@@ -160,18 +147,23 @@ export function LivingArt(props: LivingArtProps) {
   const imgRef = useRef<HTMLImageElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const rendererRef = useRef<MeshRenderer | null>(null)
-  const reactor = useMemo(() => new Reactor(), [])
+  const reduced = useMemo(() => prefersReducedMotion(), [])
+  const reactor = useMemo(() => {
+    const r = new Reactor()
+    r.reduced = reduced
+    return r
+  }, [reduced])
   const [on, setOn] = useState(0)
   const P = useRef(props)
-  P.current = props
+  useLayoutEffect(() => {
+    P.current = props
+  })
   const visible = useVisible(rootRef)
 
-  const reduced = useMemo(prefersReducedMotion, [])
   const base = props.profile ?? profileFor(id)
   const profile = useMemo(() => (reduced ? reducedProfile(base) : base), [base, reduced])
   const aspectRef = useRef(1)
   const pad = useMemo(() => profilePad(profile, 1.2), [profile])
-  reactor.reduced = reduced
 
   useImperativeHandle(handle, () => ({ cue: (c, dir, k) => reactor.cue(c, dir, k), reset: () => reactor.reset() }), [reactor])
 
@@ -326,7 +318,7 @@ export function LivingScene(props: LivingSceneProps) {
   const rendererRef = useRef<MeshRenderer | null>(null)
   const [on, setOn] = useState(0)
   const visible = useVisible(rootRef)
-  const reduced = useMemo(prefersReducedMotion, [])
+  const reduced = useMemo(() => prefersReducedMotion(), [])
   const motion = props.motion ?? sceneFor(id)
   const parallax = props.parallax ?? true
 

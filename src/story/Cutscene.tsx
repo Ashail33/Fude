@@ -316,7 +316,7 @@ export function Cutscene({ id, onDone }: CutsceneProps) {
               </div>
               {!hidePortrait && (
                 <div className="cs-portrait">
-                  <PixelSprite id={speaker.sprite} scale={isEnemy(speaker.sprite) ? 2 : 4} dir="down" animate />
+                  <PixelSprite id={speaker.sprite} scale={isEnemy(speaker.sprite) ? 2 : 4} dir="down" animate anim="idle" />
                 </div>
               )}
             </>

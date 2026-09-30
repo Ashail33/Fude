@@ -21,7 +21,8 @@ import { addItem, getState, grantRewards, immersionOf, level, recordReviews, use
 import Backdrop from './Backdrop'
 import { battleBackdropId, enemyHdId, FLOATING } from './hd'
 import { LivingArt, LivingScene } from '../anim/LivingArt'
-import { Ambient, AMBIENT_BY_BACKDROP } from '../anim/Ambient'
+import { Ambient } from '../anim/Ambient'
+import { AMBIENT_BY_BACKDROP } from '../anim/ambientKinds'
 import { ITEMS, ITEM_BY_ID } from './items'
 import {
   SPELL_COST,

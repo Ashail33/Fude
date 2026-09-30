@@ -42,8 +42,8 @@ export default function Onboarding({ onDone }: { onDone?: () => void } = {}) {
     <div className="onboard">
       <SceneBackdrop bg="night-hill" className="onboard-bg" />
       <div className="onboard-cast" aria-hidden>
-        <PixelSprite id="mage" outfit="apprentice" dir="right" scale={4} animate />
-        <PixelSprite id="fude" dir="left" scale={4} animate />
+        <PixelSprite id="mage" outfit="apprentice" dir="right" scale={4} animate anim="idle" />
+        <PixelSprite id="fude" dir="left" scale={4} animate anim="idle" />
       </div>
 
       <div className="onboard-windows">

@@ -183,10 +183,10 @@ export default function Title() {
       <TitleArt onReady={setHd} />
       <div className="title-hill-cast" aria-hidden hidden={hd}>
         <span className="title-mage">
-          <PixelSprite id="mage" outfit={p.onboarded ? p.outfit : 'apprentice'} dir="right" scale={4} animate />
+          <PixelSprite id="mage" outfit={p.onboarded ? p.outfit : 'apprentice'} dir="right" scale={4} animate anim="idle" />
         </span>
         <span className="title-fude">
-          <PixelSprite id="fude" dir="left" scale={4} animate />
+          <PixelSprite id="fude" dir="left" scale={4} animate anim="idle" />
         </span>
       </div>
       <Petals />
