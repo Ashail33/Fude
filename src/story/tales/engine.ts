@@ -26,7 +26,11 @@ const GHOST: Record<string, (s: PlayerState) => boolean> = Object.assign({}, ...
 const MOVED: Record<string, (s: PlayerState) => { x: number; y: number } | null> = Object.assign({}, ...CONTENT.map((c) => c.moved ?? {}))
 
 export const WORD_BY_KANA = new Map<string, Word>()
-for (const w of VOCAB) if (!WORD_BY_KANA.has(w.kana)) WORD_BY_KANA.set(w.kana, w)
+for (const w of VOCAB) {
+  // keyed by hiragana: cast input is normalised to hiragana, so パン is found as ぱん
+  const k = toHiragana(w.kana)
+  if (!WORD_BY_KANA.has(k)) WORD_BY_KANA.set(k, w)
+}
 
 const taleKey = (id: string) => `tale.${id}`
 

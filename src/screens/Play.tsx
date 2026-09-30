@@ -10,6 +10,7 @@ import { levelForXp, xpForLevel } from '../engine/rewards'
 import { sfx } from '../engine/sfx'
 import { activityUnlocked, getState, recordResult, setState, usePlayer, type Outcome } from '../engine/store'
 import { gameComponent } from '../games/registry'
+import { isChunkError, reloadForNewBuild } from '../engine/staleBuild'
 import type { Activity, GameResult } from '../games/types'
 
 function resolveActivity(path: string): { activity?: Activity; questId?: string } {
@@ -42,13 +43,17 @@ class GameErrorBoundary extends Component<{ children: ReactNode; onExit: () => v
   static getDerivedStateFromError(error: Error) {
     return { error }
   }
+  componentDidCatch(error: Error) {
+    // an old page after a new deploy: fetch the new version instead of failing
+    if (isChunkError(error)) reloadForNewBuild()
+  }
   render() {
     if (this.state.error)
       return (
         <div className="card center" style={{ marginTop: 40 }}>
           <div style={{ fontSize: '3rem' }}>💥</div>
-          <h2>The spell backfired!</h2>
-          <p className="muted">{this.state.error.message}</p>
+          <h2>{isChunkError(this.state.error) ? 'Updating to the newest version…' : 'The spell backfired!'}</h2>
+          <p className="muted">{isChunkError(this.state.error) ? 'A new version of the game was released. Reload the page if it doesn’t refresh by itself.' : this.state.error.message}</p>
           <button type="button" className="btn btn-primary" onClick={this.props.onExit}>
             Return
           </button>
