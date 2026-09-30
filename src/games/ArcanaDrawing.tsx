@@ -11,6 +11,7 @@ import { weakness, type Review } from '../engine/srs'
 import { usePlayer } from '../engine/store'
 import { BOX, characterPoints, evaluateStroke, parsePath, pathLength, type Pt } from '../engine/stroke'
 import type { GameProps } from './types'
+import { PixelSprite } from '../art'
 import './ArcanaDrawing.css'
 
 const STROKES = strokesJson as Record<string, string[]>
@@ -395,8 +396,18 @@ export default function ArcanaDrawing({ activity, params, onFinish, onExit }: Ga
         <div className="ad-rod" aria-hidden />
       </div>
 
-      <div className={`feedback ${msg.kind}`} role="status">
-        {msg.text}
+      <div className="ad-helper">
+        <span className={`ad-fude ${msg.kind ? `ad-fude-${msg.kind}` : ''}`} key={msg.text} aria-hidden>
+          <PixelSprite id="fude" scale={3} animate />
+        </span>
+        <div className={`feedback ${msg.kind}`} role="status">
+          {msg.text}
+        </div>
+        {!msg.text && (
+          <span className="ad-fude-idle">
+            <T en={trace ? 'Stroke by stroke, in order!' : 'Can you remember it?'} jp={trace ? '1ばんから じゅんばんに かいてね！' : 'おもいだして かいてね！'} />
+          </span>
+        )}
       </div>
 
       <div className="ad-controls">

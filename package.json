@@ -10,7 +10,8 @@
     "test": "vitest run",
     "lint": "oxlint",
     "typecheck": "tsc -b",
-    "fetch-strokes": "node scripts/fetch-strokes.mjs"
+    "fetch-strokes": "node scripts/fetch-strokes.mjs",
+    "art:process": "node --experimental-strip-types --no-warnings scripts/process-art.mjs"
   },
   "dependencies": {
     "react": "^19.2.8",
@@ -25,6 +26,7 @@
     "@vitejs/plugin-react": "^6.1.1",
     "oxlint": "^1.81.0",
     "playwright": "^1.63.0",
+    "sharp": "^0.35.5",
     "typescript": "~6.0.2",
     "vite": "^8.3.0",
     "vitest": "^5.0.2"

@@ -8,6 +8,8 @@ import { speak } from '../engine/speech'
 import type { Review } from '../engine/srs'
 import { usePlayer } from '../engine/store'
 import type { GameProps } from './types'
+import { PixelSprite } from '../art'
+import { Portrait } from './pixel'
 import './Lesson.css'
 
 type Step = { kind: 'meet'; word: Word } | { kind: 'quiz'; word: Word; dir: 'jp-en' | 'en-jp'; options: Word[] }
@@ -106,6 +108,12 @@ export default function Lesson({ activity, params, onFinish, onExit }: GameProps
             'Words you struggle with will return more often in future adventures.',
           ]}
         >
+          <div className="lesson-teacher">
+            <Portrait id={activity.region <= 2 ? 'elder' : 'fude'} scale={4} ground={activity.region <= 2 ? 'grass' : 'tatami'} />
+            <p className="lesson-teacher-say">
+              <T en="Here are today's words of power." jp="きょうの ことばは これだよ。" />
+            </p>
+          </div>
           <div className="lesson-preview">
             {words.map((w) => (
               <span key={w.id} title={w.en}>
@@ -124,7 +132,15 @@ export default function Lesson({ activity, params, onFinish, onExit }: GameProps
         {burst}
         {step.kind === 'meet' ? (
           <div className="lesson-meet pop">
-            <div className="lesson-emoji float">{step.word.emoji}</div>
+            <div className="lesson-stage">
+              <span className="lesson-presenter" aria-hidden>
+                <span className="lesson-say" lang="ja">
+                  みて！
+                </span>
+                <PixelSprite id={activity.region <= 2 ? 'elder' : 'fude'} scale={4} dir="right" animate />
+              </span>
+              <div className="lesson-emoji float">{step.word.emoji}</div>
+            </div>
             <Jp text={step.word.jp} reading={step.word.kana} big />
             <div className="lesson-en">{step.word.en}</div>
             {step.word.masu && (

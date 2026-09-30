@@ -279,3 +279,48 @@
     animation-duration: 0.01s;
   }
 }
+
+/* Fude, the brush spirit, floats beside the scroll and reacts to your strokes. */
+.ad-helper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 420px;
+  min-height: 48px;
+}
+
+.ad-helper .feedback {
+  flex: 1;
+  text-align: left;
+}
+
+.ad-fude {
+  line-height: 0;
+  flex-shrink: 0;
+  animation: float 3s steps(6) infinite;
+}
+
+.ad-fude-good {
+  animation: adFudeHop 0.5s steps(4);
+}
+
+.ad-fude-bad {
+  animation: shake 0.4s;
+}
+
+@keyframes adFudeHop {
+  50% {
+    transform: translateY(-12px);
+  }
+}
+
+.ad-helper .feedback:empty {
+  display: none;
+}
+
+.ad-fude-idle {
+  flex: 1;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
