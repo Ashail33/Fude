@@ -5,6 +5,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { toHiragana } from 'wanakana'
 import type { SpriteId } from '../art'
+import { preloadHd, SPRITE_TO_HD, useHdLoaded } from '../art/hd'
 import { CommandMenu } from '../components/CommandMenu'
 import { KanaInput } from '../components/ui'
 import { activitiesFor, bossOf, REGIONS, STAGE_LABEL } from '../data/regions'
@@ -15,6 +16,7 @@ import { sfx } from '../engine/sfx'
 import { speak } from '../engine/speech'
 import { activityUnlocked, immersionOf, recordReviews, regionUnlocked, usePlayer } from '../engine/store'
 import type { Activity } from '../games/types'
+import { VnBusts, type Bust } from '../ui/Hd'
 import { uiSound } from '../ui/sound'
 import { Sprite } from './Sprite'
 import type { Line } from './types'
@@ -70,7 +72,8 @@ function Typewriter({ text, onDone, skip }: { text: string; onDone: () => void; 
   )
 }
 
-function SayStep({ step, onNext }: { step: Extract<Step, { kind: 'say' }>; onNext: () => void }) {
+function SayStep({ step, onNext, bust }: { step: Extract<Step, { kind: 'say' }>; onNext: () => void; bust?: string }) {
+  const bustShown = useHdLoaded(bust)
   const p = usePlayer()
   const lvl = immersionOf(p)
   const [typed, setTyped] = useState(false)
@@ -105,7 +108,7 @@ function SayStep({ step, onNext }: { step: Extract<Step, { kind: 'say' }>; onNex
   }, [])
   return (
     <div className="dq-msg" onClick={() => adv.current()}>
-      {step.portrait && (
+      {step.portrait && !bustShown && (
         <div className="dq-portrait">
           <Sprite id={step.portrait} scale={3} animate />
         </div>
@@ -286,11 +289,48 @@ function RecallStep({ step, onResult }: { step: Extract<Step, { kind: 'recall' }
   )
 }
 
+/** Boss encounters (by activity id) → boss illustration. */
+const BOSS_ACTIVITY_HD: Record<string, string> = {
+  'r1-boss': 'kana-oni',
+  'r2-boss': 'radical-golem',
+  'r3-boss': 'particle-guardian',
+  'r4-boss': 'silent-librarian',
+  'r5-chimera': 'shifting-chimera',
+  'r5-dragon': 'void-dragon',
+}
+const HEROES = new Set(['mage', 'fude'])
+
+const portraitOf = (s: Step | undefined): SpriteId | undefined => (s && (s.kind === 'say' || s.kind === 'activity') ? s.portrait : undefined)
+
 export function Dialog({ steps, speaker, onClose, onStart }: { steps: Step[]; speaker?: Line; onClose: () => void; onStart: (a: Activity) => void }) {
   // The parent remounts the dialog (via `key`) for each new conversation.
   const [queue, setQueue] = useState(steps)
   const [i, setI] = useState(0)
   const step = queue[i]
+
+  // ─── Visual-novel bust (illustrated portrait) when available ───
+  const bossId = useMemo(() => {
+    const a = queue.find((s) => s.kind === 'activity')
+    return a?.kind === 'activity' ? BOSS_ACTIVITY_HD[a.activity.id] : undefined
+  }, [queue])
+  const hdOf = (sp: SpriteId | undefined) => (!sp ? undefined : bossId && !HEROES.has(sp) ? bossId : SPRITE_TO_HD[sp])
+  useEffect(() => {
+    preloadHd(queue.map((s) => hdOf(portraitOf(s))))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queue])
+  let bustSprite: SpriteId | undefined
+  for (let k = Math.min(i, queue.length - 1); k >= 0; k--) {
+    const sp = portraitOf(queue[k])
+    if (sp && hdOf(sp)) {
+      bustSprite = sp
+      break
+    }
+  }
+  const curPortrait = portraitOf(step)
+  const bustId = hdOf(bustSprite)
+  const bustActive = !(step?.kind === 'say' && curPortrait !== bustSprite)
+  const busts: Bust[] = bustId ? [{ id: bustId, side: HEROES.has(bustSprite!) ? 'left' : 'right', active: bustActive }] : []
+
   useEffect(() => {
     if (!step) onClose()
   }, [step, onClose])
@@ -305,7 +345,7 @@ export function Dialog({ steps, speaker, onClose, onStart }: { steps: Step[]; sp
   let body: ReactNode
   switch (step.kind) {
     case 'say':
-      body = <SayStep key={i} step={step} onNext={() => next()} />
+      body = <SayStep key={i} step={step} onNext={() => next()} bust={hdOf(step.portrait)} />
       break
     case 'activity':
       body = <ActivityStep key={i} step={step} onStart={onStart} onNext={() => next()} />
@@ -327,6 +367,8 @@ export function Dialog({ steps, speaker, onClose, onStart }: { steps: Step[]; sp
   }
   return (
     <div className="dq-layer" role="dialog" aria-live="polite">
+      <div className="dq-dock">
+      <VnBusts busts={busts} className="dq-vn" />
       <div className="win dq-win">
         {name && (
           <div className="win-title dq-name">
@@ -335,6 +377,7 @@ export function Dialog({ steps, speaker, onClose, onStart }: { steps: Step[]; sp
           </div>
         )}
         {body}
+      </div>
       </div>
     </div>
   )

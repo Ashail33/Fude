@@ -439,6 +439,7 @@ export default function Overworld() {
     return () => {
       cancelAnimationFrame(raf)
       window.removeEventListener('resize', resize)
+      r.dispose()
       clearTimeout(saveTimer.current)
       const cur = Wd.current
       if (cur) setWorldPos({ map: cur.map.id, x: cur.player.x, y: cur.player.y, dir: cur.player.dir })

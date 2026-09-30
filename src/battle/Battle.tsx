@@ -9,6 +9,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import type { EnemySprite } from '../art'
 import { PixelSprite, spriteCanvas } from '../art'
+import { preloadHd, useHdLoaded, useHdLoadedMany } from '../art/hd'
 import { KanaInput } from '../components/ui'
 import { ELEMENT_SPELLS } from '../data/sentences'
 import { ELEMENT_WORD, checkIncantation } from '../games/incantation'
@@ -18,6 +19,7 @@ import { sfx } from '../engine/sfx'
 import { canSpeak, speak } from '../engine/speech'
 import { addItem, getState, grantRewards, immersionOf, level, recordReviews, usePlayer, type ImmersionLevel } from '../engine/store'
 import Backdrop from './Backdrop'
+import { battleBackdropId, enemyHdId, FLOATING } from './hd'
 import { ITEMS, ITEM_BY_ID } from './items'
 import {
   SPELL_COST,
@@ -236,6 +238,14 @@ export default function Battle({ region, enemies, onEnd }: BattleProps) {
     return () => ro.disconnect()
   }, [])
 
+  // ─── Illustrated art (falls back to the pixel art while missing) ─────
+  const bgId = battleBackdropId(reg, isBoss)
+  const hdIds = useMemo(() => initial.enemies.map((e) => enemyHdId(e.def.id)), [initial])
+  useEffect(() => preloadHd([bgId, 'mage', ...hdIds]), [bgId, hdIds])
+  const hdBg = useHdLoaded(bgId)
+  const hdEnemy = useHdLoadedMany(hdIds)
+  const hdMage = useHdLoaded('mage')
+
   const listenOk = canSpeak() && player.settings.voice
   const spells = useMemo(() => availableSpells(player.spells, reg), [player.spells, reg])
   const bagItems = ITEMS.filter((i) => (player.bag?.[i.id] ?? 0) > 0)
@@ -262,7 +272,7 @@ export default function Battle({ region, enemies, onEnd }: BattleProps) {
   }, [])
 
   const enemyCenter = (i: number) => {
-    const el = enemyRefs.current[i]?.querySelector('canvas')
+    const el = enemyRefs.current[i]?.querySelector('canvas, img')
     const root = rootRef.current
     if (!el || !root) return { x: fieldSize.w / 2, y: fieldSize.h / 2, h: 64 }
     const a = el.getBoundingClientRect()
@@ -407,9 +417,16 @@ export default function Battle({ region, enemies, onEnd }: BattleProps) {
           bsfx.enemyDie()
           setEnemyFx(ev.target, 'dying')
           addFx(sparks(c.x, c.y, '#f7c948', 12, 110), 1000)
+          if (hdEnemy[ev.target]) {
+            // The illustration dissolves upward into motes of light.
+            addFx(
+              Array.from({ length: 22 }, () => ({ kind: 'spark' as const, x: c.x + (Math.random() - 0.5) * c.h * 0.6, y: c.y + (Math.random() - 0.3) * c.h * 0.6, color: Math.random() < 0.5 ? '#fff6d8' : '#f7c948', dx: (Math.random() - 0.5) * 40, dy: -60 - Math.random() * 90, size: 2 + Math.floor(Math.random() * 3) * 2 })),
+              1100,
+            )
+          }
           await sleep(200)
           addFx(sparks(c.x, c.y - c.h * 0.2, '#ffffff', 14, 80), 1000)
-          await sleep(350)
+          await sleep(hdEnemy[ev.target] ? 520 : 350)
           setEnemyFx(ev.target, 'dead')
           break
         }
@@ -1192,12 +1209,17 @@ export default function Battle({ region, enemies, onEnd }: BattleProps) {
     >
       <div className="bt-stage">
         <Backdrop region={reg} horizon={horizon} />
-        {reg >= 4 && <div className="bt-twinkle" aria-hidden />}
+        {reg >= 4 && !hdBg && <div className="bt-twinkle" aria-hidden />}
+        {hdBg && (
+          <div className="bt-hd-bg" aria-hidden>
+            <img className="hd-img" src={hdBg} alt="" draggable={false} />
+          </div>
+        )}
       </div>
       <div className="bt-field" ref={fieldRef}>
         <div ref={statusRef} className={`bt-win bt-status ${hpLow ? 'low' : ''} ${hurt ? 'hurt' : ''}`}>
-          <div className="bt-portrait">
-            <PixelSprite id="mage" scale={2} animate outfit={player.outfit} />
+          <div className={`bt-portrait ${hdMage ? 'hd' : ''}`}>
+            {hdMage ? <img className="hd-img" src={hdMage} alt="" draggable={false} /> : <PixelSprite id="mage" scale={2} animate outfit={player.outfit} />}
           </div>
           <div className="bt-stats">
             <div className="bt-name">
@@ -1222,24 +1244,36 @@ export default function Battle({ region, enemies, onEnd }: BattleProps) {
           </div>
         </div>
         <div className="bt-enemies" style={{ bottom: `${ENEMY_BOTTOM * 100}%` }}>
-          {view.enemies.map((e, i) => (
+          {view.enemies.map((e, i) => {
+            const hd = hdEnemy[i]
+            const floats = FLOATING.has(e.def.id)
+            const dragon = e.def.id === 'dragon'
+            // Illustrations are sized to the stage, not to the pixel grid.
+            const boxH = fieldSize.h * (dragon ? 0.72 : n === 1 ? 0.52 : n === 2 ? 0.46 : 0.4)
+            const boxW = dragon ? fieldSize.w * 1.05 : (fieldSize.w * 0.94) / n - 8
+            const shadowW = Math.min(boxW, boxH) * (floats ? 0.42 : 0.62)
+            return (
             <button
               key={e.uid}
               type="button"
               ref={(el) => {
                 enemyRefs.current[i] = el
               }}
-              className={`bt-enemy ${efx[i] ?? ''} ${targetIdx === i ? 'targeted' : ''}`}
-              style={{ '--d': `${i * 110}ms`, '--s': (scale * spriteSize) / 32 } as CSSProperties}
+              className={`bt-enemy ${efx[i] ?? ''} ${targetIdx === i ? 'targeted' : ''} ${hd ? 'hd' : ''} ${hd && floats ? 'floats' : ''} ${hd && dragon ? 'dragon' : ''}`}
+              style={{ '--d': `${i * 110}ms`, '--s': (scale * spriteSize) / 32, '--bd': `${-i * 0.9}s` } as CSSProperties}
               disabled={e.hp <= 0 || phase !== 'target'}
               onClick={() => phase === 'target' && begin(act, i)}
               aria-label={`${e.name} ${e.nameEn}`}
             >
               {targetIdx === i && <span className="bt-target">▼</span>}
               <span className="bt-sprite">
-                <PixelSprite id={e.def.id} scale={scale} animate flash={flashing[i]} />
+                {hd ? (
+                  <img className={`hd-img bt-hd-enemy ${flashing[i] ? 'flash' : ''}`} src={hd} alt="" draggable={false} style={{ maxHeight: boxH, maxWidth: boxW }} />
+                ) : (
+                  <PixelSprite id={e.def.id} scale={scale} animate flash={flashing[i]} />
+                )}
               </span>
-              <span className="bt-shadow" />
+              <span className="bt-shadow" style={hd ? { width: shadowW, height: shadowW * 0.16, marginTop: floats ? shadowW * 0.12 : -shadowW * 0.09 } : undefined} />
               <span className="bt-ename">
                 <span lang="ja">
                   {e.name}
@@ -1255,7 +1289,8 @@ export default function Battle({ region, enemies, onEnd }: BattleProps) {
                 </span>
               </span>
             </button>
-          ))}
+            )
+          })}
         </div>
         {chant && (
           <div className="bt-chant" style={{ color: chant.color }} lang="ja">

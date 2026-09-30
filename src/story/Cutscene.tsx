@@ -6,12 +6,15 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ENEMY_SPRITES, PixelSprite } from '../art'
+import { BOSS_HD, preloadHd, speakerHd, useHdLoaded } from '../art/hd'
+import { preloadRegionHd } from '../battle/hd'
 import { playMusic } from '../engine/music'
 import { sfx } from '../engine/sfx'
 import { speak } from '../engine/speech'
 import { getState, immersionOf, markScene, usePlayer } from '../engine/store'
 import { SceneBackdrop } from './Backdrop'
-import { backdropAt, castAt, fill, SCENES, SPEAKERS, speechText, type ActorId } from './scenes'
+import { KenBurns, VnBusts, type Bust } from '../ui/Hd'
+import { backdropAt, castAt, fill, MAP_IDS, SCENES, SPEAKERS, speechText, type ActorId, type Backdrop, type Scene } from './scenes'
 import './Cutscene.css'
 
 export interface CutsceneProps {
@@ -28,6 +31,42 @@ export function hasScene(id: string): boolean {
 const HEROES: ActorId[] = ['you', 'fude']
 const isEnemy = (sprite: string) => (ENEMY_SPRITES as readonly string[]).includes(sprite)
 const SKIP_HOLD_MS = 650
+
+/** Illustrated backdrop for the story backdrops that match a region. */
+const BG_HD: Partial<Record<Backdrop, string>> = { village: 'battle-village', fields: 'battle-fields', forest: 'battle-forest', shrine: 'battle-shrine', tower: 'battle-tower', 'night-hill': 'intro-3', dawn: 'ending' }
+
+/**
+ * The illustration behind step `i`: a full scene still (the characters are
+ * painted in, so pixel actors hide) or a region backdrop (bosses stand on it).
+ */
+export function sceneArt(scene: Scene, i: number): { id: string; still: boolean } | null {
+  const bg = backdropAt(scene, i)
+  if (scene.id === 'intro') return { id: bg !== 'void' ? 'intro-3' : i <= 2 ? 'intro-1' : 'intro-2', still: true }
+  if (scene.id.startsWith('arrive-')) return { id: scene.id, still: true }
+  if (scene.id === 'ending') return bg === 'dawn' ? { id: 'ending', still: true } : { id: 'battle-summit', still: false }
+  if (bg === 'void') return /-r5$/.test(scene.id) ? { id: 'battle-summit', still: false } : null
+  const id = BG_HD[bg]
+  return id ? { id, still: id.startsWith('intro') || id === 'ending' } : null
+}
+
+/** Boss actors (drawn as big illustrations on stage). */
+const bossHd = (a: ActorId): string | undefined => (a in BOSS_HD ? BOSS_HD[a] : undefined)
+
+/** All art a scene may show (to preload). */
+function sceneAssets(scene: Scene): string[] {
+  const ids = new Set<string>()
+  scene.steps.forEach((_, i) => {
+    const art = sceneArt(scene, i)
+    if (art) ids.add(art.id)
+    castAt(scene, i).forEach((a) => {
+      const b = bossHd(a)
+      if (b) ids.add(b)
+    })
+  })
+  for (const st of scene.steps) if (st.who) ids.add(speakerHd(SPEAKERS[st.who].sprite, bossHd(st.who) ? st.who : null) ?? '')
+  ids.delete('')
+  return [...ids]
+}
 
 function blip() {
   ;(sfx as unknown as Record<string, (() => void) | undefined>).blip?.()
@@ -59,6 +98,14 @@ export function Cutscene({ id, onDone }: CutsceneProps) {
 
   useEffect(() => {
     if (scene?.music) playMusic(scene.music)
+  }, [scene])
+
+  // Warm the illustration cache (this scene, and the region's battles after an arrival).
+  useEffect(() => {
+    if (!scene) return
+    preloadHd(sceneAssets(scene))
+    const r = MAP_IDS.findIndex((m) => scene.id === `arrive-${m}`)
+    if (r >= 0) preloadRegionHd(r + 1)
   }, [scene])
 
   const step = scene?.steps[i]
@@ -155,6 +202,48 @@ export function Cutscene({ id, onDone }: CutsceneProps) {
   const cast = useMemo(() => (scene ? castAt(scene, i) : []), [scene, i])
   const bg = scene ? backdropAt(scene, i) : 'void'
 
+  // ─── Illustrated art (falls back to the tile diorama + pixel actors) ───
+  const art = scene ? sceneArt(scene, i) : null
+  const artUrl = useHdLoaded(art?.id)
+  const stageBossActor = cast.find((a) => bossHd(a))
+  const stageBossUrl = useHdLoaded(artUrl && !art?.still && stageBossActor ? bossHd(stageBossActor) : null)
+  const illustrated = !!artUrl && (!!art?.still || !!stageBossUrl)
+  /** Last hero / other speaker so far (for the visual-novel busts). */
+  const speakers = useMemo(() => {
+    let hero: ActorId | undefined
+    let other: ActorId | undefined
+    if (scene)
+      for (let k = 0; k <= i && k < scene.steps.length; k++) {
+        const w = scene.steps[k].who
+        if (!w) continue
+        if (HEROES.includes(w)) hero = w
+        else other = w
+      }
+    return { hero, other }
+  }, [scene, i])
+  const bustOf = (a: ActorId | undefined) => (a ? speakerHd(SPEAKERS[a].sprite, bossHd(a) ? a : null) : undefined)
+  const busts: Bust[] = []
+  if (speakers.hero) {
+    const id = bustOf(speakers.hero)
+    if (id) busts.push({ id, side: 'left', active: step?.who === speakers.hero })
+  }
+  if (speakers.other && cast.includes(speakers.other) && !(stageBossUrl && speakers.other === stageBossActor)) {
+    const id = bustOf(speakers.other)
+    if (id) busts.push({ id, side: 'right', active: step?.who === speakers.other })
+  }
+  const whoBust = useHdLoaded(step?.who && !(stageBossUrl && step.who === stageBossActor) ? bustOf(step.who) : null)
+  const hidePortrait = !!whoBust || (!!stageBossUrl && step?.who === stageBossActor)
+
+  // Screen shake without remounting the stage (keeps the art's pan/zoom running).
+  const stageRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!step?.shake) return
+    stageRef.current?.animate?.(
+      [{ transform: 'translateX(0)' }, { transform: 'translateX(-8px)' }, { transform: 'translateX(8px)' }, { transform: 'translateX(-5px)' }, { transform: 'translateX(5px)' }, { transform: 'translateX(0)' }],
+      { duration: 400, easing: 'steps(6)' },
+    )
+  }, [i, step])
+
   if (!scene || !step) return null
 
   const speaker = step.who ? SPEAKERS[step.who] : null
@@ -166,9 +255,20 @@ export function Cutscene({ id, onDone }: CutsceneProps) {
   return (
     <div className="cutscene" role="dialog" aria-label={scene.title} onClick={advance}>
       <div className="cs-bar cs-bar-top" />
-      <div key={step.shake ? `s${i}` : 'stage'} className={`cs-stage ${step.shake ? 'cs-shake' : ''}`}>
+      <div ref={stageRef} className={`cs-stage ${illustrated ? 'illustrated' : ''}`}>
         <SceneBackdrop key={bg} bg={bg} className="cs-fade-in" />
-        <div className="cs-actors">
+        <KenBurns url={artUrl} className="cs-art" motion={art?.still ? undefined : 'kb-c'} />
+        {stageBossUrl && stageBossActor && (
+          <div key={stageBossActor} className={`cs-boss ${stageBossActor === 'dragon' ? 'dragon' : ''} ${step.who === stageBossActor ? 'talking' : step.who ? 'listening' : ''}`}>
+            {emoteTarget === stageBossActor && (
+              <span key={`e${i}`} className="cs-emote">
+                {step.emote}
+              </span>
+            )}
+            <img className="hd-img" src={stageBossUrl} alt="" draggable={false} />
+          </div>
+        )}
+        <div className={`cs-actors ${illustrated ? 'hidden' : ''}`}>
           {[...heroes.map((a, k) => ({ a, side: 'left' as const, k, n: heroes.length })), ...others.map((a, k) => ({ a, side: 'right' as const, k, n: others.length }))].map(({ a, side, k, n }) => {
             const sp = SPEAKERS[a]
             const enemy = isEnemy(sp.sprite)
@@ -188,16 +288,29 @@ export function Cutscene({ id, onDone }: CutsceneProps) {
         {step.flash && <div key={`f${i}`} className="cs-flash" style={{ background: step.flash }} />}
       </div>
 
+      <div className="cs-dock">
+      {!isPause && busts.length > 0 && (
+        <div className="cs-vn">
+          <VnBusts busts={busts} />
+          {emoteTarget && busts.some((b) => b.active) && illustrated && emoteTarget === step.who && (
+            <span key={`ve${i}`} className={`cs-emote cs-vn-emote ${HEROES.includes(emoteTarget) ? 'left' : 'right'}`}>
+              {step.emote}
+            </span>
+          )}
+        </div>
+      )}
       {!isPause && (
-        <div key={`m${i}`} className={`cs-window card ${speaker ? '' : 'narration'}`}>
+        <div key={`m${i}`} className={`cs-window card ${speaker ? '' : 'narration'} ${speaker && hidePortrait ? 'no-portrait' : ''}`}>
           {speaker && (
             <>
               <div className="cs-name" style={{ color: speaker.color }}>
                 {fill(imm >= 2 ? speaker.jp : speaker.name, p.name)}
               </div>
-              <div className="cs-portrait">
-                <PixelSprite id={speaker.sprite} scale={isEnemy(speaker.sprite) ? 2 : 4} dir="down" animate />
-              </div>
+              {!hidePortrait && (
+                <div className="cs-portrait">
+                  <PixelSprite id={speaker.sprite} scale={isEnemy(speaker.sprite) ? 2 : 4} dir="down" animate />
+                </div>
+              )}
             </>
           )}
           <div className="cs-text">
@@ -226,6 +339,7 @@ export function Cutscene({ id, onDone }: CutsceneProps) {
           {!typing && <span className="cs-more">▼</span>}
         </div>
       )}
+      </div>
 
       <button
         type="button"

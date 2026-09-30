@@ -5,10 +5,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PixelSprite } from '../art'
+import { preloadHd, useHdLoaded, useMediaQuery, useOptionalMedia } from '../art/hd'
 import { CommandMenu } from '../components/CommandMenu'
 import { playMusic } from '../engine/music'
 import { resetProgress, usePlayer } from '../engine/store'
 import { SceneBackdrop } from '../story/Backdrop'
+import '../ui/hd.css'
 import { uiSound } from '../ui/sound'
 import Onboarding from './Onboarding'
 
@@ -78,11 +80,43 @@ function Petals({ count = 16 }: { count?: number }) {
   )
 }
 
+/**
+ * Illustrated key art (landscape or portrait), or the optional looping video,
+ * behind the logo. Renders nothing until something is ready to show.
+ */
+function TitleArt({ onReady }: { onReady: (ready: boolean) => void }) {
+  const portrait = useMediaQuery('(orientation: portrait)')
+  const calm = useMediaQuery('(prefers-reduced-motion: reduce)')
+  const id = portrait ? 'title-tall' : 'title-wide'
+  useEffect(() => preloadHd([id]), [id])
+  const main = useHdLoaded(id)
+  const other = useHdLoaded(portrait ? 'title-wide' : 'title-tall')
+  const still = main ?? other
+  const video = useOptionalMedia('art/hd/title/title-loop.mp4', 'video/')
+  const [playing, setPlaying] = useState(false)
+  const useVideo = !!video && !calm
+  const ready = !!still || playing
+  const cb = useRef(onReady)
+  cb.current = onReady
+  useEffect(() => cb.current(ready), [ready])
+  if (!still && !useVideo) return null
+  return (
+    <div className={`title-hd ${ready ? 'ready' : ''} ${portrait ? 'tall' : 'wide'}`} aria-hidden>
+      {still && <img className="hd-img title-hd-img" src={still} alt="" draggable={false} />}
+      {useVideo && (
+        <video className={`title-hd-video ${playing ? 'on' : ''}`} src={video} poster={still ?? undefined} autoPlay muted loop playsInline preload="auto" onPlaying={() => setPlaying(true)} onError={() => setPlaying(false)} />
+      )}
+      <div className="title-hd-shade" />
+    </div>
+  )
+}
+
 export default function Title() {
   const p = usePlayer()
   const nav = useNavigate()
   const hasSave = p.onboarded
   const [phase, setPhase] = useState<Phase>('press')
+  const [hd, setHd] = useState(false)
 
   // Music: try now, and again on the first gesture (autoplay policies).
   useEffect(() => {
@@ -128,7 +162,7 @@ export default function Title() {
 
   return (
     <div
-      className="title-screen"
+      className={`title-screen ${hd ? 'has-hd' : ''}`}
       onClick={() => {
         if (phase === 'press') {
           uiSound.confirm()
@@ -138,7 +172,8 @@ export default function Title() {
     >
       <SceneBackdrop bg="night-hill" className="title-backdrop" />
       <Moon />
-      <div className="title-hill-cast" aria-hidden>
+      <TitleArt onReady={setHd} />
+      <div className="title-hill-cast" aria-hidden hidden={hd}>
         <span className="title-mage">
           <PixelSprite id="mage" outfit={p.onboarded ? p.outfit : 'apprentice'} dir="right" scale={4} animate />
         </span>

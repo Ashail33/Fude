@@ -23,6 +23,13 @@
   display: block;
 }
 
+/* HD-2D WebGL layer (src/fx) — sits over the 2D canvas, sized in JS. */
+.ow-canvas.ow-fx {
+  right: auto;
+  bottom: auto;
+  pointer-events: none;
+}
+
 .ow-root .win {
   padding: 6px 10px;
 }

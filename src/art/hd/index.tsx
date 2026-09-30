@@ -5,9 +5,11 @@
  */
 import { useEffect, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from 'react'
 import { HD_BY_ID, hdUrl } from './manifest'
+import './hd.css'
 
 let available: Set<string> = new Set()
 let loaded = false
+let listReady = false
 const listeners = new Set<() => void>()
 
 function load() {
@@ -19,6 +21,10 @@ function load() {
       if (Array.isArray(ids)) {
         available = new Set(ids.filter((x): x is string => typeof x === 'string' && HD_BY_ID.has(x)))
         listeners.forEach((l) => l())
+        listReady = true
+        const q = [...pending]
+        pending.clear()
+        preloadHd(q)
       }
     })
     .catch(() => {})
@@ -42,9 +48,123 @@ export function hdAvailable(id: string): boolean {
   return available.has(id)
 }
 
-/** Preload images so they appear instantly when needed. */
-export function preloadHd(ids: string[]) {
-  for (const id of ids) if (available.has(id)) new Image().src = hdUrl(id)
+/** Ids asked for before the list arrived. */
+const pending = new Set<string>()
+
+/** Fully decoded image URLs (safe to show without pop-in). */
+let decoded: Set<string> = new Set()
+const decoding = new Map<string, Promise<boolean>>()
+const decodedListeners = new Set<() => void>()
+
+/** Load and decode one image URL once; resolves true when it can be shown. */
+export function loadHdUrl(url: string): Promise<boolean> {
+  if (decoded.has(url)) return Promise.resolve(true)
+  let p = decoding.get(url)
+  if (p) return p
+  p = new Promise<boolean>((res) => {
+    if (typeof Image === 'undefined') return res(false)
+    const img = new Image()
+    img.decoding = 'async'
+    img.onload = () => {
+      const done = () => {
+        decoded = new Set(decoded).add(url)
+        decodedListeners.forEach((l) => l())
+        res(true)
+      }
+      if (img.decode) img.decode().then(done, done)
+      else done()
+    }
+    img.onerror = () => res(false)
+    img.src = url
+  })
+  decoding.set(url, p)
+  return p
+}
+
+/** Preload images so they appear instantly when needed (safe to call before the list has loaded). */
+export function preloadHd(ids: (string | undefined | null)[]) {
+  load()
+  for (const id of ids) {
+    if (!id) continue
+    if (available.has(id)) void loadHdUrl(hdUrl(id))
+    else if (!listReady) pending.add(id)
+  }
+}
+
+function subscribeDecoded(l: () => void) {
+  load()
+  decodedListeners.add(l)
+  listeners.add(l)
+  return () => {
+    decodedListeners.delete(l)
+    listeners.delete(l)
+  }
+}
+
+/**
+ * The asset URL once it is available AND decoded (reactive), else null.
+ * Use this to choose between the illustration and the pixel fallback
+ * without a half-loaded frame.
+ */
+export function useHdLoaded(id: string | undefined | null): string | null {
+  const url = id && available.has(id) ? hdUrl(id) : null
+  useSyncExternalStore(subscribeDecoded, () => decoded, () => decoded)
+  useSyncExternalStore(subscribe, () => available, () => available)
+  useEffect(() => {
+    if (url) void loadHdUrl(url)
+  }, [url])
+  return url && decoded.has(url) ? url : null
+}
+
+/** Like useHdLoaded for a list of ids (stable length not required). */
+export function useHdLoadedMany(ids: (string | undefined | null)[]): (string | null)[] {
+  const dec = useSyncExternalStore(subscribeDecoded, () => decoded, () => decoded)
+  const av = useSyncExternalStore(subscribe, () => available, () => available)
+  const urls = ids.map((id) => (id && av.has(id) ? hdUrl(id) : null))
+  const sig = urls.join('|')
+  useEffect(() => {
+    for (const u of sig.split('|')) if (u) void loadHdUrl(u)
+  }, [sig])
+  return urls.map((u) => (u && dec.has(u) ? u : null))
+}
+
+/** Reactive CSS media query. */
+export function useMediaQuery(query: string): boolean {
+  const get = () => typeof window !== 'undefined' && !!window.matchMedia?.(query).matches
+  const [m, setM] = useState(get)
+  useEffect(() => {
+    const mq = window.matchMedia?.(query)
+    if (!mq) return
+    const on = () => setM(mq.matches)
+    on()
+    mq.addEventListener?.('change', on)
+    return () => mq.removeEventListener?.('change', on)
+  }, [query])
+  return m
+}
+
+/** Optional extra media (e.g. the title video): checked once with HEAD. */
+const mediaChecks = new Map<string, Promise<boolean>>()
+export function useOptionalMedia(path: string, prefix: string): string | null {
+  const url = `${import.meta.env?.BASE_URL ?? './'}${path}`
+  const [ok, setOk] = useState(false)
+  useEffect(() => {
+    let alive = true
+    let p = mediaChecks.get(url)
+    if (!p) {
+      p = typeof fetch === 'undefined'
+        ? Promise.resolve(false)
+        : fetch(url, { method: 'HEAD' })
+            .then((r) => r.ok && (r.headers.get('content-type') ?? '').startsWith(prefix))
+            .catch(() => false)
+      mediaChecks.set(url, p)
+    }
+    p.then((v) => alive && setOk(v))
+    return () => {
+      alive = false
+    }
+  }, [url])
+  return ok ? url : null
 }
 
 /** Map pixel sprite ids to illustrated portrait/enemy ids. */
@@ -92,6 +212,12 @@ export const BOSS_HD: Record<string, string> = {
   'boss-librarian': 'silent-librarian',
   'boss-chimera': 'shifting-chimera',
   'boss-dragon': 'void-dragon',
+}
+
+/** HD art for a story/dialogue speaker: boss art for boss keys, else the portrait/enemy art. */
+export function speakerHd(sprite?: string | null, key?: string | null): string | undefined {
+  if (key && BOSS_HD[key]) return BOSS_HD[key]
+  return sprite ? SPRITE_TO_HD[sprite] : undefined
 }
 
 /**

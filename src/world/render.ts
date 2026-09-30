@@ -38,6 +38,9 @@ function spriteSize(id: SpriteId): { w: number; h: number } {
 import { cameraFor, chooseScale, walkerPos, type Walker, type World } from './engine'
 import { ANIMATED } from './mapdef'
 import type { Entity, Exit, GameMap, ParticleKind, Pt } from './types'
+import { PostFX } from '../fx/PostFX'
+import { gradeFor } from '../fx/grades'
+import { mapLights, tileLight, type Light } from '../fx/lights'
 
 export interface RenderInfo {
   outfit: string
@@ -88,12 +91,26 @@ export class Renderer {
   puffs: { x: number; y: number; at: number; kind: 'leaf' | 'dust' }[] = []
   /** Last tap-to-walk target (drawn briefly). */
   tap: { x: number; y: number; at: number } | null = null
+  /** HD-2D WebGL post-process (null → plain 2D). */
+  fx: PostFX | null = null
+  /** Static tile lights of the current map (world px). */
+  lights: Light[] = []
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas
     this.ctx = canvas.getContext('2d')!
     this.buf = document.createElement('canvas')
     this.b = this.buf.getContext('2d')!
+    try {
+      if (canvas.parentElement) this.fx = new PostFX(canvas.parentElement, canvas)
+    } catch (err) {
+      console.warn('[fx] unavailable', err)
+    }
+  }
+
+  dispose() {
+    this.fx?.dispose()
+    this.fx = null
   }
 
   resize(cssW: number, cssH: number, dpr: number) {
@@ -106,6 +123,7 @@ export class Renderer {
     this.buf.width = this.vw
     this.buf.height = this.vh
     this.vignette = null
+    this.fx?.resize(this.vw, this.vh, this.scale, dpr)
     this.seedParticles()
   }
 
@@ -145,6 +163,9 @@ export class Renderer {
         if (m.over[i]) this.overCells.push(i)
       }
     this.stat = c
+    const grade = gradeFor(m.spec)
+    this.fx?.setGrade(grade)
+    this.lights = mapLights(m, grade.night)
     this.particleKind = m.spec.particles
     this.seedParticles()
   }
@@ -204,6 +225,9 @@ export class Renderer {
   }
 
   startBattleFx(now: number) {
+    // The FX canvas is on top; bake its last frame into the 2D canvas the effect animates.
+    this.fx?.drawTo(this.ctx, this.vw * this.scale, this.vh * this.scale)
+    this.fx?.setVisible(false)
     const snap = document.createElement('canvas')
     snap.width = this.canvas.width
     snap.height = this.canvas.height
@@ -509,6 +533,13 @@ export class Renderer {
     }
     this.updateParticles(dt, now)
 
+    const fx = this.fx
+    if (fx && fx.active && !this.battleFx) {
+      fx.setLights(this.frameLights(world, now, info))
+      if (fx.render(this.buf, { cam, focusY: pp.y - cam.y + 12, now, fade: this.fade })) return
+    }
+    fx?.setVisible(false)
+
     // upscale to screen
     const ctx = this.ctx
     ctx.imageSmoothingEnabled = false
@@ -523,6 +554,37 @@ export class Renderer {
       ctx.fillRect(0, 0, this.canvas.width, this.canvas.height)
     }
     if (this.battleFx) this.drawBattleFx(now)
+  }
+
+  /** Static tile lights + entity props + the mage's staff orb, Fude, fireflies and quest markers. */
+  private frameLights(world: World, now: number, info: RenderInfo): Light[] {
+    const g = this.fx!.grade
+    const out = this.lights.slice()
+    for (const e of world.ents) {
+      const p = walkerPos(e)
+      if (e.spec.tile && !info.ghosts.has(e.spec.id)) {
+        const l = tileLight(e.spec.tile, 0, 0, g.night)
+        if (l) out.push({ ...l, x: l.x + p.x, y: l.y + p.y, seed: e.x * 1.7 + e.y })
+      }
+      // Quest markers stay readable at night.
+      if (info.markers.get(e.spec.id) === 'next') out.push({ x: p.x + (e.big ? 16 : 8), y: p.y - 14, r: 22, color: [1, 0.95, 0.85], intensity: 0.7 / Math.max(0.3, g.lights), flicker: 0, seed: 0 })
+    }
+    const pp = walkerPos(world.player)
+    if (g.orb > 0) {
+      const bob = Math.sin(now / 420) * 1.5
+      out.push({ x: pp.x + 8, y: pp.y + 2 + bob, r: 50, color: [1, 0.82, 0.55], intensity: g.orb / Math.max(0.3, g.lights), flicker: 0.06, seed: 1.3 })
+      const fp = walkerPos(world.fude)
+      out.push({ x: fp.x + 8, y: fp.y - 2, r: 26, color: [0.75, 0.9, 1], intensity: (g.orb * 0.6) / Math.max(0.3, g.lights), flicker: 0.1, seed: 4.1 })
+    }
+    if (this.particleKind === 'fireflies') {
+      let n = 0
+      for (const p of this.particles) {
+        if (n++ >= 8) break
+        const tw = (Math.sin(now / 300 + p.phase) + 1) / 2
+        out.push({ x: p.x, y: p.y, r: 16, color: [0.85, 1, 0.45], intensity: tw * 0.7, flicker: 0, seed: p.phase })
+      }
+    }
+    return out
   }
 
   /** Flash ×3, then the scene shatters into falling shards over black. */
