@@ -26,3 +26,4 @@ dist-ssr
 # scratch test scripts
 *.tmp.mjs
 .*-tmp.mjs
+.*-tmp*.mjs
