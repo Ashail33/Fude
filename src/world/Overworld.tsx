@@ -16,14 +16,14 @@ import { xpForLevel } from '../engine/rewards'
 import { sfx } from '../engine/sfx'
 import { speak } from '../engine/speech'
 import { strength } from '../engine/srs'
-import { addItem, getState, grantRewards, isPassed, level, markOpened, markScene, regionUnlocked, setWorldPos, usePlayer, type PlayerState } from '../engine/store'
+import { addItem, getState, grantRewards, isPassed, level, markOpened, markScene, regionUnlocked, setFlag, setWorldPos, usePlayer, type PlayerState } from '../engine/store'
 import type { Activity } from '../games/types'
 import { Cutscene, hasScene } from '../story/Cutscene'
 import { GameMenu } from '../ui/GameMenu'
 import { Bi, Dialog, type Step } from './Dialog'
 import { nextActivity } from './progress'
 import { entityAt, OPPOSITE, World } from './engine'
-import { castScript, entityGhost, entityMoved, entityVisible, fizzle, makeCtx, mapCastScript, storyMarkers, talkScript } from '../story/tales/engine'
+import { castScript, taleLog, entityGhost, entityMoved, entityVisible, fizzle, makeCtx, mapCastScript, storyMarkers, talkScript } from '../story/tales/engine'
 import { makeEntities } from './entities'
 import { tileSolid } from './mapdef'
 import { getMap, locateActivity, REGION_MAPS } from './maps'
@@ -101,6 +101,12 @@ function fudeHint(p: PlayerState, m: GameMap, n: number): Line {
   const ghosts = ghostIds(p, m).size
   const next = nextActivity(p, m.spec.region)
   const options: Line[] = []
+  const tale = taleLog(p).find((t) => !t.done)
+  if (tale) {
+    const st = tale.tale.stages[tale.stage]
+    options.push({ jp: `『${tale.tale.jp}』── ${st.jp}`, en: `“${tale.tale.title}”: ${st.en}` })
+  }
+  if (!p.flags?.['hint.cast']) options.push({ jp: '✨ボタン（Cキー）で ことばの まほうを つかえるよ。いろんな ものに ためしてみて！', en: 'Press ✨ (or C) to cast word magic — try it on all sorts of things!' })
   if (next) {
     const loc = locateActivity(next.id)
     const host = loc?.map.entitySpecs.find((e) => e.id === loc.entityId)
@@ -372,6 +378,7 @@ export default function Overworld() {
     const e = entityAt(w.ents, f.x, f.y) ?? null
     const c = makeCtx(e, storyHooks.current)
     const target = e?.spec.name
+    if (!getState().flags?.['hint.cast']) setFlag('hint.cast')
     fx('cast')
     setDialog({
       steps: [
