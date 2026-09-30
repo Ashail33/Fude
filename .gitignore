@@ -33,3 +33,6 @@ art-src/**/*.png
 art-src/**/*.jpg
 art-src/**/*.jpeg
 art-src/**/*.webp
+
+# 3D models are fetched at build time from art-src/models.json
+public/models/*.glb

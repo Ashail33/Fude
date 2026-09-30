@@ -25,6 +25,7 @@ import { ANCHOR, animateDyn, buildDiorama, voxDepth, VS, type Diorama } from './
 import { Post } from './post'
 import { voxelGeometry, voxelMaterial } from './voxel'
 import { buildModel, hasModel, type Model } from './models/chars'
+import { glbModel, glbReady } from './models/glb'
 import { Mesher, toonMaterial } from './models/kit'
 import { addProp } from './models/props'
 
@@ -568,13 +569,15 @@ export class Renderer3D extends Renderer {
 
   /** Show a smooth character model (built on first use / outfit change) at (x, y, z), facing `dir`. */
   private setModel(c: Card, id: string, outfit: string, x: number, y: number, z: number, dir: string, phase: number, moving: boolean, run: boolean, now: number) {
-    const key = `${id}|${outfit}`
+    // a generated 3D model replaces the built-in toy one as soon as it has loaded
+    const glb = !c.ghost && glbReady(id)
+    const key = `${id}|${outfit}|${glb ? 'glb' : 'toy'}`
     if (c.modelKey !== key) {
       if (c.model) {
         this.scene.remove(c.model.root)
         c.model.dispose()
       }
-      c.model = buildModel(id, c.ghost ? this.ghostToon : this.toonMat, outfit)
+      c.model = (glb ? glbModel(id) : null) ?? buildModel(id, c.ghost ? this.ghostToon : this.toonMat, outfit)
       c.modelKey = key
       c.mesh.visible = false
       this.scene.add(c.model.root)
@@ -623,7 +626,8 @@ export class Renderer3D extends Renderer {
       const vox = c.mesh.material === this.voxMat || c.mesh.material === this.ghostMat
       c.mesh.material = ghost ? (vox ? this.ghostMat : this.ghostToon) : vox ? this.voxMat : this.toonMat
       c.mesh.castShadow = !ghost
-      c.model?.root.traverse((o) => {
+      if (c.model && c.modelKey.endsWith('|glb')) c.modelKey = ''
+      else c.model?.root.traverse((o) => {
         const mm = o as THREE.Mesh
         if (mm.isMesh) {
           mm.material = ghost ? this.ghostToon : this.toonMat
