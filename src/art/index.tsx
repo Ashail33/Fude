@@ -8,11 +8,15 @@
  */
 import { useEffect, useRef } from 'react'
 import { imgToCanvas } from './canvas'
-import { buildSprite, spriteDims, type Dir } from './sprites/build'
+import { animAt, animFrameCount, buildSprite, spriteDims, type Anim, type Dir } from './sprites/build'
 
-export type { Dir }
+export type { Anim, Dir }
+export { animAt, animFrameCount }
 
-/** Walking characters: 16×16, 4 directions × 2 walk frames. */
+/**
+ * Walking characters: 16×16, 4 directions; animations `idle` (2 frames +
+ * blink), `walk` and `run` (4 frames each); Fude floats on a 6-frame cycle.
+ */
 export const CHARACTER_SPRITES = [
   'mage', // the player; recoloured by outfit id
   'fude', // companion brush spirit (floating, 2-frame bob)
@@ -62,6 +66,10 @@ export type SpriteId = CharacterSprite | EnemySprite | IconSprite
 export interface SpriteOpts {
   dir?: Dir
   frame?: number
+  /** Character animation. Omitted: the legacy 2-frame step (frames 0/1). */
+  anim?: Anim
+  /** Eyes closed (characters). */
+  blink?: boolean
   /** Outfit id (engine/rewards OUTFITS) for recolouring the mage. */
   outfit?: string
   /** Flash white (hit effect). */
@@ -79,12 +87,15 @@ const cache = new Map<string, HTMLCanvasElement>()
 export function spriteCanvas(id: SpriteId, opts: SpriteOpts = {}): HTMLCanvasElement {
   const isChar = (CHARACTER_SPRITES as readonly string[]).includes(id)
   const dir = isChar ? (opts.dir ?? 'down') : 'down'
-  const frame = ((opts.frame ?? 0) % 2 + 2) % 2
+  const anim = isChar ? opts.anim : undefined
+  const n = anim ? animFrameCount(id, anim) : 2
+  const frame = (((opts.frame ?? 0) % n) + n) % n
+  const blink = isChar && !!opts.blink
   const outfit = id === 'mage' ? (opts.outfit ?? '') : ''
-  const key = `${id}|${dir}|${frame}|${outfit}|${opts.flash ? 1 : 0}`
+  const key = `${id}|${dir}|${anim ?? ''}|${frame}|${blink ? 1 : 0}|${outfit}|${opts.flash ? 1 : 0}`
   let c = cache.get(key)
   if (!c) {
-    c = imgToCanvas(buildSprite(id, { dir, frame, outfit: outfit || undefined, flash: opts.flash }))
+    c = imgToCanvas(buildSprite(id, { dir, frame, anim, blink, outfit: outfit || undefined, flash: opts.flash }))
     cache.set(key, c)
   }
   return c
@@ -97,31 +108,47 @@ export function drawSprite(ctx: CanvasRenderingContext2D, id: SpriteId, x: numbe
   ctx.drawImage(c, Math.round(x), Math.round(y), c.width * scale, c.height * scale)
 }
 
-/** React component: a crisp, scaled sprite. `animate` cycles walk/idle frames. */
-export function PixelSprite({ id, scale = 3, dir = 'down', animate = false, outfit, flash, className, title }: { id: SpriteId; scale?: number; dir?: Dir; animate?: boolean; outfit?: string; flash?: boolean; className?: string; title?: string }) {
+let seedN = 0
+
+/**
+ * React component: a crisp, scaled sprite. `animate` plays an animation:
+ * characters default to their 4-frame walk (pass `anim="idle"` for the
+ * breathing/blinking idle, `"run"` for the run); enemies bob on 2 frames.
+ * Honours prefers-reduced-motion (idle only, no cycling walk).
+ */
+export function PixelSprite({ id, scale = 3, dir = 'down', animate = false, anim, outfit, flash, className, title }: { id: SpriteId; scale?: number; dir?: Dir; animate?: boolean; anim?: Anim; outfit?: string; flash?: boolean; className?: string; title?: string }) {
   const ref = useRef<HTMLCanvasElement>(null)
   useEffect(() => {
-    let frame = 0
+    const isChar = (CHARACTER_SPRITES as readonly string[]).includes(id)
+    const reduced = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches
+    const seed = seedN++ % 7
+    const a: Anim | undefined = isChar ? (reduced ? 'idle' : (anim ?? (animate ? 'walk' : undefined))) : undefined
     let raf = 0
-    let last = 0
+    let lastKey = ''
+    let t0 = 0
     const draw = (t: number) => {
       const el = ref.current
       if (!el) return
-      if (!last || t - last > 280) {
-        last = t
-        const src = spriteCanvas(id, { dir, frame, outfit, flash })
+      if (!t0) t0 = t
+      let frame = 0
+      let blink = false
+      if (animate && a) ({ frame, blink } = animAt(a, t - t0, { float: id === 'fude', seed }))
+      else if (animate && !reduced) frame = Math.floor((t - t0) / 280) % 2
+      const key = `${frame}|${blink}`
+      if (key !== lastKey) {
+        lastKey = key
+        const src = spriteCanvas(id, { dir, frame, anim: animate ? a : isChar ? 'idle' : undefined, blink, outfit, flash })
         if (el.width !== src.width * scale) el.width = src.width * scale
         if (el.height !== src.height * scale) el.height = src.height * scale
         const ctx = el.getContext('2d')!
         ctx.imageSmoothingEnabled = false
         ctx.clearRect(0, 0, el.width, el.height)
         ctx.drawImage(src, 0, 0, el.width, el.height)
-        frame = (frame + 1) % 2
       }
       if (animate) raf = requestAnimationFrame(draw)
     }
     raf = requestAnimationFrame(draw)
     return () => cancelAnimationFrame(raf)
-  }, [id, scale, dir, animate, outfit, flash])
+  }, [id, scale, dir, animate, anim, outfit, flash])
   return <canvas ref={ref} className={`pixel ${className ?? ''}`} role="img" aria-label={title ?? id} />
 }

@@ -223,3 +223,26 @@ export function floatFrame(g: Grid, frame: number, tailRows: number[]): { grid: 
   if (frame % 3 === 1) o = o.map((r) => r.map((c) => (c === 'v' ? 'e' : c)))
   return { grid: o, dy: -Math.round(Math.sin(p) * 1) }
 }
+
+/** Milliseconds per frame. Walk/run in the overworld are driven by distance instead. */
+export const FRAME_MS: Record<Anim, number> = { idle: 0, walk: 150, run: 95 }
+export const FLOAT_MS = 130
+/** Idle: breathe in (stand) / out (head dips) — a slow, uneven loop reads as alive. */
+const IDLE_IN = 900
+const IDLE_OUT = 600
+const BLINK_EVERY = 3400
+const BLINK_MS = 130
+
+/**
+ * Frame (and blink) of a character animation at time `t` (ms). `seed`
+ * desynchronises several characters on screen. Pure.
+ */
+export function animAt(anim: Anim, t: number, opts: { float?: boolean; seed?: number } = {}): { frame: number; blink: boolean } {
+  const s = (opts.seed ?? 0) * 977
+  const tt = t + s
+  const bt = (tt + (opts.seed ?? 0) * 1311) % (BLINK_EVERY + ((opts.seed ?? 0) % 3) * 700)
+  const blink = bt < BLINK_MS || (bt > BLINK_MS * 2 && bt < BLINK_MS * 3 && (opts.seed ?? 0) % 2 === 1)
+  if (opts.float) return { frame: Math.floor(tt / (anim === 'run' ? FLOAT_MS * 0.7 : FLOAT_MS)) % FLOAT_FRAMES, blink }
+  if (anim === 'idle') return { frame: tt % (IDLE_IN + IDLE_OUT) < IDLE_IN ? 0 : 1, blink }
+  return { frame: Math.floor(tt / FRAME_MS[anim]) % ANIM_FRAMES[anim], blink: false }
+}

@@ -1,0 +1,58 @@
+/* Living art (WebGL mesh over a layout/fallback <img>). */
+.la {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+}
+
+.la > .la-img {
+  /* The canvas is laid over the img box: spacing belongs on the wrapper. */
+  margin: 0 !important;
+}
+
+.la-canvas {
+  position: absolute;
+  display: none;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.la-on > .la > .la-img {
+  /* The canvas is laid over the img box: spacing belongs on the wrapper. */
+  margin: 0 !important;
+}
+
+.la-canvas {
+  display: block;
+}
+
+/* While the mesh draws, the <img> only reserves layout. */
+.la-on > .la-img {
+  visibility: hidden;
+  animation: none !important;
+  filter: none !important;
+}
+
+.la-scene {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.la-scene > .la > .la-img {
+  /* The canvas is laid over the img box: spacing belongs on the wrapper. */
+  margin: 0 !important;
+}
+
+.la-canvas {
+  width: 100%;
+  height: 100%;
+}
+
+.la-ambient {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}

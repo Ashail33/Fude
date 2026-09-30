@@ -20,6 +20,8 @@ import { canSpeak, speak } from '../engine/speech'
 import { addItem, getState, grantRewards, immersionOf, level, recordReviews, usePlayer, type ImmersionLevel } from '../engine/store'
 import Backdrop from './Backdrop'
 import { battleBackdropId, enemyHdId, FLOATING } from './hd'
+import { LivingArt, LivingScene } from '../anim/LivingArt'
+import { Ambient, AMBIENT_BY_BACKDROP } from '../anim/Ambient'
 import { ITEMS, ITEM_BY_ID } from './items'
 import {
   SPELL_COST,
@@ -209,6 +211,10 @@ export default function Battle({ region, enemies, onEnd }: BattleProps) {
   const rootRef = useRef<HTMLDivElement>(null)
   const fieldRef = useRef<HTMLDivElement>(null)
   const enemyRefs = useRef<(HTMLButtonElement | null)[]>([])
+  /** Ground shadows of illustrated monsters (scaled with their hover, per frame). */
+  const shadowRefs = useRef<(HTMLSpanElement | null)[]>([])
+  /** Colour of the last blow per enemy (the defeat dissolve glows in it). */
+  const [blowColor, setBlowColor] = useState<string[]>([])
   const statusRef = useRef<HTMLDivElement>(null)
   const mounted = useRef(true)
   const ended = useRef(false)
@@ -390,7 +396,12 @@ export default function Battle({ region, enemies, onEnd }: BattleProps) {
           setHitstop(true)
           await sleep(ev.crit || ev.eff === 'weak' ? 140 : 80)
           setHitstop(false)
-          setEnemyFx(ev.target, 'hit')
+          setBlowColor((b) => {
+            const n = [...b]
+            n[ev.target] = ev.element ? EL_COLOR[ev.element] : ev.crit ? '#f7c948' : '#fff1c9'
+            return n
+          })
+          setEnemyFx(ev.target, ev.crit || ev.eff === 'weak' ? 'hit crit' : 'hit')
           void doShake(ev.crit || ev.eff === 'weak' ? 'big' : 'small')
           addFx([{ kind: 'dmg', x: c.x, y: c.y - c.h * 0.3, text: String(ev.dmg), crit: ev.crit || ev.eff === 'weak', color: ev.element ? EL_COLOR[ev.element] : ev.crit ? '#f7c948' : undefined }], 1100)
           if (!ev.element) addFx(sparks(c.x, c.y, ev.crit ? '#f7c948' : '#f4ecd8', ev.crit ? 18 : 10, ev.crit ? 120 : 70), 800)
@@ -1212,7 +1223,8 @@ export default function Battle({ region, enemies, onEnd }: BattleProps) {
         {reg >= 4 && !hdBg && <div className="bt-twinkle" aria-hidden />}
         {hdBg && (
           <div className="bt-hd-bg" aria-hidden>
-            <img className="hd-img" src={hdBg} alt="" draggable={false} />
+            <LivingScene src={hdBg} id={bgId} className="bt-hd-scene" />
+            {AMBIENT_BY_BACKDROP[bgId] && <Ambient kind={AMBIENT_BY_BACKDROP[bgId]} className="bt-hd-ambient" />}
           </div>
         )}
       </div>
@@ -1268,12 +1280,38 @@ export default function Battle({ region, enemies, onEnd }: BattleProps) {
               {targetIdx === i && <span className="bt-target">▼</span>}
               <span className="bt-sprite">
                 {hd ? (
-                  <img className={`hd-img bt-hd-enemy ${flashing[i] ? 'flash' : ''}`} src={hd} alt="" draggable={false} style={{ maxHeight: boxH, maxWidth: boxW }} />
+                  <LivingArt
+                    src={hd}
+                    id={hdIds[i]}
+                    imgClassName={`bt-hd-enemy ${flashing[i] ? 'flash' : ''}`}
+                    imgStyle={{ maxHeight: boxH, maxWidth: boxW }}
+                    cue={efx[i]}
+                    spawnDelay={i * 110}
+                    edge={blowColor[i]}
+                    seed={i * 1.37}
+                    onLift={
+                      floats
+                        ? (lift) => {
+                            const sh = shadowRefs.current[i]
+                            if (sh) {
+                              const k = Math.max(0.6, 1 + lift * 5)
+                              sh.style.transform = `scale(${k.toFixed(3)})`
+                              sh.style.opacity = (0.35 + 0.35 * k).toFixed(3)
+                            }
+                          }
+                        : undefined
+                    }
+                  />
                 ) : (
                   <PixelSprite id={e.def.id} scale={scale} animate flash={flashing[i]} />
                 )}
               </span>
-              <span className="bt-shadow" style={hd ? { width: shadowW, height: shadowW * 0.16, marginTop: floats ? shadowW * 0.12 : -shadowW * 0.09 } : undefined} />
+              <span
+                ref={(el) => {
+                  shadowRefs.current[i] = el
+                }}
+                className="bt-shadow"
+                style={hd ? { width: shadowW, height: shadowW * 0.16, marginTop: floats ? shadowW * 0.12 : -shadowW * 0.09 } : undefined} />
               <span className="bt-ename">
                 <span lang="ja">
                   {e.name}

@@ -270,6 +270,12 @@ export class Reactor {
     }
   }
 
+  /** Hide until a later 'spawn' (e.g. before a battle intro). */
+  hide() {
+    this.alpha = new Tween(0)
+    this.sc.set(this.reduced ? 1 : 0.55)
+  }
+
   /** Instantly return to rest (e.g. when the art changes). */
   reset() {
     for (const s of [this.tx, this.ty, this.rot, this.squash, this.bend]) s.set(0)

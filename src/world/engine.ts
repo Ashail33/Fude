@@ -10,10 +10,18 @@ export const DIRS: Record<Dir, Pt> = { up: { x: 0, y: -1 }, down: { x: 0, y: 1 }
 export const DIR_LIST: Dir[] = ['up', 'down', 'left', 'right']
 export const OPPOSITE: Record<Dir, Dir> = { up: 'down', down: 'up', left: 'right', right: 'left' }
 
-/** Tiles per second. */
-export const WALK_SPEED = 4.2
-export const RUN_SPEED = 8
-export const NPC_SPEED = 2.6
+/**
+ * Tiles per second. Chosen so that at 60 Hz the mage moves a whole number
+ * of art pixels per frame (1 px walking, 2 px running): pixel-perfect,
+ * perfectly even scrolling with no 1-2-1-1 stutter.
+ */
+export const WALK_SPEED = 3.75
+export const RUN_SPEED = 7.5
+export const NPC_SPEED = 2.5
+/** Starting from rest the mage eases up to speed (fraction of walk speed at the first frame). */
+export const START_SPEED = 0.6
+/** Speed response (1/s): how quickly the mage reaches a new target speed (walk ⇄ run). */
+export const ACCEL = 9
 /** Holding a new direction shorter than this only turns the mage. */
 export const TURN_DELAY = 0.085
 export const ENCOUNTER_CHANCE = 1 / 12
@@ -127,6 +135,50 @@ export function walkerPos(w: { x: number; y: number; px: number; py: number; t: 
   return { x: (w.px + (w.x - w.px) * t) * 16, y: (w.py + (w.y - w.py) * t) * 16 }
 }
 
+/**
+ * Walk-cycle frame from distance travelled: two frames per tile, so a
+ * contact pose (0 or 2) lands exactly as each step starts — the cycle's
+ * speed is tied to movement speed, never to wall-clock time.
+ */
+export function walkFrame(steps: number, t: number): number {
+  return Math.floor((steps + Math.min(1, Math.max(0, t))) * 2) % 4
+}
+
+/**
+ * One semi-implicit step of a damped spring pulling `s.x/s.y` toward the
+ * target (frequency `omega` rad/s, damping ratio `zeta`). Mutates `s`; no
+ * allocation. Stable for any dt the loop produces.
+ */
+export function springStep(s: { x: number; y: number; vx: number; vy: number }, tx: number, ty: number, omega: number, zeta: number, dt: number) {
+  const k = omega * omega
+  const c = 2 * zeta * omega
+  // sub-step long frames for stability
+  const n = dt > 1 / 50 ? Math.ceil(dt / (1 / 60)) : 1
+  const h = dt / n
+  for (let i = 0; i < n; i++) {
+    s.vx += (k * (tx - s.x) - c * s.vx) * h
+    s.vy += (k * (ty - s.y) - c * s.vy) * h
+    s.x += s.vx * h
+    s.y += s.vy * h
+  }
+}
+
+/** Per-NPC wander state (kept out of the shared Entity type). */
+export interface NpcState {
+  steps: number
+  /** Direction the NPC turned to and will walk next (turn → pause → step). */
+  pending: Dir | null
+}
+const npcStates = new WeakMap<Entity, NpcState>()
+export function npcState(e: Entity): NpcState {
+  let s = npcStates.get(e)
+  if (!s) {
+    s = { steps: 0, pending: null }
+    npcStates.set(e, s)
+  }
+  return s
+}
+
 export interface WorldEvents {
   /** Player finished a step onto (x, y). Return true to stop further processing (e.g. encounter). */
   onStep?: (x: number, y: number) => void
@@ -162,6 +214,8 @@ export class World {
   ev: WorldEvents
   rng: () => number
   now = 0
+  /** Current player speed (tiles/s), eased toward walk/run speed. */
+  vel = 0
   private movingLast = false
 
   constructor(map: GameMap, ents: Entity[], x: number, y: number, dir: Dir, ev: WorldEvents = {}, rng: () => number = Math.random) {
@@ -332,7 +386,13 @@ export class World {
     this.now = now
     dt = Math.min(dt, 0.1)
     const p = this.player
-    const speed = this.run ? RUN_SPEED : WALK_SPEED
+    const target = this.run ? RUN_SPEED : WALK_SPEED
+    if (this.movingLast) {
+      this.vel += (target - this.vel) * (1 - Math.exp(-dt * ACCEL))
+      if (Math.abs(target - this.vel) < 0.02) this.vel = target
+    }
+    else this.vel = Math.max(WALK_SPEED * START_SPEED, Math.min(this.vel, target))
+    const speed = this.vel
     // Tween companion at the player's pace.
     if (this.fude.t < 1) this.fude.t = Math.min(1, this.fude.t + dt * speed)
 
@@ -381,10 +441,12 @@ export class World {
       } else if (this.pathGoal?.then) this.finishPath()
     }
     this.movingLast = p.t < 1
+    if (!this.movingLast) this.vel = 0
     this.updateNpcs(dt, now)
   }
 
   private updateNpcs(dt: number, now: number) {
+    const p = this.player
     for (const e of this.ents) {
       if (e.t < 1) {
         e.t = Math.min(1, e.t + dt * NPC_SPEED)
@@ -392,25 +454,66 @@ export class World {
       }
       const r = e.spec.wander ?? 0
       if (!r || this.frozen || e === this.talking || now < e.nextMove) continue
-      e.nextMove = now + 1400 + this.rng() * 3200
-      if (this.rng() < 0.35) {
-        e.dir = DIR_LIST[Math.floor(this.rng() * 4)]
+      const st = npcState(e)
+      const rnd = this.rng()
+      if (st.pending) {
+        // Turned last time; now take the step (if still free).
+        const dir = st.pending
+        st.pending = null
+        const nx = e.x + DIRS[dir].x
+        const ny = e.y + DIRS[dir].y
+        if (this.npcCanEnter(e, nx, ny)) {
+          e.px = e.x
+          e.py = e.y
+          e.x = nx
+          e.y = ny
+          e.t = 0
+          st.steps++
+          // Often keep strolling the same way for another tile.
+          if (rnd < 0.45 && this.npcCanEnter(e, nx + DIRS[dir].x, ny + DIRS[dir].y)) {
+            st.pending = dir
+            e.nextMove = now + 1000 / NPC_SPEED
+            continue
+          }
+        }
+        e.nextMove = now + 1300 + this.rng() * 2600
+        continue
+      }
+      // Standing: glance at the player when they are close, look around, or set off.
+      const near = Math.abs(p.x - e.x) + Math.abs(p.y - e.y) <= 2
+      if (near && rnd < 0.6) {
+        e.dir = dirBetween(e, p)
+        e.nextMove = now + 900 + this.rng() * 1200
         continue
       }
       const dir = DIR_LIST[Math.floor(this.rng() * 4)]
+      if (rnd < 0.3) {
+        e.dir = dir
+        e.nextMove = now + 700 + this.rng() * 1600
+        continue
+      }
       const nx = e.x + DIRS[dir].x
       const ny = e.y + DIRS[dir].y
+      if (!this.npcCanEnter(e, nx, ny)) {
+        e.dir = dir
+        e.nextMove = now + 600 + this.rng() * 1400
+        continue
+      }
+      // Turn first, pause a beat, then walk (unless already facing that way).
+      st.pending = dir
+      const turned = e.dir !== dir
       e.dir = dir
-      if (Math.abs(nx - e.hx) > r || Math.abs(ny - e.hy) > r) continue
-      const p = this.player
-      if ((nx === p.x && ny === p.y) || (nx === p.px && ny === p.py && p.t < 1) || (nx === this.fude.x && ny === this.fude.y)) continue
-      if (tileSolid(this.map, nx, ny) || this.exitAt(nx, ny) || entityAt(this.ents, nx, ny)) continue
-      if (this.map.ground[ny * this.map.w + nx] === 'tall-grass') continue
-      e.px = e.x
-      e.py = e.y
-      e.x = nx
-      e.y = ny
-      e.t = 0
+      e.nextMove = now + (turned ? 240 + this.rng() * 200 : 0)
     }
+  }
+
+  private npcCanEnter(e: Entity, nx: number, ny: number): boolean {
+    const r = e.spec.wander ?? 0
+    if (Math.abs(nx - e.hx) > r || Math.abs(ny - e.hy) > r) return false
+    const p = this.player
+    if ((nx === p.x && ny === p.y) || (nx === p.px && ny === p.py && p.t < 1) || (nx === this.fude.x && ny === this.fude.y)) return false
+    if (tileSolid(this.map, nx, ny) || this.exitAt(nx, ny) || entityAt(this.ents, nx, ny)) return false
+    if (this.map.ground[ny * this.map.w + nx] === 'tall-grass') return false
+    return true
   }
 }

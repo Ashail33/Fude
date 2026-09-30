@@ -1752,6 +1752,46 @@
   transform-origin: 50% 0%;
 }
 
+/* Living art (WebGL mesh): the mesh does idle motion and reactions itself,
+   so the CSS keyframes above only remain as the no-WebGL fallback. */
+.bt-hd-bg .bt-hd-scene,
+.bt-hd-bg .bt-hd-ambient {
+  top: 0;
+  bottom: auto;
+  height: calc(100% - var(--bt-reserve) + 140px);
+}
+
+.bt-hd-bg .bt-hd-scene > img {
+  height: 100%;
+}
+
+.bt-enemy.hd:has(.la-on) .bt-sprite {
+  animation: none !important;
+}
+
+.bt-enemy.hd.enter:has(.la-on) .bt-sprite {
+  opacity: 1;
+  transform: none;
+  filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.35));
+}
+
+.bt-enemy.hd.floats:has(.la-on) .bt-shadow {
+  animation: none;
+  transition: opacity 0.3s;
+}
+
+.bt-enemy.hd.dead:has(.la-on) {
+  transition: visibility 0s 0.3s;
+}
+
+.bt-enemy.hd .la {
+  display: block;
+}
+
+.bt-enemy.floats .la {
+  margin-bottom: 18px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .bt-hd-bg img,
   .bt-hd-enemy,

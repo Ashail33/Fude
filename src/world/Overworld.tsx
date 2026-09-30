@@ -26,7 +26,7 @@ import { OPPOSITE, World } from './engine'
 import { makeEntities } from './entities'
 import { tileSolid } from './mapdef'
 import { getMap, locateActivity, REGION_MAPS } from './maps'
-import { Renderer, type RenderInfo } from './render'
+import { Renderer, smoothstep, type RenderInfo } from './render'
 import type { Entity, Exit, GameMap, Line } from './types'
 import { Sprite } from './Sprite'
 import './Overworld.css'
@@ -131,6 +131,9 @@ export default function Overworld() {
   const busy = useRef(false) // map transition / battle intro in progress
   const fadeTarget = useRef(0)
   const onFaded = useRef<(() => void) | null>(null)
+  const irisRef = useRef<HTMLDivElement>(null)
+  /** Map transitions close an iris on the mage; the first load and battles use a plain fade. */
+  const irisMode = useRef(false)
   const lastSave = useRef(0)
   const saveTimer = useRef(0)
   const heldStack = useRef<Dir[]>([])
@@ -203,6 +206,7 @@ export default function Overworld() {
   /** Fade to black, run `fn`, fade back in. */
   const transition = useCallback((fn: () => void) => {
     busy.current = true
+    irisMode.current = true
     fadeTarget.current = 1
     onFaded.current = () => {
       fn()
@@ -347,13 +351,10 @@ export default function Overworld() {
       dir = sp.dir
     }
     const w = new World(m, [], x, y, dir, {
-      onStep: (x, y) => {
+      onStep: () => {
         savePos()
-        const wd = Wd.current!
-        const r2 = R.current!
-        if (wd.map.ground[y * wd.map.w + x] === 'tall-grass') r2.puff(x, y, 'leaf')
-        else if (wd.run) r2.puff(wd.player.px, wd.player.py, 'dust')
-        if (wd.run) fx('step')
+        // (grass rustle / dust / ripples are spawned by the renderer on contact frames)
+        if (Wd.current!.run) fx('step')
       },
       onExit: (ex) => goToPoint(ex.to, ex.point),
       onBump: () => fx('bump'),
@@ -413,19 +414,31 @@ export default function Overworld() {
 
     let raf = 0
     let last = performance.now()
+    // rAF timestamps jitter by a millisecond or two; feeding that into the
+    // simulation makes pixel steps uneven (1-1-2-0…). Lock dt to the
+    // measured refresh period whenever a frame is "on time".
+    let period = 1 / 60
+    const iris = { x: 0, y: 0 }
+    let irisShown = -1
+    const times = new Float32Array(240)
+    let ti = 0
     const loop = (now: number) => {
-      const dt = Math.min(0.05, (now - last) / 1000)
+      const t0 = performance.now()
+      const raw = Math.min(0.1, Math.max(0, (now - last) / 1000))
       last = now
+      if (raw > 0.004 && raw < 0.05) period += (raw - period) * 0.05
+      const dt = Math.min(0.05, Math.abs(raw - period) < period * 0.3 ? period : raw)
       // fades
       const ft = fadeTarget.current
-      if (r.fade < ft) {
-        r.fade = Math.min(ft, r.fade + dt * 4.5)
+      const closing = r.fade < ft
+      if (closing) {
+        r.fade = Math.min(ft, r.fade + dt * (irisMode.current ? 2.6 : 4.5))
         if (r.fade >= 1 && onFaded.current) {
           const f = onFaded.current
           onFaded.current = null
           f()
         }
-      } else if (r.fade > ft) r.fade = Math.max(ft, r.fade - dt * 3.2)
+      } else if (r.fade > ft) r.fade = Math.max(ft, r.fade - dt * (irisMode.current ? 2.2 : 3.2))
       w.frozen = modal.current || busy.current
       if (w.frozen) {
         w.held = null
@@ -433,8 +446,35 @@ export default function Overworld() {
       } else w.held = heldStack.current[heldStack.current.length - 1] ?? null
       w.update(dt, now)
       r.draw(w, now, dt, infoRef.current)
+      // iris / fade overlay (DOM, so it sits above the WebGL layer too)
+      const el = irisRef.current
+      if (el) {
+        const e = smoothstep(Math.min(1, Math.max(0, r.fade)))
+        if (e <= 0.001) {
+          if (irisShown !== 0) {
+            el.style.opacity = '0'
+            irisShown = 0
+          }
+        } else {
+          irisShown = 1
+          if (irisMode.current) {
+            r.playerScreen(w, iris)
+            const rect = el.getBoundingClientRect()
+            const far = Math.hypot(Math.max(iris.x, rect.width - iris.x), Math.max(iris.y, rect.height - iris.y))
+            const px = r.scale / r.dpr
+            const rad = Math.round(((1 - e) * (far + 24)) / (px * 2)) * px * 2
+            el.style.opacity = '1'
+            el.style.background = rad <= 0 ? '#05040c' : `radial-gradient(circle at ${iris.x.toFixed(1)}px ${iris.y.toFixed(1)}px, transparent ${rad}px, #05040c ${rad + 0.5}px)`
+          } else {
+            el.style.background = '#05040c'
+            el.style.opacity = e.toFixed(3)
+          }
+        }
+      }
+      times[ti++ % times.length] = performance.now() - t0
       raf = requestAnimationFrame(loop)
     }
+    if (import.meta.env.DEV) (window as unknown as { __owTimes: () => number[] }).__owTimes = () => Array.from(times.subarray(0, Math.min(ti, times.length)))
     raf = requestAnimationFrame(loop)
     return () => {
       cancelAnimationFrame(raf)
@@ -555,6 +595,7 @@ export default function Overworld() {
     setBattle(null)
     setEncountering(false)
     r.battleFx = null
+    irisMode.current = true
     r.fade = 1
     fadeTarget.current = 0
     w.stepsSinceBattle = 0
@@ -585,7 +626,10 @@ export default function Overworld() {
 
   return (
     <div className="ow-root">
-      <canvas ref={canvasRef} className="ow-canvas" onPointerDown={onCanvasPointer} aria-label={`${map.spec.name} — overworld`} />
+      <div className="ow-stage">
+        <canvas ref={canvasRef} className="ow-canvas" onPointerDown={onCanvasPointer} aria-label={`${map.spec.name} — overworld`} />
+      </div>
+      <div className="ow-iris" ref={irisRef} aria-hidden />
 
       <div className="ow-hud" hidden={encountering || battle !== null}>
         <div className="win ow-stat">

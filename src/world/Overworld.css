@@ -23,6 +23,23 @@
   display: block;
 }
 
+/* The stage carries the camera's sub-pixel remainder (set per frame in render.ts). */
+.ow-stage {
+  position: absolute;
+  inset: 0;
+  will-change: transform;
+}
+
+/* Map transitions: an iris closing on the mage (or a plain fade), drawn above the WebGL layer. */
+.ow-iris {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  opacity: 0;
+  background: #05040c;
+}
+
 /* HD-2D WebGL layer (src/fx) — sits over the 2D canvas, sized in JS. */
 .ow-canvas.ow-fx {
   right: auto;

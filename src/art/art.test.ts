@@ -6,7 +6,7 @@ import { LEGEND, checkMap, outline, fromMap, autoShade, type Img } from './raste
 import { CHARACTERS } from './sprites/characters'
 import { ENEMIES } from './sprites/enemies'
 import { ICONS } from './sprites/icons'
-import { buildSprite, enemyRows, enemySize, spriteDims } from './sprites/build'
+import { ANIM_FRAMES, FLOAT_FRAMES, animAt, buildSprite, enemyRows, enemySize, animFrameCount, spriteDims } from './sprites/build'
 import { PROPS } from './tilemaps'
 import { TILE_IDS, computeNeighbours, tileFrame, tileVariant, type TileId } from './tiles'
 import { SPECS, frameCount, normaliseNb, renderTile } from './tilegen'
@@ -68,6 +68,61 @@ describe('character pixel maps', () => {
     const seen = new Set<string>()
     for (const o of OUTFITS) seen.add(buildSprite('mage', { outfit: o.id }).px.join())
     expect(seen.size).toBe(OUTFITS.length)
+  })
+})
+
+describe('character animation', () => {
+  const dirs = ['down', 'up', 'left', 'right'] as const
+  it('every character builds every anim frame in every direction', () => {
+    for (const id of CHARACTER_SPRITES)
+      for (const anim of ['idle', 'walk', 'run'] as const)
+        for (const dir of dirs)
+          for (let frame = 0; frame < animFrameCount(id, anim); frame++) {
+            const img = buildSprite(id, { dir, frame, anim })
+            expect([img.w, img.h]).toEqual([16, 16])
+            expect(opaque(img), `${id} ${anim} ${dir} ${frame}`).toBeGreaterThan(20)
+          }
+  })
+  it('walk has 4 distinct-enough frames: contacts differ from passing, the two contacts differ', () => {
+    for (const id of CHARACTER_SPRITES) {
+      if (id === 'fude') continue
+      for (const dir of ['down', 'up', 'right'] as const) {
+        const f = [0, 1, 2, 3].map((frame) => buildSprite(id, { dir, frame, anim: 'walk' }).px.join())
+        expect(f[0] === f[1], `${id} ${dir} contact≠passing`).toBe(false)
+        if (dir !== 'right') expect(f[0] === f[2], `${id} ${dir} contacts`).toBe(false)
+      }
+    }
+  })
+  it('run differs from walk (lean) in side view', () => {
+    for (const id of ['mage', 'guard', 'merchant'] as const)
+      expect(buildSprite(id, { dir: 'right', anim: 'run' }).px.join()).not.toBe(buildSprite(id, { dir: 'right', anim: 'walk' }).px.join())
+  })
+  it('idle breathes (2 frames) and humanoids blink', () => {
+    expect(ANIM_FRAMES.idle).toBe(2)
+    for (const id of ['mage', 'merchant', 'guard', 'villager-a', 'villager-b', 'innkeeper', 'child'] as const) {
+      const a = buildSprite(id, { anim: 'idle', frame: 0 }).px.join()
+      expect(buildSprite(id, { anim: 'idle', frame: 1 }).px.join(), id).not.toBe(a)
+      expect(buildSprite(id, { anim: 'idle', frame: 0, blink: true }).px.join(), `${id} blink`).not.toBe(a)
+    }
+  })
+  it('Fude floats on a 6-frame cycle with a moving tail', () => {
+    expect(animFrameCount('fude', 'walk')).toBe(FLOAT_FRAMES)
+    const seen = new Set<string>()
+    for (let f = 0; f < FLOAT_FRAMES; f++) seen.add(buildSprite('fude', { anim: 'idle', frame: f }).px.join())
+    expect(seen.size).toBeGreaterThanOrEqual(4)
+  })
+  it('legacy frames 0/1 map onto the two walk contacts', () => {
+    expect(buildSprite('guard', { frame: 1 }).px.join()).toBe(buildSprite('guard', { frame: 2, anim: 'walk' }).px.join())
+  })
+  it('animAt cycles frames over time and blinks occasionally', () => {
+    const walk = new Set<number>()
+    for (let t = 0; t < 1000; t += 16) walk.add(animAt('walk', t).frame)
+    expect([...walk].sort()).toEqual([0, 1, 2, 3])
+    let blinks = 0
+    for (let t = 0; t < 10000; t += 16) if (animAt('idle', t).blink) blinks++
+    expect(blinks).toBeGreaterThan(0)
+    expect(blinks).toBeLessThan(100)
+    expect(animAt('idle', 0, { float: true }).frame).toBeLessThan(FLOAT_FRAMES)
   })
 })
 

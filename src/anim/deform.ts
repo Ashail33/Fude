@@ -90,6 +90,17 @@ export interface Jelly {
   freq?: number
 }
 
+/** Wing beat: both wings rise and fall together (mirror symmetric), tips lagging. */
+export interface Flap {
+  regions: string | readonly string[]
+  /** Vertical travel at the tips (fraction of height). */
+  amp: number
+  /** Beats per second. */
+  freq: number
+  /** Phase lag at the tips (radians) for a whip-like follow-through. Default 0.6. */
+  lag?: number
+}
+
 export interface Profile {
   /** Named soft masks referenced by flutter / wave. */
   regions: Record<string, Region>
@@ -97,6 +108,7 @@ export interface Profile {
   sway?: Sway
   flutter?: readonly Flutter[]
   wave?: Wave
+  flap?: Flap
   float?: Float
   jelly?: Jelly
   /** Horizontal centre of the body (u). Default 0.5. */
@@ -244,6 +256,17 @@ export function deformPoint(p: Profile, u: number, v: number, t: number, dyn: Dy
       }
     }
 
+    // Wing beat: quick downstroke, slower recovery; tips follow through.
+    if (p.flap) {
+      const fl = p.flap
+      const w = maskWeight(p, fl.regions, u, v)
+      if (w > 0.001) {
+        const ph = TAU * fl.freq * t - (fl.lag ?? 0.6) * w
+        dy += fl.amp * g * w * (Math.sin(ph) + 0.22 * Math.sin(2 * ph + 0.5)) / 1.1
+        dx -= (u - cx) * fl.amp * 0.35 * g * w * Math.max(0, Math.sin(ph))
+      }
+    }
+
     // Serpentine wave along the long axis.
     if (p.wave) {
       const wv = p.wave
@@ -318,6 +341,10 @@ export function profilePad(p: Profile, aspect = 1): { x: number; top: number; bo
     x += Math.abs(f.ax) + Math.abs(f.bx ?? 0)
     y += Math.abs(f.ay) + Math.abs(f.by ?? 0)
   }
+  if (p.flap) {
+    y += p.flap.amp
+    x += p.flap.amp * 0.2
+  }
   if (p.wave) {
     if (p.wave.axis === 'x') y += p.wave.amp
     else x += p.wave.amp
@@ -334,8 +361,8 @@ export function profilePad(p: Profile, aspect = 1): { x: number; top: number; bo
     y += t * 0.6 * aspect
   }
   x += p.lean ?? 0.02
-  // Reaction headroom (hit bend ±0.05, squash/stretch ±0.12).
-  x = x * g + 0.07
+  // Reaction headroom (hit bend ±0.06 + squash widening, stretch ±0.12).
+  x = x * g + 0.1
   const top = y * g + 0.13
   const bottom = (p.float ? p.float.amp * g : 0) + 0.03
   const cap = (n: number) => Math.min(0.3, Math.max(0.03, n))

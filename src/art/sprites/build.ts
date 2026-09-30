@@ -13,6 +13,7 @@ import { ICONS, type IconDef } from './icons'
 export type Dir = 'up' | 'down' | 'left' | 'right'
 
 export type { Anim }
+export { ANIMS, ANIM_FRAMES, FLOAT_FRAMES, animAt } from './anim'
 
 export interface BuildOpts {
   dir?: Dir
@@ -47,13 +48,14 @@ export function outfitSlots(outfit?: string): Slots {
 }
 
 /** Frame count of an animation for a sprite (enemies idle on 2 frames; icons 1). */
-export function frameCount(id: string, anim: Anim = 'walk'): number {
+export function animFrameCount(id: string, anim: Anim = 'walk'): number {
   const def = CHARACTERS[id]
   if (def) return def.float ? FLOAT_FRAMES : ANIM_FRAMES[anim]
   return ENEMIES[id] ? 2 : 1
 }
 
 const TAIL_ROWS = [12, 13, 14]
+const TAIL_ROWS_SIDE = [13, 14]
 
 export function buildCharacter(id: string, o: BuildOpts = {}): Img {
   const def: CharDef = CHARACTERS[id]
@@ -71,12 +73,12 @@ export function buildCharacter(id: string, o: BuildOpts = {}): Img {
   const anim: Anim = o.anim ?? 'walk'
   const n = def.float ? FLOAT_FRAMES : ANIM_FRAMES[anim]
   let frame = o.frame ?? 0
-  if (!o.anim) frame = def.float ? (frame % 2) * 2 : (frame % 2) * 2
+  if (!o.anim) frame = side && !def.float ? frame % 2 : (frame % 2) * 2
   frame = ((frame % n) + n) % n
 
   let g = toGrid(def[key])
   if (def.float) {
-    const f = floatFrame(g, frame, TAIL_ROWS)
+    const f = floatFrame(g, frame, side ? TAIL_ROWS_SIDE : TAIL_ROWS)
     g = f.grid
     if (o.blink) g = blinkEyes(g, head)
     g = shiftY(g, f.dy)
