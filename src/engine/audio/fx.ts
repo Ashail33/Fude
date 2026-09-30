@@ -66,7 +66,7 @@ export function musicFx(ctx: BaseAudioContext, dest: AudioNode): MusicFx {
   revHp.type = 'highpass'
   revHp.frequency.value = 220
   const conv = ctx.createConvolver()
-  conv.normalize = false
+  conv.normalize = true
   conv.buffer = reverbImpulse(ctx, lite ? 1.1 : 1.7, lite ? 2.6 : 3)
   const revOut = ctx.createGain()
   revOut.gain.value = 0.55

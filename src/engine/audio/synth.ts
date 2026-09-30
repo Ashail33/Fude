@@ -253,8 +253,9 @@ function bass(ctx: BaseAudioContext, dest: AudioNode, f: number, t: number, len:
   sub.frequency.setValueAtTime(f, t)
   lp.type = 'lowpass'
   lp.Q.value = 3
+  // Ramps that finish (not setTargetAtTime) so the filter stops recomputing coefficients per sample.
   lp.frequency.setValueAtTime(Math.min(4000, f * 10), t)
-  lp.frequency.setTargetAtTime(Math.max(160, f * 2.2), t, 0.06)
+  lp.frequency.exponentialRampToValueAtTime(Math.max(160, f * 2.2), t + 0.12)
   g.gain.setValueAtTime(0, t)
   g.gain.linearRampToValueAtTime(peak, t + 0.004)
   g.gain.setTargetAtTime(peak * 0.7, t + 0.004, 0.12)
@@ -309,7 +310,7 @@ function koto(ctx: BaseAudioContext, out: VoiceOut, f: number, t: number, len: n
   lp.type = 'lowpass'
   lp.Q.value = 2
   lp.frequency.setValueAtTime(Math.min(9000, f * 9), t)
-  lp.frequency.setTargetAtTime(Math.max(300, f * 1.6), t, 0.07)
+  lp.frequency.exponentialRampToValueAtTime(Math.max(300, f * 1.6), t + 0.16)
   const ring = Math.min(1.6, len + 0.9)
   g.gain.setValueAtTime(0, t)
   g.gain.linearRampToValueAtTime(peak, t + 0.003)
@@ -369,18 +370,18 @@ function drum(ctx: BaseAudioContext, dest: AudioNode, kind: string, t: number, p
   switch (kind) {
     case 'k':
     case 't':
-      return membrane(ctx, dest, t, peak, kind === 'k' ? { from: 150, to: 42, sweep: 0.11, tau: 0.055, lvl: 2.2, type: 'sine' } : { from: 180, to: 85, sweep: 0.16, tau: 0.07, lvl: 1.6, type: 'triangle' }, kind === 'k' ? 0.4 : 0)
+      return membrane(ctx, dest, t, peak, kind === 'k' ? { from: 170, to: 42, sweep: 0.1, tau: 0.055, lvl: 2.2, type: 'sine' } : { from: 180, to: 85, sweep: 0.16, tau: 0.07, lvl: 1.6, type: 'triangle' })
     case 'T':
       // Taiko: big low skin with a long body and a woody slap on top.
-      membrane(ctx, dest, t, peak, { from: 110, to: 52, sweep: 0.22, tau: 0.16, lvl: 2.4, type: 'sine' }, 0)
+      membrane(ctx, dest, t, peak, { from: 110, to: 52, sweep: 0.22, tau: 0.16, lvl: 2.4, type: 'sine' })
       return hiss(ctx, dest, t, peak, { type: 'bandpass', freq: 420, q: 1.2, tau: 0.03, dur: 0.12, level: 0.9 })
     case 'b':
       // Tsuzumi "pon": a bright, pitch-dropping hand drum.
-      membrane(ctx, dest, t, peak, { from: 560, to: 320, sweep: 0.09, tau: 0.08, lvl: 0.9, type: 'sine' }, 0)
+      membrane(ctx, dest, t, peak, { from: 560, to: 320, sweep: 0.09, tau: 0.08, lvl: 0.9, type: 'sine' })
       return hiss(ctx, dest, t, peak, { type: 'bandpass', freq: 1800, q: 3, tau: 0.008, dur: 0.05, level: 0.5 })
     case 'w':
       // Hyōshigi / wood block: two hard, high, very short partials.
-      membrane(ctx, dest, t, peak, { from: 1900, to: 1850, sweep: 0.03, tau: 0.018, lvl: 0.7, type: 'triangle' }, 0)
+      membrane(ctx, dest, t, peak, { from: 1900, to: 1850, sweep: 0.03, tau: 0.018, lvl: 0.7, type: 'triangle' })
       return hiss(ctx, dest, t, peak, { type: 'bandpass', freq: 2800, q: 5, tau: 0.01, dur: 0.05, level: 0.6 })
     case 'x':
       return hiss(ctx, dest, t, peak, { type: 'highpass', freq: 4200, q: 0.7, tau: 0.45, dur: 1.6, level: 0.55 })
@@ -390,7 +391,7 @@ function drum(ctx: BaseAudioContext, dest: AudioNode, kind: string, t: number, p
       return
     case 's':
       // Snare: noise plus a short tonal body.
-      membrane(ctx, dest, t, peak, { from: 200, to: 160, sweep: 0.05, tau: 0.035, lvl: 0.7, type: 'triangle' }, 0)
+      membrane(ctx, dest, t, peak, { from: 200, to: 160, sweep: 0.05, tau: 0.035, lvl: 0.7, type: 'triangle' })
       return hiss(ctx, dest, t, peak, { type: 'bandpass', freq: 1700, q: 0.6, tau: 0.045, dur: 0.25, level: 1.5 })
     case 'o':
       return hiss(ctx, dest, t, peak, { type: 'highpass', freq: 6000, q: 0.7, tau: 0.08, dur: 0.4, level: 0.5 })
@@ -408,8 +409,8 @@ interface Membrane {
   type: OscillatorType
 }
 
-/** Pitched drum skin (kick, toms, taiko, tsuzumi); `click` adds a beater transient. */
-function membrane(ctx: BaseAudioContext, dest: AudioNode, t: number, peak: number, m: Membrane, click: number) {
+/** Pitched drum skin (kick, toms, taiko, tsuzumi, snare body). */
+function membrane(ctx: BaseAudioContext, dest: AudioNode, t: number, peak: number, m: Membrane) {
   const o = ctx.createOscillator()
   const g = ctx.createGain()
   o.type = m.type
@@ -420,9 +421,8 @@ function membrane(ctx: BaseAudioContext, dest: AudioNode, t: number, peak: numbe
   g.gain.setTargetAtTime(0, t + 0.003, m.tau)
   o.connect(g).connect(dest)
   o.start(t)
-  o.stop(t + Math.max(0.3, m.tau * 7))
+  o.stop(t + Math.max(0.12, m.tau * 6))
   cleanup(o, [o, g])
-  if (click > 0) hiss(ctx, dest, t, peak, { type: 'highpass', freq: 3000, q: 0.7, tau: 0.004, dur: 0.03, level: click })
 }
 
 interface Hiss {
