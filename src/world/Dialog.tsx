@@ -7,7 +7,7 @@ import { toHiragana } from 'wanakana'
 import type { SpriteId } from '../art'
 import { CommandMenu } from '../components/CommandMenu'
 import { KanaInput } from '../components/ui'
-import { ACTIVITIES, activitiesFor, bossOf, REGIONS, STAGE_LABEL } from '../data/regions'
+import { activitiesFor, bossOf, REGIONS, STAGE_LABEL } from '../data/regions'
 import { VOCAB, WORD_BY_ID } from '../data/vocab'
 import { item } from '../engine/items'
 import { distractors, shuffle } from '../engine/random'
@@ -287,12 +287,9 @@ function RecallStep({ step, onResult }: { step: Extract<Step, { kind: 'recall' }
 }
 
 export function Dialog({ steps, speaker, onClose, onStart }: { steps: Step[]; speaker?: Line; onClose: () => void; onStart: (a: Activity) => void }) {
+  // The parent remounts the dialog (via `key`) for each new conversation.
   const [queue, setQueue] = useState(steps)
   const [i, setI] = useState(0)
-  useEffect(() => {
-    setQueue(steps)
-    setI(0)
-  }, [steps])
   const step = queue[i]
   useEffect(() => {
     if (!step) onClose()
@@ -341,9 +338,4 @@ export function Dialog({ steps, speaker, onClose, onStart }: { steps: Step[]; sp
       </div>
     </div>
   )
-}
-
-/** Next recommended activity: the first unlocked one not yet passed. */
-export function nextActivity(p: ReturnType<typeof usePlayer>): Activity | undefined {
-  return ACTIVITIES.find((a) => activityUnlocked(p, a) && !((p.progress[a.id]?.stars ?? 0) > 0))
 }

@@ -11,6 +11,17 @@ export const FOREST: MapSpec = {
   particles: 'fireflies',
   tint: 'rgba(30, 90, 80, 0.16)',
   rows: LAYOUTS.forest,
+  legend: {
+    T: { g: 'grass-dark', o: 'tree' },
+    P: { g: 'grass-dark', o: 'pine' },
+    b: { g: 'grass-dark', o: 'bush' },
+    R: { g: 'grass-dark', o: 'boulder' },
+    D: { g: 'grass-dark', o: 'door' },
+    '^': { g: 'grass-dark', o: 'roof' },
+    A: { g: 'grass-dark', o: 'roof-edge' },
+    '#': { g: 'grass-dark', o: 'wall' },
+    H: { g: 'grass-dark', o: 'wall-window' },
+  },
   spawn: 'west',
   inn: 'west',
   points: {

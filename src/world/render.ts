@@ -84,6 +84,8 @@ export class Renderer {
   fade = 1
   battleFx: { start: number; snap: HTMLCanvasElement | null } | null = null
   shake = 0
+  /** Short-lived step effects (grass rustle, running dust). */
+  puffs: { x: number; y: number; at: number; kind: 'leaf' | 'dust' }[] = []
   /** Last tap-to-walk target (drawn briefly). */
   tap: { x: number; y: number; at: number } | null = null
 
@@ -170,6 +172,35 @@ export class Renderer {
       default:
         return { x, y, vx: 0, vy: 0, phase: 0, c: PAL.white }
     }
+  }
+
+  puff(x: number, y: number, kind: 'leaf' | 'dust', now = performance.now()) {
+    this.puffs.push({ x, y, at: now, kind })
+    if (this.puffs.length > 24) this.puffs.shift()
+  }
+
+  private drawPuffs(now: number) {
+    const b = this.b
+    this.puffs = this.puffs.filter((p) => now - p.at < 420)
+    for (const p of this.puffs) {
+      const t = (now - p.at) / 420
+      const cx = p.x * 16 + 8 - this.cam.x
+      const cy = p.y * 16 + 13 - this.cam.y
+      b.globalAlpha = 1 - t
+      if (p.kind === 'leaf') {
+        b.fillStyle = t < 0.5 ? PAL.grassLight : PAL.leaf
+        for (let k = 0; k < 4; k++) {
+          const a = (k / 4) * Math.PI * 2 + p.at
+          b.fillRect(Math.round(cx + Math.cos(a) * (3 + t * 7)), Math.round(cy - 3 - t * 6 + Math.sin(a) * 2), 1, 1)
+        }
+      } else {
+        b.fillStyle = PAL.sand
+        const r = 1 + Math.round(t * 3)
+        b.fillRect(Math.round(cx - 3 - t * 3), cy + 1 - r, r, r)
+        b.fillRect(Math.round(cx + 2 + t * 3), cy + 1 - r, r, r)
+      }
+    }
+    b.globalAlpha = 1
   }
 
   startBattleFx(now: number) {
@@ -443,6 +474,7 @@ export class Renderer {
     list.push({ y: walkerPos(world.fude).y - 0.5, f: () => this.drawWalkerSprite('fude', world.fude, { bob: fb, frame: Math.floor(now / 300) % 2 }) })
     list.push({ y: pp.y, f: () => this.drawWalkerSprite('mage', world.player, { outfit: info.outfit }) })
     list.sort((a, c) => a.y - c.y)
+    this.drawPuffs(now)
     for (const d of list) d.f()
 
     // overhead layer (torii, canopy)

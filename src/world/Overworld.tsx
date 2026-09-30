@@ -20,7 +20,8 @@ import { addItem, getState, grantRewards, isPassed, level, markOpened, markScene
 import type { Activity } from '../games/types'
 import { Cutscene, hasScene } from '../story/Cutscene'
 import { GameMenu } from '../ui/GameMenu'
-import { Bi, Dialog, nextActivity, type Step } from './Dialog'
+import { Bi, Dialog, type Step } from './Dialog'
+import { nextActivity } from './progress'
 import { OPPOSITE, World } from './engine'
 import { makeEntities } from './entities'
 import { tileSolid } from './mapdef'
@@ -112,6 +113,7 @@ function fudeHint(p: PlayerState, m: GameMap, n: number): Line {
 interface DialogState {
   steps: Step[]
   speaker?: Line
+  key?: number
 }
 
 export default function Overworld() {
@@ -132,7 +134,8 @@ export default function Overworld() {
   const lineN = useRef(new Map<string, number>())
 
   const [mapId, setMapId] = useState<string>(() => (getMap(getState().world.map) ? getState().world.map : 'village'))
-  const [dialog, setDialog] = useState<DialogState | null>(null)
+  const [dialog, setDialogRaw] = useState<DialogState | null>(null)
+  const setDialog = useCallback((d: DialogState | null) => setDialogRaw(d ? { ...d, key: Date.now() + Math.random() } : null), [])
   const [battle, setBattle] = useState<number | null>(null)
   const [scenes, setScenes] = useState<{ id: string; then?: () => void }[]>([])
   const [menu, setMenu] = useState(false)
@@ -274,7 +277,7 @@ export default function Overworld() {
       }
 
       if (spec.kind === 'sign') {
-        const region = getMap(s.world.map)?.spec.region ?? 1
+        const region = Wd.current?.map.spec.region ?? 1
         const open = region < 5 && isPassed(s, bossOf(region).id)
         steps = open ? [say({ jp: 'みちは ひらかれている。さあ、すすもう！', en: 'The road is open. Onward!' }, false)] : lines.map((l) => say(l, false))
         return { steps, speaker }
@@ -339,7 +342,14 @@ export default function Overworld() {
       dir = sp.dir
     }
     const w = new World(m, [], x, y, dir, {
-      onStep: () => savePos(),
+      onStep: (x, y) => {
+        savePos()
+        const wd = Wd.current!
+        const r2 = R.current!
+        if (wd.map.ground[y * wd.map.w + x] === 'tall-grass') r2.puff(x, y, 'leaf')
+        else if (wd.run) r2.puff(wd.player.px, wd.player.py, 'dust')
+        if (wd.run) fx('step')
+      },
       onExit: (ex) => goToPoint(ex.to, ex.point),
       onBump: () => fx('bump'),
       exitLocked: exitLockedFor,
@@ -475,7 +485,9 @@ export default function Overworld() {
         if (Wd.current && !e.repeat) Wd.current.pendingTurn = d
         return
       }
-      if (e.key === 'Shift') Wd.current && (Wd.current.run = true)
+      if (e.key === 'Shift') {
+        if (Wd.current) Wd.current.run = true
+      }
       else if (e.key === 'z' || e.key === 'Z' || e.key === 'Enter' || e.key === ' ') {
         e.preventDefault()
         if (!e.repeat) Wd.current?.interact()
@@ -628,7 +640,7 @@ export default function Overworld() {
         </div>
       )}
 
-      {dialog && <Dialog steps={dialog.steps} speaker={dialog.speaker} onClose={closeDialog} onStart={startActivity} />}
+      {dialog && <Dialog key={dialog.key} steps={dialog.steps} speaker={dialog.speaker} onClose={closeDialog} onStart={startActivity} />}
 
       {battle !== null && (
         <div className="ow-battle">

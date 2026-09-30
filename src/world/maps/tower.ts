@@ -74,6 +74,7 @@ export const TOWER_TOP: MapSpec = {
   bg: '#241d3a',
   tint: 'rgba(120, 80, 200, 0.2)',
   rows: LAYOUTS['tower-top'],
+  legend: { O: { g: 'stone-floor', o: 'warp-circle' } },
   spawn: 'stairs',
   points: { v: { name: 'stairs', dir: 'up' } },
   exits: [{ at: '0', to: 'tower-throne', point: 'stairs', tile: 'stairs-down' }],

@@ -24,13 +24,13 @@ export const LEGEND: Record<string, Cell> = {
   '-': { g: 'water', o: 'bridge-h' },
   '|': { g: 'water-deep', o: 'bridge-v' },
   T: { g: 'grass', o: 'tree' },
-  P: { g: 'grass-dark', o: 'pine' },
+  P: { g: 'grass', o: 'pine' },
   K: { g: 'grass', o: 'sakura' },
-  B: { g: 'grass-dark', o: 'bamboo' },
+  B: { g: 'grass', o: 'bamboo' },
   b: { g: 'grass', o: 'bush' },
   r: { g: 'grass', o: 'rock' },
   R: { g: 'grass', o: 'boulder' },
-  u: { g: 'grass-dark', o: 'stump' },
+  u: { g: 'grass', o: 'stump' },
   C: { g: 'grass', o: 'cliff' },
   c: { g: 'cliff-top' },
   '^': { g: 'grass', o: 'roof' },
@@ -135,6 +135,14 @@ export function parseMap(spec: MapSpec): GameMap {
   for (const { x, y } of markers) {
     let g: TileId | undefined
     let fallback: TileId | undefined
+    // Markers set into a carpet keep the carpet.
+    const carpets = [
+      [-1, 0],
+      [1, 0],
+      [0, -1],
+      [0, 1],
+    ].filter(([dx, dy]) => x + dx >= 0 && x + dx < w && obj[(y + dy) * w + x + dx] === 'carpet').length
+    if (carpets >= 2 && !obj[y * w + x]) obj[y * w + x] = 'carpet'
     for (let r = 1; r < 6 && !g; r++) {
       const count = new Map<TileId, number>()
       for (const [dx, dy] of [
