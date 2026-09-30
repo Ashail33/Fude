@@ -27,3 +27,9 @@ dist-ssr
 *.tmp.mjs
 .*-tmp.mjs
 .*-tmp*.mjs
+
+# raw art is fetched at build time from art-src/sources.json
+art-src/**/*.png
+art-src/**/*.jpg
+art-src/**/*.jpeg
+art-src/**/*.webp
