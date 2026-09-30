@@ -34,9 +34,9 @@ const FLAME: RGB = [1.0, 0.62, 0.3]
 
 export const TILE_LIGHTS: Partial<Record<TileId, LightDef>> = {
   lantern: { dx: 8, dy: 6, r: 58, color: FLAME, intensity: 1.0, flicker: 0.16 },
-  campfire: { dx: 8, dy: 10, r: 78, color: [1.0, 0.56, 0.24], intensity: 1.35, flicker: 0.4 },
+  campfire: { dx: 8, dy: 9, r: 88, color: [1.0, 0.52, 0.22], intensity: 1.0, flicker: 0.35 },
   portal: { dx: 8, dy: 8, r: 64, color: [0.7, 0.5, 1.0], intensity: 1.15, flicker: 0.12 },
-  'warp-circle': { dx: 8, dy: 9, r: 54, color: [0.55, 0.85, 1.0], intensity: 0.95, flicker: 0.1 },
+  'warp-circle': { dx: 8, dy: 9, r: 54, color: [0.55, 0.85, 1.0], intensity: 0.55, flicker: 0.1 },
   'shrine-bell': { dx: 8, dy: 5, r: 40, color: [1.0, 0.86, 0.52], intensity: 0.6, flicker: 0.05 },
   altar: { dx: 8, dy: 4, r: 46, color: FLAME, intensity: 0.8, flicker: 0.22 },
   torii: { dx: 8, dy: 4, r: 30, color: [1.0, 0.4, 0.24], intensity: 0.4, flicker: 0.06, nightOnly: true },

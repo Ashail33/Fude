@@ -303,7 +303,7 @@ export function Cutscene({ id, onDone }: CutsceneProps) {
         <div key={`m${i}`} className={`cs-window card ${speaker ? '' : 'narration'} ${speaker && hidePortrait ? 'no-portrait' : ''}`}>
           {speaker && (
             <>
-              <div className="cs-name" style={{ color: speaker.color }}>
+              <div className={`cs-name ${whoBust && step.who && !HEROES.includes(step.who) ? 'right' : ''}`} style={{ color: speaker.color }}>
                 {fill(imm >= 2 ? speaker.jp : speaker.name, p.name)}
               </div>
               {!hidePortrait && (

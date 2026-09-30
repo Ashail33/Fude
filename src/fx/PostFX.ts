@@ -246,7 +246,7 @@ export class PostFX {
       light: mk(LIGHT, ['u_view', 'u_lp', 'u_lc', 'u_n']),
       bright: mk(BRIGHT, ['u_scene', 'u_light', 'u_texel', 'u_amb', 'u_thr']),
       blur: mk(BLUR, ['u_tex', 'u_dir']),
-      comp: mk(COMPOSITE, ['u_scene', 'u_dof', 'u_bloom', 'u_light', 'u_view', 'u_cam', 'u_time', 'u_dofP', 'u_dofMax', 'u_amb', 'u_haze', 'u_bloomK', 'u_lift', 'u_gamma', 'u_gain', 'u_satCon', 'u_ray', 'u_rayAngle', 'u_post', 'u_water']),
+      comp: mk(COMPOSITE, ['u_scene', 'u_dof', 'u_bloom', 'u_light', 'u_view', 'u_cam', 'u_time', 'u_dofP', 'u_dofMax', 'u_amb', 'u_haze', 'u_bloomK', 'u_lift', 'u_gamma', 'u_gain', 'u_satCon', 'u_ray', 'u_rayAngle', 'u_sun', 'u_post', 'u_water']),
     }
     this.vbo = gl.createBuffer()
     gl.bindBuffer(gl.ARRAY_BUFFER, this.vbo)
@@ -403,6 +403,7 @@ export class PostFX {
     gl.uniform2f(u.u_satCon, g.saturation, g.contrast)
     gl.uniform4f(u.u_ray, g.rays[0], g.rays[1], g.rays[2], g.rayStrength)
     gl.uniform1f(u.u_rayAngle, g.rayAngle)
+    gl.uniform4f(u.u_sun, g.sun[0], g.sun[1], g.sun[2], g.sunStrength)
     gl.uniform3f(u.u_post, g.vignette, this.level >= 3 ? g.grain : 0, Math.min(1, Math.max(0, f.fade)))
     gl.uniform1f(u.u_water, this.level >= 3 ? g.water : 0)
     gl.drawArrays(gl.TRIANGLES, 0, 3)

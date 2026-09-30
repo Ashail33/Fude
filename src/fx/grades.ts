@@ -27,6 +27,9 @@ export interface Grade {
   rays: RGB
   rayStrength: number
   rayAngle: number
+  /** Low-sun glow from the top-left: colour, strength. */
+  sun: RGB
+  sunStrength: number
   /** Max blend toward the blurred image at the screen edges (0..1). */
   dof: number
   vignette: number
@@ -52,6 +55,8 @@ const base: Grade = {
   rays: [1, 0.9, 0.7],
   rayStrength: 0,
   rayAngle: 0.5,
+  sun: [1, 0.78, 0.5],
+  sunStrength: 0,
   dof: 0.6,
   vignette: 0.45,
   grain: 0.018,
@@ -75,6 +80,7 @@ export const GRADES: Record<string, Grade> = {
     rays: [1, 0.82, 0.55],
     rayStrength: 0.1,
     rayAngle: 0.62,
+    sunStrength: 0.34,
   }),
   /** Fields: bright noon — clean, saturated, barely any vignette. */
   noon: g({
@@ -85,8 +91,10 @@ export const GRADES: Record<string, Grade> = {
     orb: 0.1,
     lift: [0.01, 0.01, 0.02],
     gain: [1.04, 1.03, 0.98],
-    saturation: 1.12,
-    contrast: 1.06,
+    saturation: 1.04,
+    contrast: 1.05,
+    sun: [1, 0.96, 0.85],
+    sunStrength: 0.12,
     bloomThreshold: 0.86,
     bloom: 0.4,
     dof: 0.65,
@@ -95,7 +103,7 @@ export const GRADES: Record<string, Grade> = {
   /** Forest: cool green shade, warm shafts of sun through the canopy. */
   forest: g({
     name: 'forest',
-    ambient: [0.66, 0.8, 0.74],
+    ambient: [0.56, 0.7, 0.68],
     lights: 1.0,
     haze: 0.22,
     night: false,
@@ -103,12 +111,12 @@ export const GRADES: Record<string, Grade> = {
     lift: [0.01, 0.035, 0.04],
     gamma: [0.98, 1.02, 1.0],
     gain: [0.98, 1.04, 1.0],
-    saturation: 1.0,
-    contrast: 1.06,
+    saturation: 0.94,
+    contrast: 1.08,
     bloomThreshold: 0.7,
     bloom: 0.7,
     rays: [1, 0.93, 0.62],
-    rayStrength: 0.34,
+    rayStrength: 0.45,
     rayAngle: 0.45,
     dof: 0.62,
     vignette: 0.55,
@@ -116,20 +124,20 @@ export const GRADES: Record<string, Grade> = {
   /** Shrine: blue night, strong lantern pools, moonlit shafts. */
   night: g({
     name: 'night',
-    ambient: [0.38, 0.45, 0.72],
+    ambient: [0.3, 0.37, 0.64],
     lights: 1.35,
     haze: 0.3,
     night: true,
-    orb: 0.9,
+    orb: 0.6,
     lift: [0.02, 0.025, 0.06],
     gamma: [1.0, 1.0, 1.04],
     gain: [1.0, 1.0, 1.06],
-    saturation: 0.95,
+    saturation: 0.88,
     contrast: 1.08,
     bloomThreshold: 0.58,
     bloom: 0.95,
     rays: [0.62, 0.72, 1],
-    rayStrength: 0.16,
+    rayStrength: 0.12,
     rayAngle: -0.4,
     dof: 0.62,
     vignette: 0.6,
@@ -139,8 +147,8 @@ export const GRADES: Record<string, Grade> = {
   twilight: g({
     name: 'twilight',
     ambient: [0.66, 0.54, 0.8],
-    lights: 1.1,
-    haze: 0.26,
+    lights: 0.85,
+    haze: 0.22,
     night: true,
     orb: 0.6,
     lift: [0.04, 0.015, 0.07],
@@ -151,6 +159,8 @@ export const GRADES: Record<string, Grade> = {
     bloomThreshold: 0.64,
     bloom: 0.9,
     rays: [1, 0.66, 0.8],
+    sun: [1, 0.55, 0.6],
+    sunStrength: 0.22,
     rayStrength: 0.1,
     rayAngle: 0.55,
     dof: 0.62,

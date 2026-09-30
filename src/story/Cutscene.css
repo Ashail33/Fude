@@ -410,6 +410,12 @@
   padding-left: 22px;
 }
 
+/* Name plate follows the speaker's side when their bust is on the right. */
+.cs-name.right {
+  left: auto;
+  right: 18px;
+}
+
 .cs-boss {
   position: absolute;
   z-index: 1;
@@ -440,9 +446,15 @@
 .cs-boss.dragon {
   right: -4%;
   left: -4%;
-  bottom: 10%;
-  height: 86%;
+  top: 2%;
+  bottom: auto;
+  height: 74%;
   max-width: none;
+  align-items: flex-start;
+}
+
+.cs-boss.dragon img {
+  object-position: 50% 0%;
 }
 
 .cs-boss.dragon img {

@@ -1607,12 +1607,13 @@
 .bt-enemy.floats .bt-hd-enemy {
   animation-name: bt-hd-hover;
   animation-duration: 2.8s;
-  margin-bottom: 6%;
+  margin-bottom: 18px;
 }
 
 .bt-enemy.dragon .bt-hd-enemy {
   animation-name: bt-hd-coil;
   animation-duration: 6s;
+  margin-bottom: 0;
 }
 
 /* Hit flash: a pure white silhouette. */

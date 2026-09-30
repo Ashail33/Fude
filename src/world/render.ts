@@ -572,7 +572,7 @@ export class Renderer {
     const pp = walkerPos(world.player)
     if (g.orb > 0) {
       const bob = Math.sin(now / 420) * 1.5
-      out.push({ x: pp.x + 8, y: pp.y + 2 + bob, r: 50, color: [1, 0.82, 0.55], intensity: g.orb / Math.max(0.3, g.lights), flicker: 0.06, seed: 1.3 })
+      out.push({ x: pp.x + 8, y: pp.y - 2 + bob, r: 50, color: [1, 0.82, 0.55], intensity: g.orb / Math.max(0.3, g.lights), flicker: 0.06, seed: 1.3 })
       const fp = walkerPos(world.fude)
       out.push({ x: fp.x + 8, y: fp.y - 2, r: 26, color: [0.75, 0.9, 1], intensity: (g.orb * 0.6) / Math.max(0.3, g.lights), flicker: 0.1, seed: 4.1 })
     }

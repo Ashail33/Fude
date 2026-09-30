@@ -1249,7 +1249,7 @@ export default function Battle({ region, enemies, onEnd }: BattleProps) {
             const floats = FLOATING.has(e.def.id)
             const dragon = e.def.id === 'dragon'
             // Illustrations are sized to the stage, not to the pixel grid.
-            const boxH = fieldSize.h * (dragon ? 0.72 : n === 1 ? 0.52 : n === 2 ? 0.46 : 0.4)
+            const boxH = fieldSize.h * (dragon ? 0.68 : n === 1 ? 0.52 : n === 2 ? 0.46 : 0.4)
             const boxW = dragon ? fieldSize.w * 1.05 : (fieldSize.w * 0.94) / n - 8
             const shadowW = Math.min(boxW, boxH) * (floats ? 0.42 : 0.62)
             return (

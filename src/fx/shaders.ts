@@ -35,7 +35,9 @@ void main() {
     float a = clamp(1.0 - length(d) / u_lp[i].z, 0.0, 1.0);
     s += u_lc[i].rgb * (a * a * (0.45 + 0.55 * a));
   }
-  gl_FragColor = vec4(min(s * 0.5, vec3(1.0)), 1.0);
+  // Soft saturation so clusters (a ring of warp circles) glow instead of blowing out.
+  s = 1.6 * (1.0 - exp(-s / 1.6));
+  gl_FragColor = vec4(s * 0.5, 1.0);
 }`
 
 /** Lit scene → soft-knee threshold (downsampled with a 4-tap box). */
@@ -53,7 +55,7 @@ void main() {
   c *= 0.25;
   vec3 P = texture2D(u_light, v_uv).rgb * 2.0;
   vec3 lit = c * (u_amb + P);
-  float l = max(lit.r, max(lit.g, lit.b));
+  float l = max(dot(lit, vec3(0.3, 0.55, 0.15)), max(lit.r, max(lit.g, lit.b)) * 0.7);
   float knee = 0.18;
   float soft = clamp(l - u_thr + knee, 0.0, 2.0 * knee);
   soft = soft * soft / (4.0 * knee + 1e-4);
@@ -97,6 +99,7 @@ uniform vec3 u_gain;
 uniform vec2 u_satCon;
 uniform vec4 u_ray;    // rgb, strength
 uniform float u_rayAngle;
+uniform vec4 u_sun;    // rgb, strength — low sun glow from the top-left
 uniform vec3 u_post;   // vignette, grain, fade
 uniform float u_water;
 
@@ -145,7 +148,10 @@ void main() {
   if (k > 0.002) base = mix(base, texture2D(u_dof, v_uv).rgb, k);
 
   vec3 P = texture2D(u_light, v_uv).rgb * 2.0;
-  vec3 col = base * (u_amb + P * 0.85) + P * u_haze * (0.6 + 0.4 * dot(base, vec3(0.33)));
+  // Under strong light the surface colour gives way to the light's colour (warm pools, not green grass).
+  float pl = clamp((P.r + P.g + P.b) * 0.22, 0.0, 0.55);
+  vec3 lb = mix(base, vec3(dot(base, vec3(0.3, 0.55, 0.15))) * 1.1, pl);
+  vec3 col = lb * (u_amb + P * 0.85) + P * u_haze * (0.6 + 0.4 * dot(base, vec3(0.33)));
   col += texture2D(u_bloom, v_uv).rgb * u_bloomK;
 
   // Light shafts (screen-space, slow drift, slight parallax).
@@ -155,9 +161,15 @@ void main() {
     float n1 = 0.5 + 0.5 * sin(s * 0.052 + u_time * 0.21);
     float n2 = 0.5 + 0.5 * sin(s * 0.023 - u_time * 0.13 + 2.0);
     float n3 = 0.5 + 0.5 * sin(s * 0.011 + u_time * 0.07 + 4.0);
-    float r = pow(n1 * n2, 2.0) * (0.5 + 0.5 * n3);
-    float fall = 1.0 - smoothstep(0.0, u_view.y * 0.95, pix.y);
-    col += u_ray.rgb * (r * fall * u_ray.a);
+    float r = smoothstep(0.55, 0.95, 0.5 * n1 + 0.3 * n2 + 0.2 * n3);
+    float fall = 0.35 + 0.65 * (1.0 - smoothstep(0.0, u_view.y * 1.1, pix.y));
+    vec3 shaft = u_ray.rgb * (r * fall * u_ray.a);
+    col += shaft * (0.55 + col);
+  }
+
+  if (u_sun.a > 0.0) {
+    float sd = length(pix - vec2(-0.1, -0.2) * u_view) / max(u_view.x, u_view.y);
+    col += u_sun.rgb * (exp(-sd * 2.4) * u_sun.a) * (0.45 + col);
   }
 
   col = shoulder(col);
