@@ -175,6 +175,8 @@ export default function Battle({ region, enemies, onEnd }: BattleProps) {
   const [chant, setChant] = useState<{ text: string; color: string } | null>(null)
   const [fade, setFade] = useState<'' | 'out' | 'dark'>('')
   const [banner, setBanner] = useState<Line | null>(null)
+  /** Weaknesses discovered this battle (shown on the name tags). */
+  const [weakSeen, setWeakSeen] = useState<Record<number, Element>>({})
 
   // Action context
   const [act, setAct] = useState<Act>('fight')
@@ -207,6 +209,12 @@ export default function Battle({ region, enemies, onEnd }: BattleProps) {
   const enemyRefs = useRef<(HTMLButtonElement | null)[]>([])
   const statusRef = useRef<HTMLDivElement>(null)
   const mounted = useRef(true)
+  const ended = useRef(false)
+  const endOnce = (o: BattleOutcome) => {
+    if (ended.current) return
+    ended.current = true
+    onEnd(o)
+  }
   const skipRef = useRef<(() => void) | null>(null)
   const fxId = useRef(0)
   const [fieldSize, setFieldSize] = useState({ w: 390, h: 400 })
@@ -355,6 +363,8 @@ export default function Battle({ region, enemies, onEnd }: BattleProps) {
             await sleep(380)
             addFx([{ kind: 'ring', x: c.x, y: c.y, color: col, size: c.h }, ...sparks(c.x, c.y, col, ev.eff === 'weak' ? 26 : 16, ev.eff === 'weak' ? 140 : 90)], 900)
             if (ev.eff === 'weak') {
+              const el = ev.element
+              setWeakSeen((w) => ({ ...w, [ev.target]: el }))
               bsfx.weak()
               void doFlash(col, 110)
             }
@@ -534,7 +544,7 @@ export default function Battle({ region, enemies, onEnd }: BattleProps) {
     await say({ jp: 'うまく にげきれた！', en: 'You got away safely!' }, 500)
     setFade('out')
     await sleep(450)
-    if (mounted.current) onEnd('flee')
+    if (mounted.current) endOnce('flee')
   }
 
   // Intro
@@ -875,15 +885,16 @@ export default function Battle({ region, enemies, onEnd }: BattleProps) {
     if (!end) return
     bsfx.confirm()
     setFade('out')
-    setTimeout(() => onEnd(end.kind === 'win' ? 'win' : 'lose'), 380)
+    setTimeout(() => endOnce(end.kind === 'win' ? 'win' : 'lose'), 380)
   }
 
   // Auto-continue after a defeat so the overworld can take over.
   useEffect(() => {
     if (end?.kind !== 'lose') return
-    const t = setTimeout(() => onEnd('lose'), 5000)
+    const t = setTimeout(() => endOnce('lose'), 5000)
     return () => clearTimeout(t)
-  }, [end, onEnd])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [end])
 
   // ─── Render ──────────────────────────────────────────────────────────
   const p = view.player
@@ -1003,7 +1014,7 @@ export default function Battle({ region, enemies, onEnd }: BattleProps) {
                 <button key={c.id} type="button" className={`bt-opt bt-choice ${cursor === i && !reveal ? 'sel' : ''} ${state}`} onMouseEnter={() => !reveal && setCursor(i)} onClick={() => void answer(i)} disabled={!!reveal}>
                   <span className="bt-cur">▶</span>
                   <span className="bt-key">{i + 1}</span>
-                  {q.kind === 'meaning' ? <span>{c.en}</span> : <Ruby text={c.jp} reading={c.kana} />}
+                  {q.kind === 'meaning' ? <span>{c.en}</span> : q.kind === 'listen' && imm >= 2 ? <span lang="ja">{c.jp}</span> : <Ruby text={c.jp} reading={c.kana} />}
                 </button>
               )
             })}
@@ -1230,7 +1241,15 @@ export default function Battle({ region, enemies, onEnd }: BattleProps) {
               </span>
               <span className="bt-shadow" />
               <span className="bt-ename">
-                <span lang="ja">{e.name}</span>
+                <span lang="ja">
+                  {e.name}
+                  {weakSeen[i] && (
+                    <span className="bt-weak" style={{ color: EL_COLOR[weakSeen[i]] }} title={`Weak to ${weakSeen[i]}`}>
+                      {' '}
+                      弱{EL_NOUN[weakSeen[i]]}
+                    </span>
+                  )}
+                </span>
                 <span className="bt-ehp">
                   <span style={{ width: `${(e.hp / e.maxHp) * 100}%` }} />
                 </span>
@@ -1263,7 +1282,7 @@ export default function Battle({ region, enemies, onEnd }: BattleProps) {
       {screenFlash && <div className="bt-flash" style={{ background: screenFlash }} />}
       {phase === 'intro' && <div className="bt-wipe" aria-hidden />}
       {end?.kind === 'lose' && (
-        <div className="bt-defeat" onClick={() => onEnd('lose')}>
+        <div className="bt-defeat" onClick={() => endOnce('lose')}>
           <p lang="ja">目の前が 真っ暗に なった…</p>
           {imm <= 2 && <small>Everything went dark…</small>}
           <span className="bt-more">▼</span>
