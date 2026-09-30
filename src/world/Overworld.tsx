@@ -39,6 +39,8 @@ const fx = (name: string) => {
   }
 }
 
+const reducedMotion = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches
+
 const KEY_DIR: Record<string, Dir> = {
   ArrowUp: 'up',
   ArrowDown: 'down',
@@ -457,7 +459,7 @@ export default function Overworld() {
           }
         } else {
           irisShown = 1
-          if (irisMode.current) {
+          if (irisMode.current && !reducedMotion) {
             r.playerScreen(w, iris)
             const rect = el.getBoundingClientRect()
             const far = Math.hypot(Math.max(iris.x, rect.width - iris.x), Math.max(iris.y, rect.height - iris.y))

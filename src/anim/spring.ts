@@ -62,6 +62,11 @@ export class Spring {
       this.x += this.v * h
       left -= h
     }
+    // Snap when at rest so idle frames produce exact values (no endless tiny transforms).
+    if (Math.abs(this.x - this.target) < 1e-5 && Math.abs(this.v) < 1e-4) {
+      this.x = this.target
+      this.v = 0
+    }
     return this.x
   }
 

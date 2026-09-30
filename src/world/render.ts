@@ -131,6 +131,8 @@ const easeOutBack = (t: number) => {
 }
 const smooth = (t: number) => t * t * (3 - 2 * t)
 
+const REDUCED = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches
+
 const PERP: Record<Dir, Dir> = { up: 'right', down: 'left', left: 'down', right: 'down' }
 
 function newAnim(dir: Dir): AnimState {
@@ -914,11 +916,11 @@ export class Renderer {
     const moving = pl.t < 1
     const d = DIRS[pl.dir]
     // look-ahead: a little while standing, more walking, most when running
-    const look = moving ? (world.vel > WALK_SPEED * 1.35 ? 26 : 14) : 7
+    const look = REDUCED ? 0 : moving ? (world.vel > WALK_SPEED * 1.35 ? 26 : 14) : 7
     const tx = d.x * look
     const ty = d.y * look * 0.7
     const cs = this.camS
-    if (this.snapNext) {
+    if (this.snapNext || REDUCED) {
       cs.x = tx
       cs.y = ty
       cs.vx = cs.vy = 0
