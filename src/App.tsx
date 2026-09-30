@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from 'react'
-import { Link, NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { Link, NavLink, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { T } from './components/ui'
 import { dueItems, ensureQuests } from './engine/quests'
 import { level, usePlayer } from './engine/store'
@@ -13,6 +13,14 @@ const Grimoire = lazy(() => import('./screens/Grimoire'))
 const Wardrobe = lazy(() => import('./screens/Wardrobe'))
 const SettingsScreen = lazy(() => import('./screens/Settings'))
 const Tavern = lazy(() => import('./screens/Tavern'))
+const Overworld = lazy(() => import('./world/Overworld'))
+const Battle = lazy(() => import('./battle/Battle'))
+
+function BattleTest() {
+  const { region } = useParams()
+  const nav = useNavigate()
+  return <Battle region={Number(region) || 1} onEnd={() => nav('/')} />
+}
 
 function TopBar() {
   const p = usePlayer()
@@ -79,7 +87,7 @@ function BottomNav() {
 export default function App() {
   const p = usePlayer()
   const loc = useLocation()
-  const inGame = loc.pathname.startsWith('/play')
+  const inGame = /^\/(play|world|battle-test)/.test(loc.pathname)
 
   useEffect(() => {
     if (p.onboarded) ensureQuests(p)
@@ -103,6 +111,8 @@ export default function App() {
           <Route path="/wardrobe" element={<Wardrobe />} />
           <Route path="/settings" element={<SettingsScreen />} />
           <Route path="/tavern" element={<Tavern />} />
+          <Route path="/world" element={<Overworld />} />
+          <Route path="/battle-test/:region" element={<BattleTest />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>
