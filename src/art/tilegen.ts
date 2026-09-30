@@ -404,12 +404,18 @@ function roof(img: Img, nb: number, edge: boolean, red: boolean) {
   const lo = red ? 'V' : 'N'
   const dk = red ? 'n' : 'n'
   img.fill(C(base))
+  // rounded kawara: vertical rolls every 4px, overlapping courses every 4 rows
   for (let y = 0; y < 16; y++)
     for (let x = 0; x < 16; x++) {
       const cx = x % 4
-      if (cx === 0) img.set(x, y, C(lo))
-      else if (cx === 1) img.set(x, y, C(hi))
-      if (y % 5 === 4) img.set(x, y, C(cx === 0 ? dk : lo))
+      const cy = y % 4
+      let c = base
+      if (cx === 1) c = hi
+      else if (cx === 3) c = lo
+      else if (cx === 0) c = dk
+      if (cy === 3) c = cx === 0 ? dk : lo
+      if (cy === 0 && cx !== 0) c = cx === 1 ? (red ? 'y' : 'm') : hi
+      img.set(x, y, C(c))
     }
   if (!has(nb, N)) {
     // ridge cap
@@ -519,9 +525,7 @@ function noren(img: Img, nb: number, f: number) {
       }
       img.set(x, y, C(y === 2 ? 'd' : x % 4 === 1 ? 'd' : 'N'))
     }
-  img.map(['.pp.', 'p..p', 'p..p', '.pp.'], 6, 4)
-  img.set(7, 5, C('p'))
-  img.set(8, 6, C('p'))
+  img.map(['p.p.p', 'p.p.p', 'ppppp'], 6, 5)
 }
 
 function awning(img: Img, nb: number) {
@@ -733,6 +737,7 @@ function prop(img: Img, id: string, v: number, f: number, nb: number) {
   const def = PROPS[id]
   if (!def) return
   const rows = def.frames ? def.frames[f % def.frames.length] : def.rows
+  if (!rows) return
   let p = fromMap(rows)
   if (def.shade) p = autoShade(p, def.shade)
   p = outline(p)
@@ -746,54 +751,50 @@ function torii(img: Img, nb: number) {
   const w = !has(nb, W)
   const e = !has(nb, E)
   const t = new Img(16, 16)
-  // kasagi (black top beam, upturned at the ends) & red shimaki below
-  const x0 = w ? 0 : 0
-  const x1 = e ? 15 : 15
-  for (let x = x0; x <= x1; x++) {
-    t.set(x, 2, C('n'))
+  // kasagi (black top beam, upturned at the ends), red shimaki, nuki tie-beam
+  for (let x = 0; x < 16; x++) {
+    t.set(x, 1, C('n'))
+    t.set(x, 2, C('N'))
     t.set(x, 3, C('v'))
     t.set(x, 4, C('V'))
-    t.set(x, 7, C('v'))
+    t.set(x, 7, C('e'))
     t.set(x, 8, C('V'))
   }
   if (w) {
-    t.set(0, 1, C('n'))
-    t.set(0, 2, C('n'))
+    t.set(0, 0, C('n'))
     t.set(0, 7, null)
     t.set(0, 8, null)
   }
   if (e) {
-    t.set(15, 1, C('n'))
-    t.set(15, 2, C('n'))
+    t.set(15, 0, C('n'))
     t.set(15, 7, null)
     t.set(15, 8, null)
   }
   const pillar = (px: number) => {
-    for (let y = 3; y < 15; y++) {
-      t.set(px, y, C(y >= 13 ? 'n' : 'e'))
-      t.set(px + 1, y, C(y >= 13 ? 'n' : 'v'))
-      t.set(px + 2, y, C(y >= 13 ? 'n' : 'V'))
+    for (let y = 3; y < 16; y++) {
+      const base = y >= 13
+      t.set(px, y, C(base ? 'N' : 'e'))
+      t.set(px + 1, y, C(base ? 'n' : 'v'))
+      t.set(px + 2, y, C(base ? 'n' : 'V'))
     }
+  }
+  const plaque = () => {
+    t.rect(6, 4, 4, 3, C('n'))
+    t.rect(7, 5, 2, 1, C('y'))
   }
   if (w && e) {
     pillar(2)
     pillar(11)
-    // gakuzuka plaque
-    t.rect(7, 4, 2, 3, C('n'))
-    t.set(7, 5, C('y'))
-  } else if (w) pillar(10)
-  else if (e) pillar(3)
-  else {
-    t.rect(7, 4, 2, 3, C('n'))
-    t.set(7, 5, C('y'))
-  }
-  const o = outline(t)
+    plaque()
+  } else if (w) pillar(9)
+  else if (e) pillar(4)
+  else plaque()
   if (w && e) {
-    castShadow(img, 3.5, 15, 3, 1.2)
-    castShadow(img, 12.5, 15, 3, 1.2)
-  } else if (w) castShadow(img, 11.5, 15, 3, 1.2)
-  else if (e) castShadow(img, 4.5, 15, 3, 1.2)
-  img.blit(o)
+    castShadow(img, 3.5, 15.5, 3, 1)
+    castShadow(img, 12.5, 15.5, 3, 1)
+  } else if (w) castShadow(img, 10.5, 15.5, 3, 1)
+  else if (e) castShadow(img, 5.5, 15.5, 3, 1)
+  img.blit(outline(t))
 }
 
 function fence(img: Img, nb: number) {
@@ -864,8 +865,9 @@ function gateBarrier(img: Img, f: number) {
   for (let y = 1; y < 15; y++)
     for (let x = 2; x < 14; x++) {
       const k = (x + y * 2 + f * 3) % 8
-      if (k === 0) img.set(x, y, C('U'))
+      if (k === 0 || k === 4) img.set(x, y, C('U'))
       else if (k === 1 && (x + f) % 2 === 0) img.set(x, y, C('w'))
+      else if (k === 5) img.set(x, y, C('u'))
     }
   // bright seam
   for (let y = 1; y < 15; y++) if ((y + f) % 3) img.set(7 + ((y + f) % 2), y, C('l'))

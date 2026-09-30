@@ -51,17 +51,17 @@ function TileCanvas({ w, h, draw }: { w: number; h: number; draw: (ctx: CanvasRe
 
 // A 12×8 sample scene. Legend below.
 const SCENE = [
-  'GGGGTTGGPPGGGGGGSG',
-  'GTGRRRRGPGGBBBBGGG',
-  'GGGrwdrGPGGhhhhGTG',
-  'GFGGGGGGPPPPPGGGGG',
-  'GGWWWWGGGGGPGGLGGG',
-  'GWWWWWWWGGGPGGGGGG',
-  'GWWlWWW=====PPPPPG',
-  'GWWWWWWWGGGGGGGGGG',
-  'GGWWWWG###GGGFGGTG',
-  'GGGGGGG###GGGGGGGG',
-  'GTG#####GGGGIGGIGG',
+  'TGGGGGGWWWGGGGGSGT',
+  'GRRRRRGWWWGGBBBBBG',
+  'GrrrrrGWWWGGbbbbbG',
+  'GwdwwwGWWWGGwhhwwG',
+  'GGPGGGGWWWGGGGPGGG',
+  'GFPPPPP===PPPPPGLG',
+  'GGGGGGGWWWGGGGPGGG',
+  'GGWWWWWWWWGGGGPGGG',
+  'GWWWWlWWWWG#####GG',
+  'GWWWWWWWWG##III##G',
+  'GGWWWWWGGG#######T',
 ]
 const SCENE_KEY: Record<string, TileId> = {
   G: 'grass',
@@ -73,6 +73,7 @@ const SCENE_KEY: Record<string, TileId> = {
   w: 'wall-window',
   d: 'door',
   B: 'roof-red',
+  b: 'roof-red-edge',
   h: 'noren',
   F: 'flowers',
   W: 'water',
@@ -96,11 +97,13 @@ function drawScene(ctx: CanvasRenderingContext2D, t: number) {
     const c = spriteCanvas(id, { dir, frame: ph, outfit })
     ctx.drawImage(c, x * S, y * S, c.width * S, c.height * S)
   }
-  draw('mage', 16 * 9, 16 * 3 - 4)
-  draw('fude', 16 * 10, 16 * 3 - 8 + (ph ? -1 : 0), 'left')
-  draw('villager-b', 16 * 5, 16 * 3 - 4, 'right')
-  draw('cat', 16 * 14, 16 * 8, 'left')
-  draw('priest', 16 * 13, 16 * 9)
+  draw('mage', 16 * 4, 16 * 5 - 4, 'right')
+  draw('fude', 16 * 3, 16 * 5 - 9 + (ph ? -1 : 0), 'right')
+  draw('villager-b', 16 * 2, 16 * 4 - 4, 'down')
+  draw('merchant', 16 * 13, 16 * 4 - 4, 'down')
+  draw('cat', 16 * 16, 16 * 6, 'left')
+  draw('priest', 16 * 13, 16 * 10 - 4)
+  draw('fox', 16 * 11, 16 * 6, 'right')
 }
 
 function sizeLabel(id: SpriteId) {
@@ -121,7 +124,9 @@ export function ArtPreview() {
   return (
     <div style={{ background: '#2a2438', padding: 12, minHeight: '100vh' }}>
       <div style={h2}>Scene</div>
-      <TileCanvas w={SCENE[0].length * 16 * S} h={SCENE.length * 16 * S} draw={drawScene} />
+      <div style={{ maxWidth: '100%', overflowX: 'auto' }}>
+        <TileCanvas w={SCENE[0].length * 16 * S} h={SCENE.length * 16 * S} draw={drawScene} />
+      </div>
 
       <div style={h2}>Tiles</div>
       <div style={{ display: 'flex', flexWrap: 'wrap' }}>

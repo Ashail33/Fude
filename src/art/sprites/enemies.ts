@@ -693,7 +693,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
       {
         x: 26,
         y: 3,
-        rows: ['..w', '.wm', '.wm', '.wm', '.wm', '.wm', '.wm', '.wm', '.wm', '.wm', '.wm', '.wm', '.wm', '.wm', '.wm', '.wm', '.wm', '.wm', '.wm', '.wm', 'yyyy', '.n.', '.n.', '.n.', '.p.'].map((r) => r.padEnd(4, '.')),
+        rows: ['..w.', ...Array<string>(19).fill('.wm.'), 'yyyy', '.n..', '.n..', '.n..', '.p..'],
       },
     ],
     frame1: [{ x: 9, y: 11, rows: ['x'] }, { x: 22, y: 11, rows: ['x'] }],

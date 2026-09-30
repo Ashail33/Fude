@@ -19,8 +19,8 @@ const LANTERN_BODY = (light: string, glow: string) => [
   '..ssssssssss....',
   '.SSSSSSSSSSSS...',
   '...ssssssss.....',
-  `...s${glow}${light}${light}${glow}s.....`.slice(0, 16).padEnd(16, '.'),
-  `...s${light}${light}${light}${light}s.....`.slice(0, 16).padEnd(16, '.'),
+  `...ss${glow}${light}${light}${glow}ss.....`,
+  `...ss${light}${light}${light}${light}ss.....`,
   '...ssssssss.....',
   '....SSSSSS......',
   '.....ssss.......',
@@ -35,11 +35,8 @@ function shiftRight(rows: string[], n: number) {
   return rows.map((r) => ('.'.repeat(n) + r).slice(0, 16))
 }
 
-const LANTERN = (light: string, glow: string) => {
-  const r = LANTERN_BODY(light, glow)
-  // centre it (body is 12 wide starting at col 1)
-  return shiftRight(r, 1).map((row, i) => (i === 6 || i === 7 ? row : row))
-}
+/** Stone lantern, nudged one pixel right to sit centred in the tile. */
+const LANTERN = (light: string, glow: string) => shiftRight(LANTERN_BODY(light, glow), 1)
 
 const FIRE = [
   [
@@ -361,7 +358,7 @@ export const PROPS: Record<string, PropDef> = {
       '..o..........o..',
       '..ssssssssssss..',
       '.sBBBBBBBBBBBBs.',
-      '.sssssssssssss s'.replace(' ', '.').slice(0, 16),
+      '.ssssssssssssss.',
       '.ssSssSssSssSss.',
       '.sssssssssssss..',
       '.SsSSsSSsSSsSSs.',
@@ -534,8 +531,8 @@ export const PROPS: Record<string, PropDef> = {
       '.yOOOOOOOOOOOOy.',
       '.yOOOlOOOOOOOOy.',
       '.yyyyyyyyyyyyyy.',
-      '.yoooooooooooooy'.slice(0, 16),
-      '.yoooooooooooooy'.slice(0, 15) + '.',
+      '.yoooooooooooooy',
+      '.yooooooooooooy.',
       '.yooooooooooooy.',
       '.yooooooooooooy.',
       '.yyyyyyyyyyyyyy.',
@@ -558,7 +555,7 @@ export const PROPS: Record<string, PropDef> = {
       'oooonkkkkkkkknoo',
       'ooOnkkkkkkkkknoo',
       'ooonkkkkkkkkknoO',
-      'oOonkkkkkkkkkknoo'.slice(0, 16),
+      'oOonkkkkkkkkkkno',
       'ooonkkkkkkkkknoo',
       'oonkkkkkkkkkkkno',
       'onkkkkkkkkkkkkno',
@@ -640,7 +637,7 @@ export const PROPS: Record<string, PropDef> = {
       'OoLnnkkkkkknnLoO',
       'OoLnnnnnnnnnnLoO',
       'OyLnnnnnnnnnnLyO',
-      'OoLsssssssssssoO'.slice(0, 16),
+      'OoLssssssssssLoO',
       'OoLssssssssssLoO',
       'OoLmmmmmmmmmmLoO',
       'OOOSSSSSSSSSSOOO',
@@ -650,7 +647,7 @@ export const PROPS: Record<string, PropDef> = {
     shade: 's',
     rows: [
       '....ssssssss....',
-      '..sssssssssss...'.slice(0, 16),
+      '..ssssssssssss..',
       '.sss........sss.',
       '.ss..........ss.',
       'ss............ss',
