@@ -1,0 +1,112 @@
+import { lazy, Suspense, useEffect } from 'react'
+import { Link, NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { T } from './components/ui'
+import { dueItems, ensureQuests } from './engine/quests'
+import { level, usePlayer } from './engine/store'
+import { levelForXp, xpForLevel } from './engine/rewards'
+import Home from './screens/Home'
+import Onboarding from './screens/Onboarding'
+
+const RegionScreen = lazy(() => import('./screens/RegionScreen'))
+const Play = lazy(() => import('./screens/Play'))
+const Grimoire = lazy(() => import('./screens/Grimoire'))
+const Wardrobe = lazy(() => import('./screens/Wardrobe'))
+const SettingsScreen = lazy(() => import('./screens/Settings'))
+const Tavern = lazy(() => import('./screens/Tavern'))
+
+function TopBar() {
+  const p = usePlayer()
+  const lvl = level(p)
+  const cur = xpForLevel(lvl)
+  const nxt = xpForLevel(lvl + 1)
+  return (
+    <header className="topbar">
+      <Link to="/" className="brand" aria-label="Home">
+        <span className="jp" lang="ja">
+          言葉の魔法
+        </span>
+        <span className="hide-xs">Kotoba no Mahō</span>
+      </Link>
+      <div className="topbar-stats">
+        <span className="chip" title={`${p.xp - cur} / ${nxt - cur} XP to next level`}>
+          <T en="Lv" jp="レベル" /> {levelForXp(p.xp)}
+          <span className="xp-mini">
+            <span style={{ width: `${((p.xp - cur) / (nxt - cur)) * 100}%` }} />
+          </span>
+        </span>
+        <span className="chip" title="Daily streak">
+          🔥 {p.streak.count}
+        </span>
+        <span className="chip hide-sm" title="Spirit shards (ことだま)">
+          💠 {p.shards}
+        </span>
+      </div>
+    </header>
+  )
+}
+
+function BottomNav() {
+  const p = usePlayer()
+  const due = dueItems(p).length
+  return (
+    <nav className="bottomnav" aria-label="Main">
+      <NavLink to="/" end>
+        <span className="ico">🗺️</span>
+        <T en="World" jp="せかい" />
+      </NavLink>
+      <NavLink to="/grimoire">
+        <span className="ico">
+          📖{due > 0 && <span className="nav-badge">{due}</span>}
+        </span>
+        <T en="Grimoire" jp="まどうしょ" />
+      </NavLink>
+      <NavLink to="/tavern">
+        <span className="ico">🍶</span>
+        <T en="Tavern" jp="さかば" />
+      </NavLink>
+      <NavLink to="/wardrobe">
+        <span className="ico">🧙</span>
+        <T en="Mage" jp="まどうし" />
+      </NavLink>
+      <NavLink to="/settings">
+        <span className="ico">⚙️</span>
+        <T en="Settings" jp="せってい" />
+      </NavLink>
+    </nav>
+  )
+}
+
+export default function App() {
+  const p = usePlayer()
+  const loc = useLocation()
+  const inGame = loc.pathname.startsWith('/play')
+
+  useEffect(() => {
+    if (p.onboarded) ensureQuests(p)
+  }, [p])
+
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [loc.pathname])
+
+  if (!p.onboarded && !inGame) return <Onboarding />
+
+  return (
+    <div className={`app ${inGame ? 'in-game' : ''}`}>
+      {!inGame && <TopBar />}
+      <Suspense fallback={<div className="loading">✨</div>}>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/region/:id" element={<RegionScreen />} />
+          <Route path="/play/*" element={<Play key={loc.pathname} />} />
+          <Route path="/grimoire" element={<Grimoire />} />
+          <Route path="/wardrobe" element={<Wardrobe />} />
+          <Route path="/settings" element={<SettingsScreen />} />
+          <Route path="/tavern" element={<Tavern />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
+      {!inGame && <BottomNav />}
+    </div>
+  )
+}

@@ -1,0 +1,77 @@
+.lesson-card {
+  position: relative;
+  min-height: 360px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.lesson-meet {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+}
+
+.lesson-emoji {
+  font-size: 4.5rem;
+  line-height: 1;
+}
+
+.lesson-en {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.lesson-actions {
+  justify-content: center;
+  margin-top: 12px;
+}
+
+.lesson-en-prompt {
+  font-size: 1.8rem;
+  font-weight: 800;
+}
+
+.lesson-emoji-sm {
+  font-size: 2.2rem;
+  vertical-align: middle;
+}
+
+.lesson-preview {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  font-size: 1.6rem;
+  margin-bottom: 20px;
+}
+
+.choice-key {
+  display: inline-block;
+  font-size: 0.7rem;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0 5px;
+  margin-right: 8px;
+  vertical-align: middle;
+  font-family: var(--font);
+}
+
+.small {
+  font-size: 0.85rem;
+}
+
+.review-echo {
+  align-self: center;
+  margin-bottom: 8px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(255, 209, 102, 0.15);
+  border: 1px solid rgba(255, 209, 102, 0.5);
+  color: var(--accent);
+  font-size: 0.9rem;
+}
