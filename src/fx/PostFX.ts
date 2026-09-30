@@ -192,7 +192,7 @@ export class PostFX {
 
   // ─── GL plumbing ────────────────────────────────────────────────
   private fail(err: unknown) {
-    if (!this.dead) console.warn('[fx] disabled, using plain 2D:', err)
+    if (!this.dead) console.info('[fx] disabled, using plain 2D:', err)
     this.dead = true
     this.setVisible(false)
   }
