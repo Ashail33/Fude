@@ -66,7 +66,24 @@ export interface PlayerState {
   daily: Record<string, { xp: number; ms: number; games: number }>
   settings: Settings
   onboarded: boolean
+  /** Where the mage stands in the overworld (map id + tile coords + facing). */
+  world: WorldPos
+  /** Consumable items by id (see engine/items catalogue in battle/items.ts). */
+  bag: Record<string, number>
+  /** Story beats already shown (cutscene ids). */
+  seenScenes: string[]
+  /** Map object ids opened once (chests etc.). */
+  opened: string[]
 }
+
+export interface WorldPos {
+  map: string
+  x: number
+  y: number
+  dir: 'up' | 'down' | 'left' | 'right'
+}
+
+export const START_POS: WorldPos = { map: 'village', x: 12, y: 14, dir: 'down' }
 
 const KEY = 'fude.kotoba.save.v1'
 
@@ -101,6 +118,10 @@ export function freshState(): PlayerState {
     daily: {},
     settings: { ...DEFAULT_SETTINGS },
     onboarded: false,
+    world: { ...START_POS },
+    bag: { herb: 3 },
+    seenScenes: [],
+    opened: [],
   }
 }
 
@@ -349,4 +370,38 @@ export function discoverKanji(char: string, unlocks: string[] = []) {
 
 export function adjustTrust(npcId: string, delta: number) {
   setState((s) => ({ ...s, npcTrust: { ...s.npcTrust, [npcId]: Math.max(-5, Math.min(10, (s.npcTrust[npcId] ?? 0) + delta)) } }))
+}
+
+export function setWorldPos(pos: WorldPos) {
+  setState((s) => ({ ...s, world: pos }))
+}
+
+/** Add (or remove, with a negative count) items from the bag. */
+export function addItem(id: string, n = 1) {
+  setState((s) => {
+    const cur = (s.bag[id] ?? 0) + n
+    const bag = { ...s.bag }
+    if (cur <= 0) delete bag[id]
+    else bag[id] = cur
+    return { ...s, bag }
+  })
+}
+
+export function spendShards(n: number): boolean {
+  if (state.shards < n) return false
+  setState((s) => ({ ...s, shards: s.shards - n }))
+  return true
+}
+
+export function markScene(id: string) {
+  setState((s) => (s.seenScenes.includes(id) ? s : { ...s, seenScenes: [...s.seenScenes, id] }))
+}
+
+export function markOpened(id: string) {
+  setState((s) => (s.opened.includes(id) ? s : { ...s, opened: [...s.opened, id] }))
+}
+
+/** Grant XP and shards outside of an activity (battles, chests). */
+export function grantRewards(xp: number, shards: number) {
+  setState((s) => ({ ...s, xp: s.xp + xp, shards: s.shards + shards }))
 }
