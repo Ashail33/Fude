@@ -12,7 +12,7 @@
  * the 3D camera.
  */
 import * as THREE from 'three'
-import { spriteSize, type Anim, type SpriteId } from '../art'
+import { type SpriteId } from '../art'
 import { animAt } from '../art'
 import { PAL } from '../art/palette'
 import { tileCanvas, tileFrame, tileVariant, type TileId } from '../art/tiles'
@@ -24,11 +24,14 @@ import { Atlas } from './atlas'
 import { ANCHOR, animateDyn, buildDiorama, voxDepth, VS, type Diorama } from './build'
 import { Post } from './post'
 import { voxelGeometry, voxelMaterial } from './voxel'
+import { buildModel, hasModel, type Model } from './models/chars'
+import { Mesher, toonMaterial } from './models/kit'
+import { addProp } from './models/props'
 
 const FOV = 30
 const PITCH = (40 * Math.PI) / 180
 /** >1 shows more of the map than the 2D view at the same scale. */
-const ZOOM = 1.0
+const ZOOM = 0.85
 const N_LIGHTS = 8
 const REDUCED = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches
 
@@ -42,8 +45,13 @@ export function canRender3D(): boolean {
   }
 }
 
+const DIR_YAW: Record<string, number> = { down: 0, right: Math.PI / 2, up: Math.PI, left: -Math.PI / 2 }
+
 interface Card {
   mesh: THREE.Mesh
+  /** Smooth character model (null → the mesh shows a prop or voxel fallback). */
+  model: Model | null
+  modelKey: string
   /** Current / target yaw (turn toward the facing direction). */
   yaw: number
   blob: THREE.Mesh | null
@@ -88,6 +96,9 @@ export class Renderer3D extends Renderer {
   private tileKeys = new WeakMap<Entity, object>()
   private voxMat: THREE.MeshLambertMaterial
   private ghostMat: THREE.MeshLambertMaterial
+  private toonMat: THREE.MeshToonMaterial
+  private ghostToon: THREE.MeshToonMaterial
+  private propGeo = new Map<TileId, THREE.BufferGeometry | null>()
   private blobGeo: THREE.PlaneGeometry
   private blobMat: THREE.MeshBasicMaterial
   private frameNo = 0
@@ -172,6 +183,9 @@ export class Renderer3D extends Renderer {
 
     this.voxMat = voxelMaterial(uTime)
     this.ghostMat = new THREE.MeshLambertMaterial({ vertexColors: true, transparent: true, depthWrite: false, opacity: 0.4 })
+    this.toonMat = toonMaterial(uTime)
+    this.ghostToon = toonMaterial(uTime, { transparent: true })
+    this.ghostToon.depthWrite = false
     this.blobGeo = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2)
     this.blobMat = new THREE.MeshBasicMaterial({ map: blobTexture(), transparent: true, depthWrite: false, opacity: 0.55 })
 
@@ -286,7 +300,7 @@ export class Renderer3D extends Renderer {
       this.dio.dispose()
     }
     const up = Math.max(0, Math.min(2, Math.floor(Math.log2(4096 / (Math.max(m.w, m.h) * 16)))))
-    this.dio = buildDiorama(m, this.atlas, this.cardMat, this.groundMat, up, this.voxMat)
+    this.dio = buildDiorama(m, this.atlas, this.cardMat, this.groundMat, up, this.voxMat, this.toonMat)
     this.scene.add(this.dio.ground, this.dio.statics, this.dio.dynamic, this.dio.voxels)
     this.atlas.flush()
     this.applyGrade()
@@ -417,12 +431,13 @@ export class Renderer3D extends Renderer {
     return { x: Math.floor(p.x), y: Math.floor(p.z) }
   }
 
-  // ─── cards (characters and entity tiles) ────────────────────────
+  // ─── characters and entity objects ──────────────────────────────
   private card(key: object, blob: boolean): Card {
     let c = this.cards.get(key)
     if (!c) {
-      const mesh = new THREE.Mesh(undefined, this.voxMat)
+      const mesh = new THREE.Mesh(undefined, this.toonMat)
       mesh.castShadow = true
+      mesh.receiveShadow = true
       this.scene.add(mesh)
       let b: THREE.Mesh | null = null
       if (blob) {
@@ -430,7 +445,7 @@ export class Renderer3D extends Renderer {
         b.renderOrder = 1
         this.scene.add(b)
       }
-      c = { mesh, yaw: 0, blob: b, seen: 0, ghost: false }
+      c = { mesh, model: null, modelKey: '', yaw: 0, blob: b, seen: 0, ghost: false }
       this.cards.set(key, c)
     }
     c.seen = this.frameNo
@@ -440,31 +455,85 @@ export class Renderer3D extends Renderer {
   private dropCard(c: Card) {
     this.scene.remove(c.mesh)
     if (c.blob) this.scene.remove(c.blob)
+    if (c.model) {
+      this.scene.remove(c.model.root)
+      c.model.dispose()
+    }
   }
 
-  /** Place the voxel model of a canvas with its bottom-centre at (x, y, z) in tiles. */
-  private setCard(c: Card, canvas: HTMLCanvasElement, x: number, y: number, z: number, blobW = 0.62, depth = 8, dir?: string) {
+  private blobAt(c: Card, x: number, y: number, z: number, w: number) {
+    if (!c.blob) return
+    c.blob.position.set(x, 0.015, z)
+    const s = w * Math.max(0.35, 1 - y * 0.6)
+    c.blob.scale.set(s, 1, s * 0.62)
+  }
+
+  /** Show a smooth character model (built on first use / outfit change) at (x, y, z), facing `dir`. */
+  private setModel(c: Card, id: string, outfit: string, x: number, y: number, z: number, dir: string, phase: number, moving: boolean, run: boolean, now: number) {
+    const key = `${id}|${outfit}`
+    if (c.modelKey !== key) {
+      if (c.model) {
+        this.scene.remove(c.model.root)
+        c.model.dispose()
+      }
+      c.model = buildModel(id, c.ghost ? this.ghostToon : this.toonMat, outfit)
+      c.modelKey = key
+      c.mesh.visible = false
+      this.scene.add(c.model.root)
+    }
+    const m = c.model!
+    m.root.position.set(x, y, z)
+    const want = DIR_YAW[dir] ?? 0
+    let d = want - c.yaw
+    while (d > Math.PI) d -= Math.PI * 2
+    while (d < -Math.PI) d += Math.PI * 2
+    c.yaw += d * Math.min(1, this.frameDt * 12)
+    m.root.rotation.y = c.yaw
+    m.update(phase, moving, run, now / 1000)
+    this.blobAt(c, x, y, z, m.shadow)
+  }
+
+  /** Voxel fallback for sprites without a smooth model. */
+  private setVoxel(c: Card, canvas: HTMLCanvasElement, x: number, y: number, z: number, depth = 8) {
     const g = voxelGeometry(canvas, depth)
     if (c.mesh.geometry !== g) c.mesh.geometry = g
+    if (c.mesh.material !== this.voxMat && !c.ghost) c.mesh.material = this.voxMat
+    c.mesh.visible = true
     c.mesh.position.set(x, y, z)
-    // side-facing figures turn three-quarters so their depth shows
-    const want = dir === 'left' ? -0.5 : dir === 'right' ? 0.5 : 0
-    c.yaw += (want - c.yaw) * Math.min(1, this.frameDt * 14)
-    c.mesh.rotation.y = c.yaw
-    if (c.blob) {
-      c.blob.position.set(x, 0.015, z)
-      const s = blobW * Math.max(0.35, 1 - y * 0.6)
-      c.blob.scale.set(s * (canvas.width / 16), 1, s * 0.6)
+    this.blobAt(c, x, y, z, 0.62 * (canvas.width / 16))
+  }
+
+  /** Smooth prop model for an entity tile (cached geometry per tile id). */
+  private setProp(c: Card, tile: TileId, x: number, y: number, z: number): boolean {
+    let g = this.propGeo.get(tile)
+    if (g === undefined) {
+      const m = new Mesher(1.2)
+      g = addProp(m, tile, [0, 0, 0], { v: 0, x: 3, y: 5, nb: 0 }) ? m.geometry() : null
+      this.propGeo.set(tile, g)
     }
+    if (!g) return false
+    if (c.mesh.geometry !== g) c.mesh.geometry = g
+    if (!c.ghost && c.mesh.material !== this.toonMat) c.mesh.material = this.toonMat
+    c.mesh.visible = true
+    c.mesh.position.set(x, y, z)
+    return true
   }
 
   private setGhost(c: Card, ghost: boolean, now: number) {
     if (ghost !== c.ghost) {
       c.ghost = ghost
-      c.mesh.material = ghost ? this.ghostMat : this.voxMat
+      const vox = c.mesh.material === this.voxMat || c.mesh.material === this.ghostMat
+      c.mesh.material = ghost ? (vox ? this.ghostMat : this.ghostToon) : vox ? this.voxMat : this.toonMat
       c.mesh.castShadow = !ghost
+      c.model?.root.traverse((o) => {
+        const mm = o as THREE.Mesh
+        if (mm.isMesh) {
+          mm.material = ghost ? this.ghostToon : this.toonMat
+          mm.castShadow = !ghost
+        }
+      })
     }
-    if (ghost) this.ghostMat.opacity = 0.3 + 0.18 * Math.sin(now / 180)
+    if (ghost) this.ghostMat.opacity = this.ghostToon.opacity = 0.3 + 0.18 * Math.sin(now / 180)
   }
 
   private player3D(world: World, now: number, info: RenderInfo) {
@@ -473,21 +542,12 @@ export class Renderer3D extends Renderer {
     const p = wpos(w, this.p0)
     const moving = w.t < 1
     const dir = this.shownDir(st, w.dir, now)
-    let anim: Anim = 'idle'
-    let frame = 0
-    let blink = false
-    if (moving) {
-      anim = world.vel > WALK_SPEED * 1.35 ? 'run' : 'walk'
-      frame = walkFrame(w.steps, w.t)
-    } else {
-      if (st.wasMoving) st.idleSince = now
-      ;({ frame, blink } = animAt('idle', now - st.idleSince))
-    }
-    if (moving && (frame === 0 || frame === 2) && frame !== st.lastFrame) this.footfall(world, w, anim === 'run', now, !st.wasMoving)
+    const run = moving && world.vel > WALK_SPEED * 1.35
+    const frame = moving ? walkFrame(w.steps, w.t) : 0
+    if (moving && (frame === 0 || frame === 2) && frame !== st.lastFrame) this.footfall(world, w, run, now, !st.wasMoving)
     st.lastFrame = moving ? frame : -1
     st.wasMoving = moving
-    const cnv = this.frameCanvas(st, 'mage', dir, anim, frame, blink, info.outfit)
-    if (cnv) this.setCard(this.card(w, true), cnv, (p.x + 8) / 16, 0, p.y / 16 + ANCHOR, 0.62, 8, dir)
+    this.setModel(this.card(w, true), 'mage', info.outfit, (p.x + 8) / 16, 0, p.y / 16 + ANCHOR, dir, w.steps + Math.min(1, w.t), moving, run, now)
   }
 
   private fude3D(world: World, now: number) {
@@ -496,10 +556,8 @@ export class Renderer3D extends Renderer {
     const s = this.fudeS
     const dir = this.shownDir(st, w.dir, now)
     const moving = w.t < 1 || Math.abs(s.vx) + Math.abs(s.vy) > 12
-    const { frame, blink } = animAt(moving ? 'run' : 'walk', now, { float: true, seed: 3 })
-    const cnv = this.frameCanvas(st, 'fude', dir, 'walk', frame, blink, '')
-    const hover = (5 + Math.sin(now / 1100) * 1.2) / 16
-    if (cnv) this.setCard(this.card(w, true), cnv, (s.x + 8) / 16, hover * VS, s.y / 16 + ANCHOR - 0.04, 0.5, 8, dir)
+    const hover = (5 + Math.sin(now / 1100) * 1.5) / 16
+    this.setModel(this.card(w, true), 'fude', '', (s.x + 8) / 16, hover * VS, s.y / 16 + ANCHOR - 0.04, dir, now / 400, moving, false, now)
   }
 
   private entity3D(e: Entity, now: number, info: RenderInfo) {
@@ -521,29 +579,35 @@ export class Renderer3D extends Renderer {
       let key = this.tileKeys.get(e)
       if (!key) this.tileKeys.set(e, (key = {}))
       const c = this.card(key, false)
-      const cnv = tileCanvas(tile, tileVariant(tile, e.x, e.y), tileFrame(tile, now, e.x, e.y), 0, tile)
-      this.setCard(c, cnv, p.x / 16 + 0.5, (hop / 16) * VS, p.y / 16 + ANCHOR, 0.62, voxDepth(tile))
+      if (!this.setProp(c, tile, p.x / 16 + 0.5, (hop / 16) * VS, p.y / 16 + 0.55)) {
+        const cnv = tileCanvas(tile, tileVariant(tile, e.x, e.y), tileFrame(tile, now, e.x, e.y), 0, tile)
+        this.setVoxel(c, cnv, p.x / 16 + 0.5, (hop / 16) * VS, p.y / 16 + ANCHOR, voxDepth(tile))
+      }
       this.setGhost(c, ghost, now)
     }
     const sprite = e.spec.sprite as SpriteId | undefined
     if (!sprite) return
     const c = this.card(e, true)
-    if (e.big) {
-      const cnv = safeSprite(sprite, { frame: Math.floor(now / 450) % 2 })
-      const bob = Math.sin(now / 420) / 16
-      if (cnv) this.setCard(c, cnv, (p.x + 16) / 16, bob * VS, p.y / 16 + 0.95, 0.8, 10)
-      void spriteSize
-    } else {
-      const st = this.animOf(e, e.dir)
+    const st = this.animOf(e, e.dir)
+    const dir = e.big ? 'down' : this.shownDir(st, e.dir, now)
+    if (hasModel(sprite)) {
       const moving = e.t < 1
-      const dir = this.shownDir(st, e.dir, now)
+      const phase = moving ? npcState(e).steps - 1 + e.t : 0
+      const x = e.big ? (p.x + 16) / 16 : (p.x + 8) / 16
+      const z = e.big ? p.y / 16 + 0.6 : p.y / 16 + ANCHOR + (tile ? 0.02 : 0)
+      this.setModel(c, sprite, '', x, 0, z, dir, phase, moving, false, now)
+    } else if (e.big) {
+      const cnv = safeSprite(sprite, { frame: Math.floor(now / 450) % 2 })
+      if (cnv) this.setVoxel(c, cnv, (p.x + 16) / 16, (Math.sin(now / 420) / 16) * VS, p.y / 16 + 0.95, 10)
+    } else {
+      const moving = e.t < 1
       let frame = 0
       let blink = false
       const sd = (e.hx * 7 + e.hy * 3) % 11
       if (moving) frame = walkFrame(npcState(e).steps - 1, e.t)
-      else ({ frame, blink } = animAt('idle', now, { seed: sd, float: sprite === 'fude' }))
+      else ({ frame, blink } = animAt('idle', now, { seed: sd }))
       const cnv = this.frameCanvas(st, sprite, dir, moving ? 'walk' : 'idle', frame, blink, '')
-      if (cnv) this.setCard(c, cnv, (p.x + 8) / 16, 0, p.y / 16 + ANCHOR + (tile ? 0.02 : 0), 0.62, 8, dir)
+      if (cnv) this.setVoxel(c, cnv, (p.x + 8) / 16, 0, p.y / 16 + ANCHOR)
     }
     this.setGhost(c, ghost, now)
   }
@@ -551,6 +615,7 @@ export class Renderer3D extends Renderer {
   // ─── lights ──────────────────────────────────────────────────────
   private lights3D(world: World, now: number, info: RenderInfo) {
     const list = this.frameLights(world, now, info)
+    const pp = wpos(world.player, this.p1)
     const g = this.grade
     const tx = this.tgt.x * 16
     const tz = this.tgt.z * 16
@@ -585,9 +650,12 @@ export class Renderer3D extends Renderer {
       const l = list[pick[k]]
       const fl = l.flicker ? 1 - l.flicker * (0.5 + 0.5 * Math.sin(now * 0.017 + l.seed * 7) * Math.sin(now * 0.041 + l.seed)) : 1
       pl.color.setRGB(l.color[0], l.color[1], l.color[2])
-      pl.intensity = l.intensity * g.lights * fl * K
-      pl.distance = (l.r / 16) * 2.4
-      pl.position.set(l.x / 16, 0.9, l.y / 16 + 0.35)
+      // lights carried by the mage / Fude sit high and soft so they don't wash out the characters
+      const carried = Math.abs(l.x - pp.x - 8) + Math.abs(l.y - pp.y) < 40
+      pl.intensity = l.intensity * g.lights * fl * K * (carried ? 0.4 : 1)
+      pl.distance = (l.r / 16) * (carried ? 3.2 : 2.4)
+      // above and in front of the source, so it lights its surroundings rather than blowing out its own model
+      pl.position.set(l.x / 16, carried ? 2.4 : 1.35, l.y / 16 + 0.7)
     }
   }
 

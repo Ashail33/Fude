@@ -37,8 +37,8 @@ export class Atlas {
     this.ctx.imageSmoothingEnabled = false
     this.tex = new THREE.CanvasTexture(this.canvas)
     this.tex.colorSpace = THREE.SRGBColorSpace
-    this.tex.magFilter = THREE.NearestFilter
-    this.tex.minFilter = THREE.NearestMipmapLinearFilter
+    this.tex.magFilter = THREE.LinearFilter
+    this.tex.minFilter = THREE.LinearMipmapLinearFilter
     this.tex.anisotropy = 4
   }
 

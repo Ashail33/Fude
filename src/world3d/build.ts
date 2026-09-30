@@ -15,6 +15,8 @@ import type { Atlas, UvRect } from './atlas'
 import { upscaleCanvas } from './upscale'
 import { PAL } from '../art/palette'
 import { VoxelBuilder, voxelGeometry } from './voxel'
+import { Mesher } from './models/kit'
+import { addProp, hasProp } from './models/props'
 
 /** World units per 16 px of height (vertical art stands a little taller than the ground squash). */
 export const VS = 1.35
@@ -151,7 +153,7 @@ export function voxDepth(id: TileId): number {
   return DEPTH[id] ?? 5
 }
 
-export function buildDiorama(m: GameMap, atlas: Atlas, cardMat: THREE.Material, groundMat: THREE.MeshLambertMaterial, groundUp: number, voxMat: THREE.Material): Diorama {
+export function buildDiorama(m: GameMap, atlas: Atlas, cardMat: THREE.Material, groundMat: THREE.MeshLambertMaterial, groundUp: number, voxMat: THREE.Material, toonMat: THREE.Material): Diorama {
   const W = m.w
   const H = m.h
   const inb = (x: number, y: number) => x >= 0 && y >= 0 && x < W && y < H
@@ -182,7 +184,7 @@ export function buildDiorama(m: GameMap, atlas: Atlas, cardMat: THREE.Material, 
   const big = groundUp > 0 ? upscaleCanvas(gc, groundUp) : gc
   const groundTex = new THREE.CanvasTexture(big)
   groundTex.colorSpace = THREE.SRGBColorSpace
-  groundTex.magFilter = THREE.NearestFilter
+  groundTex.magFilter = THREE.LinearFilter
   groundTex.minFilter = THREE.LinearMipmapLinearFilter
   groundTex.anisotropy = 8
   const gg = new THREE.PlaneGeometry(W, H)
@@ -347,6 +349,13 @@ export function buildDiorama(m: GameMap, atlas: Atlas, cardMat: THREE.Material, 
       dyn.push({ v, id, variant, nb, x, y, frame: 0 })
       return
     }
+    if (hasProp(id)) {
+      const ck = Math.floor(x / 8) + Math.floor(y / 8) * 1000
+      let tm = smooth.get(ck)
+      if (!tm) smooth.set(ck, (tm = new Mesher(1.2)))
+      addProp(tm, id, [x + 0.5, 0, y + 0.55], { v: variant, x, y, nb })
+      return
+    }
     const depth = voxDepth(id)
     if (frames > 1) {
       const mesh = new THREE.Mesh(voxelGeometry(tileCanvas(id, variant, 0, nb, id), depth), voxMat)
@@ -365,6 +374,7 @@ export function buildDiorama(m: GameMap, atlas: Atlas, cardMat: THREE.Material, 
   const voxels = new THREE.Group()
   const dynVox: DynVox[] = []
   const chunks = new Map<number, VoxelBuilder>()
+  const smooth = new Map<number, Mesher>()
   for (let y = 0; y < H; y++)
     for (let x = 0; x < W; x++) {
       if (m.ground[y * W + x] !== 'tall-grass' || m.obj[y * W + x]) continue
@@ -385,6 +395,12 @@ export function buildDiorama(m: GameMap, atlas: Atlas, cardMat: THREE.Material, 
       if (ov) place(ov, x, y, computeNeighbours(vGet, x, y))
     }
 
+  for (const tm of smooth.values()) {
+    const mesh = new THREE.Mesh(tm.geometry(), toonMat)
+    mesh.castShadow = true
+    mesh.receiveShadow = true
+    voxels.add(mesh)
+  }
   for (const vb of chunks.values()) {
     const mesh = new THREE.Mesh(vb.geometry(), voxMat)
     mesh.castShadow = true
