@@ -2,20 +2,18 @@
  * Battle-only sound effects (typewriter blips, slashes, crits, spells).
  * Tiny WebAudio synth; respects the player's sound setting.
  */
+import { audioCtx, getSfxBus } from '../engine/audio/context'
 import { getState } from '../engine/store'
 
-let ctx: AudioContext | null = null
-
+/** Shared game AudioContext (created on the first user gesture). */
 function ac(): AudioContext | null {
   if (!getState().settings.sound) return null
-  if (typeof AudioContext === 'undefined') return null
-  try {
-    ctx ??= new AudioContext()
-    if (ctx.state === 'suspended') void ctx.resume()
-    return ctx
-  } catch {
-    return null
-  }
+  return audioCtx()
+}
+
+/** Output node: the shared SFX bus, so battle sounds follow the same volume. */
+function dest(c: AudioContext): AudioNode {
+  return getSfxBus() ?? c.destination
 }
 
 function tone(freq: number, dur: number, o: { type?: OscillatorType; gain?: number; delay?: number; slide?: number } = {}) {
@@ -29,7 +27,7 @@ function tone(freq: number, dur: number, o: { type?: OscillatorType; gain?: numb
   if (o.slide) osc.frequency.exponentialRampToValueAtTime(o.slide, t0 + dur)
   g.gain.setValueAtTime(o.gain ?? 0.06, t0)
   g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur)
-  osc.connect(g).connect(c.destination)
+  osc.connect(g).connect(dest(c))
   osc.start(t0)
   osc.stop(t0 + dur + 0.02)
 }
@@ -60,7 +58,7 @@ function noise(dur: number, o: { gain?: number; delay?: number; hp?: number; lp?
     node.connect(f)
     node = f
   }
-  node.connect(g).connect(c.destination)
+  node.connect(g).connect(dest(c))
   src.start(t0)
 }
 
