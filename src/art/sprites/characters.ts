@@ -26,6 +26,10 @@ export interface CharDef {
   sideSpan?: [number, number]
   /** Floating sprite: frame 1 bobs up a pixel instead of walking. */
   float?: boolean
+  /** Last row of the head (for the head bob / blink); detected from the blush row otherwise. */
+  head?: number
+  /** Side view, second contact pose (otherwise the first with the arm swung back). */
+  side1Contact?: string[]
   /** Characters of flat colours to auto-shade (top-left light). */
   shade?: string
 }

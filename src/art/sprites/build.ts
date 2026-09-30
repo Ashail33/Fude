@@ -4,16 +4,23 @@
  */
 import { OUTFITS } from '../../engine/rewards'
 import { PAL } from '../palette'
-import { Img, autoShade, flipX, fromMap, luminance, mirrorRows, mix, outline, shift, silhouette, squash, type Slots } from '../raster'
+import { Img, autoShade, flipX, fromMap, luminance, mix, outline, shift, silhouette, squash, type Slots } from '../raster'
+import { ANIM_FRAMES, FLOAT_FRAMES, bobHead, blinkEyes, findHands, floatFrame, fromGrid, gatherLegs, headEnd, leanHead, moveHand, shiftY, standLegs, swapLegs, swingSideHand, toGrid, type Anim } from './anim'
 import { CHARACTERS, type CharDef } from './characters'
 import { ENEMIES, type EnemyDef, type Patch } from './enemies'
 import { ICONS, type IconDef } from './icons'
 
 export type Dir = 'up' | 'down' | 'left' | 'right'
 
+export type { Anim }
+
 export interface BuildOpts {
   dir?: Dir
   frame?: number
+  /** Character animation (idle breathing, 4-frame walk, leaning run). Omitted: legacy 2-frame walk. */
+  anim?: Anim
+  /** Eyes closed (humanoids). */
+  blink?: boolean
   outfit?: string
   flash?: boolean
 }
@@ -39,40 +46,77 @@ export function outfitSlots(outfit?: string): Slots {
   return { 1: main, 2: dark, 3: o.trim, 4: light }
 }
 
-function passingLegs(img: Img, rows: [number, number], span: [number, number]): Img {
-  const o = img.clone()
-  for (let y = rows[0]; y <= rows[1]; y++) {
-    const xs: number[] = []
-    for (let x = span[0]; x <= span[1]; x++) if (img.get(x, y)) xs.push(x)
-    if (!xs.length) continue
-    const col = img.get(xs[xs.length - 1], y)!
-    for (let x = span[0]; x <= span[1]; x++) o.set(x, y, null)
-    const cx = Math.round((xs[0] + xs[xs.length - 1]) / 2)
-    const w = Math.min(3, xs.length)
-    for (let i = 0; i < w; i++) o.set(cx - 1 + i, y, col)
-  }
-  return o
+/** Frame count of an animation for a sprite (enemies idle on 2 frames; icons 1). */
+export function frameCount(id: string, anim: Anim = 'walk'): number {
+  const def = CHARACTERS[id]
+  if (def) return def.float ? FLOAT_FRAMES : ANIM_FRAMES[anim]
+  return ENEMIES[id] ? 2 : 1
 }
+
+const TAIL_ROWS = [12, 13, 14]
 
 export function buildCharacter(id: string, o: BuildOpts = {}): Img {
   const def: CharDef = CHARACTERS[id]
   if (!def) throw new Error(`no character ${id}`)
   const dir = o.dir ?? 'down'
-  const frame = (o.frame ?? 0) % 2
   const slots = id === 'mage' ? outfitSlots(o.outfit) : (def.slots ?? {})
   const legRows = def.legRows ?? [13, 14]
   const span = def.span ?? [3, 12]
-  let img: Img
-  if (dir === 'down' || dir === 'up') {
-    const explicit = frame ? (dir === 'down' ? def.down1 : def.up1) : undefined
-    img = fromMap(explicit ?? def[dir], slots)
-    if (frame && !explicit && !def.float) img = mirrorRows(img, legRows[0], legRows[1], span[0], span[1])
+  const sideSpan = def.sideSpan ?? [2, 12]
+  const head = def.head ?? headEnd(def.down)
+  const torso: [number, number] = [head + 1, legRows[0] - 1]
+  const side = dir === 'left' || dir === 'right'
+  const key = side ? 'side' : dir
+  // Legacy callers (no `anim`) alternate frames 0/1: the two contact poses.
+  const anim: Anim = o.anim ?? 'walk'
+  const n = def.float ? FLOAT_FRAMES : ANIM_FRAMES[anim]
+  let frame = o.frame ?? 0
+  if (!o.anim) frame = def.float ? (frame % 2) * 2 : (frame % 2) * 2
+  frame = ((frame % n) + n) % n
+
+  let g = toGrid(def[key])
+  if (def.float) {
+    const f = floatFrame(g, frame, TAIL_ROWS)
+    g = f.grid
+    if (o.blink) g = blinkEyes(g, head)
+    g = shiftY(g, f.dy)
+  } else if (anim === 'idle') {
+    g = side ? toGrid(def.side1 ?? fromGrid(gatherLegs(g, legRows, sideSpan))) : standLegs(g, legRows, span)
+    if (o.blink) g = blinkEyes(g, head)
+    if (frame === 1) g = bobHead(g, head)
   } else {
-    const explicit = frame ? def.side1 : undefined
-    img = fromMap(explicit ?? def.side, slots)
-    if (frame && !explicit && !def.float) img = passingLegs(img, legRows, def.sideSpan ?? [2, 12])
+    const contact = frame % 2 === 0
+    const second = frame === 2
+    const run = anim === 'run'
+    if (side) {
+      if (contact) {
+        if (second && def.side1Contact) g = toGrid(def.side1Contact)
+        g = swingSideHand(g, torso, second ? -1 : 1)
+      } else g = def.side1 ? toGrid(def.side1) : gatherLegs(g, legRows, sideSpan)
+      if (run) g = leanHead(g, head, 1)
+    } else {
+      if (contact) {
+        const explicit = second ? (dir === 'down' ? def.down1 : def.up1) : undefined
+        if (explicit) g = toGrid(explicit)
+        else if (second) g = swapLegs(g, legRows, span)
+        const hands = findHands(g, torso)
+        const up = second ? hands.right : hands.left
+        const down = second ? hands.left : hands.right
+        if (down) g = moveHand(g, down, 1, legRows[0] - 1)
+        if (up) g = moveHand(g, up, -1, legRows[0] - 1)
+      } else {
+        g = standLegs(g, legRows, span)
+        if (run) {
+          const hands = findHands(g, torso)
+          if (hands.left) g = moveHand(g, hands.left, -1, legRows[0] - 1)
+          if (hands.right) g = moveHand(g, hands.right, -1, legRows[0] - 1)
+        }
+      }
+    }
+    if (o.blink) g = blinkEyes(g, head)
+    if (contact) g = bobHead(g, head)
   }
-  if (frame && def.float) img = shift(img, 0, -1)
+  let img = fromMap(fromGrid(g), slots)
   if (def.shade) img = autoShade(img, def.shade, slots)
   if (dir === 'left') img = flipX(img)
   img = outline(img)
