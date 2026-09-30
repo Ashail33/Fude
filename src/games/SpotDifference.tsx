@@ -5,6 +5,7 @@ import { speak } from '../engine/speech'
 import type { Review } from '../engine/srs'
 import { buildRounds, glossOf, isKana, spotItemId, type SpotRound } from './spot'
 import type { GameProps } from './types'
+import { Portrait, useHitFlash } from './pixel'
 import './SpotDifference.css'
 
 const PENALTY_MS = 3000
@@ -21,6 +22,7 @@ export default function SpotDifference({ activity, params, onFinish, onExit }: G
   const [wrongCells, setWrongCells] = useState<number[]>([])
   const [reveal, setReveal] = useState(false)
   const [note, setNote] = useState('')
+  const hostFlash = useHitFlash(wrongCells.length)
   const [penalty, setPenalty] = useState(0) // key for "−3s" pop
   const [leftMs, setLeftMs] = useState(timeLimitSec * 1000)
   const [over, setOver] = useState(false)
@@ -191,7 +193,7 @@ export default function SpotDifference({ activity, params, onFinish, onExit }: G
   const kanji = !isKana(round.base) || !isKana(round.imposter)
 
   return (
-    <GameFrame title={activity.title} jp={activity.jp} onExit={onExit} right={right} className="sd-game">
+    <GameFrame title={activity.title} jp={activity.jp} onExit={onExit} right={right} className="spot-game">
       <Progress value={leftMs} max={timeLimitSec * 1000} />
       <div className="sd-head">
         <span className="muted">
@@ -201,9 +203,12 @@ export default function SpotDifference({ activity, params, onFinish, onExit }: G
           <T en={`Level ${round.level}`} jp={`レベル${round.level}`} />
         </span>
       </div>
-      <p className="sd-instr">
-        <T en="Find the imposter!" jp="にせものはどれ？" />
-      </p>
+      <div className="spot-host">
+        <Portrait id="tanuki" scale={2} ground={round.level >= 3 ? 'tatami' : 'grass'} talking={!reveal} flash={hostFlash} title="Tanuki" />
+        <p className="sd-instr spot-bubble" key={reveal ? 'r' : 'q'}>
+          {reveal ? <T en="Curses, you saw through me!" jp="ばれたか！" /> : <T en="Find the imposter!" jp="にせものはどれ？" />}
+        </p>
+      </div>
 
       <div className={`sd-board ${flashCls}`}>
         <div className={`sd-grid sd-grid-${round.size} ${kanji ? 'sd-kanji' : ''}`} key={i} role="group" aria-label="Character grid">

@@ -10,6 +10,7 @@ import { sfx } from '../../engine/sfx'
 import { pick as pickOne } from '../../engine/random'
 import { T, useAnswerTimer } from '../../components/ui'
 import { CHIMERA_TURNS, type ChimeraTurn, type DragonForm } from './bossData'
+import { tintFilter, type StripCell } from '../pixel'
 import { BossArena, ChoiceGrid, Feedback, TimerBar } from './BossArena'
 import { useBossBattle, useKey, useNumberKeys } from './battle'
 import {
@@ -42,6 +43,8 @@ function adjQuestion(turn: ChimeraTurn): AdjQ {
   const wrap = (a: string) => (turn.frame ? turn.frame.replace('＿', a) : `${a}${c.nounAnswer}`)
   return { ...c, options: c.adjOptions.map(wrap), answer: wrap(c.adjAnswer) }
 }
+
+const VOID_FLOOR: StripCell[][] = [['stone-floor', 'stone-floor', 'stone-floor', 'portal', 'stone-floor', 'stone-floor', 'stone-floor', 'stone-floor', 'warp-circle', 'stone-floor']]
 
 export default function VoidDragon({ activity, onFinish, onExit }: GameProps<'boss-dragon'>) {
   const [decks] = useState(() => ({
@@ -127,10 +130,11 @@ export default function VoidDragon({ activity, onFinish, onExit }: GameProps<'bo
   const aura = phase === 2 && form ? form.color : phase === 1 ? '#ff3d6b' : '#8a6bff'
   const sprite = (
     <div className={`bd-dragon bd-p${phase}`}>
-      <span className="bd-body">🐉</span>
       {phase === 2 && form && (
-        <span className="bd-form" key={form.id}>
-          {form.emoji}
+        <span className="bd-form" key={form.id} aria-hidden>
+          {Array.from({ length: 8 }, (_, i) => (
+            <i key={i} style={{ ['--i' as string]: i }} />
+          ))}
         </span>
       )}
     </div>
@@ -150,7 +154,10 @@ export default function VoidDragon({ activity, onFinish, onExit }: GameProps<'bo
       activity={activity}
       onExit={onExit}
       name={{ en: 'The Void Dragon', jp: 'こくうのりゅう' }}
+      spriteId="dragon"
+      spriteFilter={phase === 2 && form ? tintFilter(form.color, 0.55) : phase === 1 ? tintFilter('#ff3d6b', 0.4) : 'none'}
       sprite={sprite}
+      floor={VOID_FLOOR}
       aura={aura}
       className="bd-final"
       phaseNames={[

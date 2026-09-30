@@ -1,0 +1,70 @@
+/* Shared pixel-art pieces for the mini-games (see pixel.tsx). */
+
+.tile-strip {
+  line-height: 0;
+  overflow: hidden;
+}
+
+.tile-strip canvas {
+  display: block;
+  image-rendering: pixelated;
+}
+
+/* Framed character portrait standing on map tiles (DQ window border). */
+.px-portrait {
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+  overflow: hidden;
+  border: 3px solid var(--win-border);
+  border-radius: 6px;
+  box-shadow: var(--win-shadow);
+  background: var(--win-bg);
+  line-height: 0;
+}
+
+.px-portrait > .tile-strip {
+  position: absolute;
+  inset: 0;
+}
+
+.px-portrait > .tile-strip::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(10, 13, 38, 0.45), rgba(10, 13, 38, 0) 55%);
+}
+
+.px-portrait-sprite {
+  position: absolute;
+  left: 50%;
+  bottom: 4px;
+  transform: translateX(-50%);
+  line-height: 0;
+}
+
+.px-portrait-sprite canvas {
+  display: block;
+}
+
+.px-portrait.talking .px-portrait-sprite {
+  animation: pxTalk 0.28s steps(2) infinite alternate;
+}
+
+@keyframes pxTalk {
+  to {
+    transform: translate(-50%, -3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .px-portrait.talking .px-portrait-sprite {
+    animation: none;
+  }
+}
+
+.px-tile {
+  display: inline-block;
+  line-height: 0;
+  flex-shrink: 0;
+}

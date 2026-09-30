@@ -114,9 +114,32 @@
 }
 
 .mc-cauldron {
-  font-size: 2rem;
-  margin: 4px 0;
-  animation: float 3s ease-in-out infinite;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 2px;
+  margin: 6px 0 2px;
+  line-height: 0;
+}
+
+/* Fude hovers beside the fusion altar. */
+.mc-cauldron-fude {
+  margin-bottom: 18px;
+  animation: float 3s steps(6) infinite;
+}
+
+.mc-cauldron-glow {
+  position: absolute;
+  left: 50%;
+  bottom: 30px;
+  width: 64px;
+  height: 64px;
+  margin-left: -8px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(199, 163, 240, 0.45), transparent 70%);
+  pointer-events: none;
+  animation: ba-pulse 2.4s steps(6) infinite;
 }
 
 .mc-altar-actions {
@@ -369,11 +392,24 @@
 .mc-map {
   position: relative;
   display: grid;
-  gap: 4px;
-  padding: 6px;
-  border-radius: 18px;
-  background: linear-gradient(160deg, #2d5a3a, #3a6b40 55%, #4d7a44);
-  box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.35), var(--shadow);
+  justify-content: center;
+  gap: 0;
+  padding: 0;
+  width: max-content;
+  max-width: 100%;
+  margin: 0 auto;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 3px solid var(--win-border);
+  box-shadow: var(--win-shadow);
+  background: var(--win-bg);
+}
+
+.mc-terrain {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
 }
 
 .mc-tile {
@@ -381,8 +417,8 @@
   aspect-ratio: 1;
   min-width: 0;
   border: none;
-  border-radius: 10px;
-  background: rgba(126, 217, 87, 0.22);
+  border-radius: 0;
+  background: transparent;
   color: var(--text);
   cursor: pointer;
   display: grid;
@@ -391,29 +427,37 @@
   transition: transform 0.12s, background 0.25s, box-shadow 0.25s;
 }
 
-.mc-tile:hover {
-  transform: scale(1.05);
-  background: rgba(200, 255, 170, 0.3);
+.mc-tile:hover,
+.mc-tile:focus-visible {
+  background: rgba(255, 255, 255, 0.18);
+  box-shadow: inset 0 0 0 2px var(--win-border);
+  outline: none;
 }
 
 .mc-tile.filled {
-  background: color-mix(in srgb, var(--tile) 55%, #1d2b24);
-  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.25);
-  animation: pop 0.3s ease-out;
+  animation: mcPlace 0.3s steps(3);
+}
+
+@keyframes mcPlace {
+  from {
+    background: rgba(255, 255, 255, 0.6);
+  }
+  to {
+    background: transparent;
+  }
 }
 
 .mc-tile.boulder {
-  background: rgba(40, 40, 50, 0.55);
   cursor: not-allowed;
 }
 
 .mc-tile.reacting {
-  box-shadow: 0 0 10px 2px color-mix(in srgb, var(--tile, #fff) 70%, transparent);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--tile, #fff) 80%, transparent);
 }
 
 .mc-tile.done {
-  box-shadow: 0 0 0 2px var(--accent), 0 0 18px 4px rgba(255, 209, 102, 0.7);
-  animation: mcGlow 1.2s ease-in-out infinite alternate;
+  box-shadow: inset 0 0 0 3px var(--accent);
+  animation: mcGlow 1.2s steps(4) infinite alternate;
 }
 
 @keyframes mcGlow {
@@ -429,11 +473,15 @@
 
 .mc-tile-kanji {
   position: absolute;
-  right: 4px;
-  bottom: 2px;
+  right: 2px;
+  bottom: 1px;
   font-family: var(--font-jp);
-  font-size: clamp(0.65rem, 2.6vw, 0.9rem);
-  opacity: 0.85;
+  font-size: 0.75rem;
+  line-height: 1;
+  padding: 1px 2px;
+  color: var(--paper);
+  background: rgba(5, 8, 26, 0.7);
+  border-radius: 2px;
 }
 
 .mc-fizzle {

@@ -10,7 +10,11 @@ import { getState } from '../engine/store'
 import type { Review } from '../engine/srs'
 import type { GameProps } from './types'
 import { checkOrder, isParticle, PARTICLE_ROLE, readingOf, wordIdsIn } from './forge'
+import { PixelTile, PlayerMage, TileStrip, type StripCell } from './pixel'
 import './SentenceForge.css'
+
+/** The smithy floor behind the forge: flagstones with a stone wall. */
+const SMITHY_FLOOR: StripCell[][] = [['stone-floor']]
 
 const MAX_SENTENCES = 10
 
@@ -342,8 +346,14 @@ export default function SentenceForge({ activity, params, onFinish, onExit }: Ga
 
       <div className={`fg-forge ${flashCls}`}>
         {burstNode}
-        <div className={`fg-hammer ${striking ? 'swing' : ''}`} aria-hidden>
-          🔨
+        <div className="fg-smithy" aria-hidden>
+          <TileStrip rows={SMITHY_FLOOR} scale={2} className="fg-smithy-floor" />
+          <PixelTile id="campfire" under="stone-floor" scale={2} className="fg-fire" />
+          <span className={`fg-hammer ${striking ? 'swing' : ''}`}>
+            <PlayerMage scale={3} dir="right" animate={false} flash={striking} />
+          </span>
+          <PixelTile id="anvil" under="stone-floor" scale={2} className={`fg-anvil-tile ${striking ? 'sparks' : ''}`} animate={false} />
+          <PixelTile id="barrel" under="stone-floor" scale={2} className="fg-barrel" animate={false} />
         </div>
         <div ref={anvilRef} className={`fg-anvil ${striking ? 'striking' : ''} ${status === 'solved' ? 'solved' : ''} ${status === 'failed' ? 'failed' : ''}`} aria-label="Anvil">
           {status === 'failed' ? (

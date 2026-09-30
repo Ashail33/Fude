@@ -9,6 +9,8 @@ import { sfx } from '../engine/sfx'
 import { speak } from '../engine/speech'
 import { weakness } from '../engine/srs'
 import { getState } from '../engine/store'
+import type { TileId } from '../art/tiles'
+import { PlayerMage, TileStrip, type StripCell } from './pixel'
 import {
   acceptedReadings,
   buildChoices,
@@ -37,6 +39,14 @@ const blockCentre = (y: number) => `calc((${SKY}% - ${BLOCK_H}px) * ${(y / 100).
 /** Rough centre in % (for particle bursts, which take percentages). */
 const blockCentrePct = (y: number) => ((SKY - 18) * y) / 100 + 9
 const MAGE = { x: 50, y: 90 }
+
+/** The village along the bottom of the field (pixel tiles, repeating). */
+const onGrass = (id: TileId): StripCell => ({ id, under: 'grass' })
+const VILLAGE_ROWS: StripCell[][] = [
+  [null, 'roof', 'roof', null, null, null, null, null, 'roof-red', 'roof-red', 'roof-red', null, null, null],
+  [onGrass('sakura'), 'wall-window', 'door', onGrass('lantern'), onGrass('bush'), 'grass', 'grass', onGrass('tree'), 'wall', 'noren', 'wall-window', onGrass('torii'), onGrass('well'), onGrass('pine')],
+  ['grass', 'path', 'path', 'path', 'path', 'path', 'path', 'path', 'path', 'path', 'path', 'path', 'grass', 'flowers'],
+]
 const LANES = [8, 36, 64, 92]
 const SHOT_MS = 230
 
@@ -471,13 +481,10 @@ export default function SpellDefense({ activity, params, onFinish, onExit }: Gam
           />
         ))}
         <div className="sd-village" aria-hidden>
-          <span>🏠</span>
-          <span>🌳</span>
-          <span>🏡</span>
-          <span className="sd-mage">🧙</span>
-          <span>⛩️</span>
-          <span>🏠</span>
-          <span>🌸</span>
+          <TileStrip rows={VILLAGE_ROWS} scale={2} />
+          <span className="sd-mage">
+            <PlayerMage scale={3} dir="up" flash={hurt} />
+          </span>
         </div>
         {toast && <div className={`sd-toast ${toast.bad ? 'bad' : ''}`}>{toast.text}</div>}
         {phase === 'end' && (

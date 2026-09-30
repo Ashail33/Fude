@@ -19,7 +19,8 @@
   height: clamp(270px, 50dvh, 480px);
   border-radius: var(--radius);
   overflow: hidden;
-  border: 1px solid var(--line);
+  border: 3px solid var(--win-border);
+  box-shadow: var(--win-shadow);
   background:
     radial-gradient(circle at 80% 12%, rgba(255, 224, 102, 0.35), transparent 18%),
     linear-gradient(180deg, #2a2466 0%, #3d3a8f 45%, #6f63c9 72%, #f3a683 100%);
@@ -74,12 +75,26 @@
   min-width: 78px;
   max-width: 60%;
   padding: 8px 10px 6px;
-  border-radius: 12px;
-  background: linear-gradient(180deg, rgba(38, 42, 92, 0.95), rgba(24, 26, 58, 0.95));
-  border: 2px solid var(--sd-color);
+  border-radius: 2px;
+  /* A wooden crate: planks, nailed corners, a dark pixel outline and a
+     coloured rune-glow around it. */
+  background:
+    linear-gradient(90deg, #c8955a 0 4px, transparent 4px calc(100% - 4px), #c8955a calc(100% - 4px)) top / 100% 4px no-repeat,
+    linear-gradient(90deg, #c8955a 0 4px, transparent 4px calc(100% - 4px), #c8955a calc(100% - 4px)) bottom / 100% 4px no-repeat,
+    repeating-linear-gradient(180deg, #7a4a26 0 14px, #5c3419 14px 16px);
+  border: 3px solid #2a160a;
   box-shadow:
-    0 0 14px color-mix(in srgb, var(--sd-color) 55%, transparent),
-    0 6px 0 rgba(0, 0, 0, 0.35);
+    inset 0 0 0 2px #a86b3a,
+    0 0 0 2px var(--sd-color),
+    0 0 12px color-mix(in srgb, var(--sd-color) 50%, transparent),
+    4px 5px 0 rgba(0, 0, 0, 0.35);
+  color: var(--paper);
+  text-shadow:
+    1px 0 0 #2a160a,
+    -1px 0 0 #2a160a,
+    0 1px 0 #2a160a,
+    0 -1px 0 #2a160a,
+    2px 2px 0 #2a160a;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -110,8 +125,10 @@
 @keyframes sdPulse {
   to {
     box-shadow:
+      inset 0 0 0 2px #a86b3a,
+      0 0 0 2px var(--bad),
       0 0 22px rgba(255, 93, 115, 0.9),
-      0 6px 0 rgba(0, 0, 0, 0.35);
+      4px 5px 0 rgba(0, 0, 0, 0.35);
   }
 }
 
@@ -156,7 +173,7 @@
 .sd-kana {
   font-family: var(--font-jp);
   font-size: 0.8rem;
-  color: var(--muted);
+  color: #f4dcb0;
 }
 
 .sd-answer {
@@ -166,7 +183,8 @@
   transform: translateX(-50%);
   white-space: nowrap;
   padding: 3px 8px;
-  border-radius: 8px;
+  border-radius: 3px;
+  text-shadow: none;
   background: var(--good);
   color: #0f1024;
   font-weight: 800;
@@ -212,21 +230,25 @@
   left: 0;
   right: 0;
   bottom: 0;
-  height: 20%;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-around;
-  padding: 0 4px 4px;
-  font-size: clamp(1.3rem, 5.5vw, 2rem);
-  background: linear-gradient(180deg, transparent, rgba(40, 90, 60, 0.9) 45%, #23452f);
-  border-top: 2px dashed rgba(255, 255, 255, 0.18);
   z-index: 1;
+  line-height: 0;
 }
 
+.sd-village .tile-strip {
+  overflow: hidden;
+}
+
+/* The player's mage stands on the village road, facing the sky. */
 .sd-mage {
-  font-size: 1.3em;
-  animation: float 2.4s ease-in-out infinite;
-  filter: drop-shadow(0 0 8px var(--accent));
+  position: absolute;
+  left: 50%;
+  bottom: 6px;
+  transform: translateX(-50%);
+  filter: drop-shadow(0 0 6px var(--accent));
+}
+
+.sd-mage canvas {
+  display: block;
 }
 
 .sd-toast {

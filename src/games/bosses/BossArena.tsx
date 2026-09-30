@@ -1,6 +1,8 @@
 import { useEffect, type CSSProperties, type ReactNode } from 'react'
 import type { Activity } from '../types'
 import { GameFrame, Hearts, Intro, T } from '../../components/ui'
+import { PixelSprite, spriteSize, type SpriteId } from '../../art'
+import { TileStrip, useHitFlash, useWide, type StripCell } from '../pixel'
 import { useLatest, useNumberKeys, type Battle } from './battle'
 import './BossArena.css'
 
@@ -16,7 +18,10 @@ export function BossArena({
   activity,
   onExit,
   name,
+  spriteId,
+  spriteFilter,
   sprite,
+  floor,
   aura,
   phaseNames,
   introLines,
@@ -30,8 +35,14 @@ export function BossArena({
   activity: Activity
   onExit: () => void
   name: Bilingual
-  /** The boss art (emoji / CSS art). */
-  sprite: ReactNode
+  /** The boss's pixel sprite (see src/story/scenes.ts portraits). */
+  spriteId: SpriteId
+  /** CSS filter over the sprite (phase tints, elemental skins). */
+  spriteFilter?: string
+  /** Decorations drawn around the sprite (orbiting kana, books, shields…). */
+  sprite?: ReactNode
+  /** Tile rows drawn along the bottom of the stage (the boss's home ground). */
+  floor?: StripCell[][]
   /** Aura colour (CSS colour). */
   aura: string
   /** One banner per phase ([0] is unused; phase 1 is the opening). */
@@ -46,6 +57,16 @@ export function BossArena({
   children: ReactNode
 }) {
   const b = battle
+  const flash = useHitFlash(b.anim.kind === 'hit' ? b.anim.n : 0, 180)
+  const wide = useWide()
+  const big = spriteSize(spriteId).w > 32
+  const scale = big ? (wide ? 3 : 2) : wide ? 5 : 4
+  const art = (
+    <>
+      <PixelSprite id={spriteId} scale={scale} animate flash={flash} className="ba-pixel" />
+      {sprite && <div className="ba-deco">{sprite}</div>}
+    </>
+  )
   const right = (
     <span className="ba-hud">
       <Hearts value={b.hearts} max={b.maxHearts} />
@@ -55,8 +76,8 @@ export function BossArena({
     return (
       <GameFrame title={activity.title} jp={activity.jp} onExit={onExit} right={right}>
         <Intro title={activity.title} jp={activity.jp} lines={introLines} onStart={b.start}>
-          <div className="ba-intro-boss" style={{ '--ba-aura': aura } as CSSProperties}>
-            <div className="ba-sprite">{sprite}</div>
+          <div className="ba-intro-boss" style={{ '--ba-aura': aura, '--ba-filter': spriteFilter ?? 'none' } as CSSProperties}>
+            <div className="ba-sprite">{art}</div>
           </div>
           <p className="muted center">
             {b.maxHearts} ❤ · <T en={`${b.phases} phases`} jp={`${b.phases}つのけいたい`} />
@@ -75,8 +96,8 @@ export function BossArena({
   const nextPhase = phaseNames[b.phase + 1] ?? { en: `Phase ${b.phase + 2}`, jp: `第${b.phase + 2}形態` }
   return (
     <GameFrame title={activity.title} jp={activity.jp} onExit={onExit} right={right} className={`ba-game ${className ?? ''}`}>
-      <div className={`ba-arena ${b.shaking ? 'ba-shake' : ''} ${b.status === 'lost' ? 'ba-lost' : ''}`} style={{ '--ba-aura': aura } as CSSProperties}>
-        <div className="ba-top">
+      <div className={`ba-arena ${b.shaking ? 'ba-shake' : ''} ${b.status === 'lost' ? 'ba-lost' : ''}`} style={{ '--ba-aura': aura, '--ba-filter': spriteFilter ?? 'none' } as CSSProperties}>
+        <div className="ba-top card">
           <div className="ba-name">
             <span lang="ja" className="ba-name-jp">
               {name.jp}
@@ -97,11 +118,12 @@ export function BossArena({
           </div>
         </div>
 
-        <div className="ba-stage">
+        <div className={`ba-stage ${floor ? 'has-floor' : ''}`}>
+          {floor && <TileStrip rows={floor} scale={wide ? 3 : 2} className="ba-ground" />}
           <div className="ba-floor" />
           <div className={bossCls} key={`${b.anim.n}-${b.status}`}>
             <div className="ba-aura" />
-            <div className="ba-sprite">{sprite}</div>
+            <div className="ba-sprite">{art}</div>
           </div>
           {taunt && b.status === 'fight' && (
             <div className="ba-taunt" key={taunt.jp}>

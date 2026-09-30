@@ -8,10 +8,15 @@ import { speak } from '../engine/speech'
 import { weakness, type Review } from '../engine/srs'
 import { getState } from '../engine/store'
 import type { GameProps } from './types'
+import { PixelTile, TileStrip, type StripCell } from './pixel'
 import './RuneReading.css'
 
 const MAX_RUNES = 10
 const MAX_HEARTS = 3
+/** The shrine hall floor: worn flagstones with a strip of carpet down the middle. */
+const hallRow = (): StripCell[] => Array.from({ length: 41 }, (_, i) => (i === 20 ? 'carpet' : 'stone-floor'))
+const HALL_FLOOR: StripCell[][] = [hallRow(), hallRow()]
+
 const KANJI_NUM = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十']
 
 type Phase = 'ask' | 'right' | 'wrong' | 'opening'
@@ -180,8 +185,13 @@ export default function RuneReading({ activity, params, onFinish, onExit }: Game
       <div className={`rr-scene depth-${Math.min(depth, 10)}`} style={{ ['--depth' as string]: depth }}>
         {burstNode}
         <div className="rr-hall" aria-hidden>
-          <span className="rr-lantern l">🏮</span>
-          <span className="rr-lantern r">🏮</span>
+          <TileStrip rows={HALL_FLOOR} scale={2} className="rr-floor" animate={false} />
+          <span className="rr-lantern l">
+            <PixelTile id="lantern" under="stone-floor" scale={3} />
+          </span>
+          <span className="rr-lantern r">
+            <PixelTile id="lantern" under="stone-floor" scale={3} />
+          </span>
           <div className="rr-far-door" />
         </div>
         <div className="rr-room-label">

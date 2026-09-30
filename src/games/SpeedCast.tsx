@@ -19,9 +19,20 @@ import {
   SPEED_PENALTY_SEC,
   speedCastScore,
 } from './recognition'
+import { PixelSprite, type EnemySprite } from '../art'
+import type { TileId } from '../art/tiles'
+import { PlayerMage, TileStrip, type StripCell } from './pixel'
 import './SpeedCast.css'
 
-const MONSTERS = ['👾', '👻', '🦇', '🐺', '🐗', '💀', '🕷️', '🐍', '👺', '🧟', '🦂', '🐲']
+const MONSTERS: EnemySprite[] = ['slime', 'bat', 'mushroom', 'kappa', 'imp', 'skeleton', 'wisp', 'harpy', 'tengu', 'oni', 'ice-slime', 'tanuki']
+
+/** Scrolling scenery (pattern widths are multiples of the scroll period). */
+const onGrass = (id: TileId): StripCell => ({ id, under: 'grass' })
+const TREE_ROW: StripCell[][] = [[onGrass('pine'), onGrass('tree'), 'grass', onGrass('sakura'), onGrass('pine'), onGrass('bush'), onGrass('tree'), 'tall-grass']]
+const ROAD_ROWS: StripCell[][] = [
+  ['grass', 'flowers', 'grass', 'tall-grass'],
+  ['path', 'path', 'path', 'path'],
+]
 /** Lane geometry in % of the lane width. */
 const START_X = 88
 const PLAYER_X = 12
@@ -33,7 +44,7 @@ interface Enemy {
   word: Word
   dir: 'jp-en' | 'en-jp'
   choices: Word[]
-  monster: string
+  monster: EnemySprite
   born: number
   travelMs: number
   /** 0 = just appeared, 1 = reached the player. */
@@ -296,10 +307,14 @@ export default function SpeedCast({ activity, params, onFinish, onExit }: GamePr
       </div>
 
       <div className={`sc-lane ${shake ? 'shake' : ''} ${phase === 'end' ? 'sc-stopped' : ''}`}>
-        <div className="sc-hills" aria-hidden />
-        <div className="sc-ground" aria-hidden />
+        <div className="sc-hills" aria-hidden>
+          <TileStrip rows={TREE_ROW} scale={2} align="start" />
+        </div>
+        <div className="sc-ground" aria-hidden>
+          <TileStrip rows={ROAD_ROWS} scale={2} align="start" />
+        </div>
         <div className="sc-player" style={{ left: `${PLAYER_X}%` }} aria-hidden>
-          🧙
+          <PlayerMage scale={3} dir="right" animate={phase === 'play'} flash={shake} />
         </div>
         {e && (
           <div
@@ -317,7 +332,9 @@ export default function SpeedCast({ activity, params, onFinish, onExit }: GamePr
                 </>
               )}
             </div>
-            <div className="sc-monster">{e.monster}</div>
+            <div className="sc-monster">
+              <PixelSprite id={e.monster} scale={2} animate flash={e.state === 'struck'} />
+            </div>
           </div>
         )}
         {s.shot && <span key={s.shot.id} className="sc-shot" style={{ ['--x1' as string]: `${s.shot.x}%`, ['--x0' as string]: `${PLAYER_X + 4}%`, animationDuration: `${SHOT_MS}ms`, ['--sc-color' as string]: e ? elementColor(e.word) : 'var(--accent)' }} />}

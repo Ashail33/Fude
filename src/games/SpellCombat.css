@@ -7,21 +7,27 @@
 }
 
 .sc-foe-pip {
-  width: 34px;
-  height: 34px;
+  width: 40px;
+  height: 40px;
   display: grid;
   place-items: center;
-  border-radius: 50%;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  opacity: 0.55;
+  border-radius: 4px;
+  background: var(--win-fill);
+  border: 2px solid var(--win-border);
+  box-shadow: 0 0 0 2px var(--win-inset);
+  opacity: 0.5;
   font-size: 1.1rem;
+}
+
+.sc-foe-pip canvas.half {
+  width: 32px;
+  height: 32px;
 }
 
 .sc-foe-pip.now {
   opacity: 1;
-  border-color: var(--accent);
-  box-shadow: 0 0 10px rgba(255, 209, 102, 0.5);
+  border-color: var(--gold);
+  box-shadow: 0 0 0 2px var(--win-inset), 0 0 10px rgba(247, 201, 72, 0.5);
 }
 
 .sc-foe-pip.done {
@@ -31,8 +37,10 @@
 
 .sc-arena {
   position: relative;
+  isolation: isolate;
   border-radius: var(--radius);
-  border: 1px solid var(--line);
+  border: 3px solid var(--win-border);
+  box-shadow: var(--win-shadow);
   padding: 12px 12px 10px;
   overflow: hidden;
   background:
@@ -43,6 +51,23 @@
   flex-direction: column;
   gap: 8px;
   min-height: 300px;
+}
+
+.sc-backdrop {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: -1;
+  line-height: 0;
+  pointer-events: none;
+}
+
+.sc-backdrop::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(20, 19, 46, 0.1), rgba(20, 19, 46, 0.35) 40%, rgba(10, 13, 38, 0.7));
 }
 
 .sc-arena.hurt {
@@ -67,26 +92,45 @@
   font-weight: 800;
 }
 
-.sc-enemy {
+.sc-arena .sc-enemy {
   position: relative;
-  font-size: clamp(4rem, 20vw, 5.5rem);
+  font-size: 4rem;
   line-height: 1;
-  height: 1.15em;
+  min-height: 104px;
   display: grid;
-  place-items: center;
+  place-items: end center;
+}
+
+/* Pixel ground ellipse under the enemy. */
+.sc-arena .sc-enemy::before {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  width: 96px;
+  height: 12px;
+  margin-left: -48px;
+  border-radius: 50%;
+  background: rgba(5, 8, 26, 0.5);
 }
 
 .sc-enemy-emoji {
   position: relative;
   z-index: 1;
+  line-height: 0;
+}
+
+.sc-enemy-emoji canvas {
+  display: block;
 }
 
 .sc-aura {
   position: absolute;
+  z-index: 2;
   font-size: 0.4em;
-  top: -0.1em;
-  right: -0.5em;
-  animation: float 2.5s ease-in-out infinite;
+  top: 0;
+  right: -0.6em;
+  animation: float 2.5s steps(6) infinite;
 }
 
 .sc-resist {
@@ -97,7 +141,7 @@
 }
 
 /* Weakness tells */
-.sc-enemy.shiver .sc-enemy-emoji {
+.sc-arena .sc-enemy.shiver .sc-enemy-emoji {
   animation: scShiver 0.18s linear infinite;
   filter: drop-shadow(0 0 10px rgba(155, 231, 255, 0.8));
 }
@@ -115,7 +159,7 @@
   }
 }
 
-.sc-enemy.blaze .sc-enemy-emoji {
+.sc-arena .sc-enemy.blaze .sc-enemy-emoji {
   filter: drop-shadow(0 0 14px rgba(255, 107, 61, 0.95));
   animation: scFlicker 0.8s ease-in-out infinite alternate;
 }
@@ -129,7 +173,7 @@
   }
 }
 
-.sc-enemy.heavy .sc-enemy-emoji {
+.sc-arena .sc-enemy.heavy .sc-enemy-emoji {
   filter: drop-shadow(0 6px 0 rgba(0, 0, 0, 0.5)) sepia(0.3);
   animation: scStomp 2s ease-in-out infinite;
 }
@@ -144,17 +188,17 @@
   }
 }
 
-.sc-enemy.fade .sc-enemy-emoji {
+.sc-arena .sc-enemy.fade .sc-enemy-emoji {
   filter: drop-shadow(0 0 16px rgba(20, 0, 40, 0.95)) brightness(0.8);
   animation: ghost 2.4s ease-in-out infinite;
 }
 
-.sc-enemy.fly .sc-enemy-emoji {
+.sc-arena .sc-enemy.fly .sc-enemy-emoji {
   animation: float 1.4s ease-in-out infinite;
   filter: drop-shadow(0 20px 8px rgba(0, 0, 0, 0.35));
 }
 
-.sc-enemy.sway .sc-enemy-emoji {
+.sc-arena .sc-enemy.sway .sc-enemy-emoji {
   transform-origin: bottom center;
   animation: scSway 2.6s ease-in-out infinite;
   filter: sepia(0.6) saturate(0.7);
@@ -170,12 +214,12 @@
   }
 }
 
-.sc-enemy.void .sc-enemy-emoji {
+.sc-arena .sc-enemy.void .sc-enemy-emoji {
   filter: drop-shadow(0 0 18px rgba(155, 120, 255, 0.9)) hue-rotate(200deg);
   animation: float 3s ease-in-out infinite;
 }
 
-.sc-enemy.lunge .sc-enemy-emoji {
+.sc-arena .sc-enemy.lunge .sc-enemy-emoji {
   animation: scLunge 0.5s ease-in-out;
 }
 
@@ -185,7 +229,7 @@
   }
 }
 
-.sc-enemy.defeated .sc-enemy-emoji {
+.sc-arena .sc-enemy.defeated .sc-enemy-emoji {
   animation: scDefeat 1.2s ease-in forwards;
 }
 
@@ -256,19 +300,19 @@
   font-size: 1.1rem;
 }
 
-.sc-player {
+.sc-arena .sc-player {
   margin-top: auto;
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
-.sc-player .hpbar {
+.sc-arena .sc-player .hpbar {
   flex: 1;
 }
 
 .sc-mage {
-  font-size: 2.4rem;
+  line-height: 0;
 }
 
 .sc-mage.casting {

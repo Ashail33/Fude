@@ -9,15 +9,17 @@ import { canSpeak, hasJapaneseVoice, speak } from '../engine/speech'
 import { weakness } from '../engine/srs'
 import { getState, usePlayer } from '../engine/store'
 import { listeningChoices, nextWord, safePool } from './recognition'
+import type { CharacterSprite } from '../art'
+import { Portrait } from './pixel'
 import './Listening.css'
 
 const HEARTS = 3
-const NPCS = ['👵', '🧑‍🌾', '👧', '🧙‍♂️', '👴', '🧝', '👩‍🍳', '🧒']
+const NPCS: CharacterSprite[] = ['elder', 'villager-a', 'child', 'priest', 'villager-b', 'merchant', 'innkeeper', 'guard']
 
 interface Round {
   word: Word
   choices: Word[]
-  npc: string
+  npc: CharacterSprite
 }
 
 function audioAvailable(): boolean {
@@ -213,8 +215,8 @@ export default function Listening({ activity, params, onFinish, onExit }: GamePr
         {round && (
           <>
             <div className="ls-npc-row">
-              <div className={`ls-npc ${speaking ? 'ls-talking' : ''}`} aria-hidden>
-                {round.npc}
+              <div className="ls-npc" aria-hidden>
+                <Portrait id={round.npc} scale={4} ground={activity.region >= 4 ? 'stone-floor' : 'grass'} talking={speaking} />
               </div>
               <div className="ls-bubble">
                 {fallback ? (

@@ -19,15 +19,13 @@
 
 /* ─── Kana Oni ─── */
 .bk-oni {
-  position: relative;
-  display: grid;
-  place-items: center;
+  position: absolute;
+  inset: 0;
 }
 
-.bk-orbit {
-  position: absolute;
-  inset: -34px;
-  animation: bk-spin 9s linear infinite;
+.bk-oni .bk-orbit {
+  inset: -20px;
+  animation: bk-spin 9s steps(48) infinite;
 }
 
 .bk-orbit span {
@@ -36,10 +34,9 @@
   top: 50%;
   font-family: var(--font-jp);
   font-size: 1.1rem;
-  font-weight: 700;
   color: var(--ba-aura);
-  text-shadow: 0 0 8px var(--ba-aura);
-  transform: rotate(calc(var(--i) * 60deg)) translateY(-78px) rotate(calc(var(--i) * -60deg));
+  text-shadow: 2px 2px 0 var(--win-inset);
+  transform: rotate(calc(var(--i) * 60deg)) translateY(-84px) rotate(calc(var(--i) * -60deg));
   margin: -0.6em 0 0 -0.5em;
 }
 
@@ -51,25 +48,25 @@
 
 /* ─── Radical Golem ─── */
 .bg-golem {
-  position: relative;
-  display: grid;
-  place-items: center;
+  position: absolute;
+  inset: 0;
 }
 
-.bg-core {
+.bg-golem .bg-core {
   position: absolute;
-  top: 58%;
+  inset: auto;
+  top: 56%;
   left: 50%;
   transform: translate(-50%, -50%);
   font-family: var(--font-jp);
-  font-size: 1.6rem;
-  font-weight: 700;
-  color: #fff;
-  background: color-mix(in srgb, var(--ba-aura) 70%, #000);
+  font-size: 1.4rem;
+  line-height: 1.2;
+  color: var(--paper);
+  background: var(--win-fill);
   border: 2px solid var(--ba-aura);
-  border-radius: 10px;
-  padding: 0 6px;
-  box-shadow: 0 0 16px var(--ba-aura);
+  border-radius: 3px;
+  padding: 0 5px;
+  box-shadow: 0 0 0 2px var(--win-inset), 0 0 12px var(--ba-aura);
 }
 
 .bg-cracked .bg-core {
@@ -215,20 +212,25 @@
 
 /* ─── Particle Guardian ─── */
 .bp-guardian {
-  position: relative;
-  display: grid;
-  place-items: center;
+  position: absolute;
+  inset: 0;
 }
 
-.bp-shield-ring {
+.bp-guardian .bp-shield-ring {
   position: absolute;
-  inset: -22px;
+  inset: -18px;
   border-radius: 50%;
-  border: 3px solid color-mix(in srgb, var(--ba-aura) 80%, transparent);
+  border: 4px dashed color-mix(in srgb, var(--ba-aura) 85%, transparent);
   box-shadow:
-    0 0 18px var(--ba-aura),
-    inset 0 0 18px var(--ba-aura);
-  animation: ba-pulse 2s ease-in-out infinite;
+    0 0 14px var(--ba-aura),
+    inset 0 0 14px var(--ba-aura);
+  animation: bp-spin 8s steps(32) infinite;
+}
+
+@keyframes bp-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .bp-open .bp-shield-ring {
@@ -337,31 +339,31 @@
 
 /* ─── Silent Librarian ─── */
 .bl-librarian {
-  position: relative;
-  display: grid;
-  place-items: center;
+  position: absolute;
+  inset: 0;
 }
 
-.bl-book {
+.bl-librarian .bl-book {
   position: absolute;
-  font-size: 1.6rem;
-  animation: bl-drift 4s ease-in-out infinite;
+  inset: auto;
+  line-height: 0;
+  animation: bl-drift 4s steps(8) infinite;
 }
 
 .bl-book.b1 {
-  left: -48px;
-  top: 0;
+  left: -52px;
+  top: 4px;
 }
 
 .bl-book.b2 {
-  right: -46px;
-  top: 12px;
+  right: -50px;
+  top: 20px;
   animation-delay: -1.3s;
 }
 
 .bl-book.b3 {
-  left: -30px;
-  bottom: -10px;
+  left: -34px;
+  bottom: -6px;
   animation-delay: -2.6s;
 }
 
@@ -396,18 +398,32 @@
 
 /* ─── Adjective Chimera ─── */
 .bc-chimera {
-  position: relative;
-  display: grid;
-  place-items: center;
-  animation: bc-shift 0.6s ease-out;
+  position: absolute;
+  inset: 0;
+  animation: bc-shift 0.6s steps(6);
 }
 
-.bc-skin {
+/* Elemental motes circling the chimera, coloured by its current skin. */
+.bc-motes,
+.bd-form {
+  animation: bk-spin 6s steps(36) infinite;
+}
+
+.bc-motes i,
+.bd-form i {
   position: absolute;
-  right: -26px;
-  bottom: -8px;
-  font-size: 2.6rem;
-  filter: drop-shadow(0 0 10px var(--ba-aura));
+  left: 50%;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  background: var(--ba-aura);
+  box-shadow: 0 0 0 2px var(--win-inset), 0 0 8px var(--ba-aura);
+  transform: rotate(calc(var(--i) * 60deg)) translateY(-86px);
+}
+
+.bd-form i {
+  transform: rotate(calc(var(--i) * 45deg)) translateY(-110px);
 }
 
 @keyframes bc-shift {
@@ -523,27 +539,11 @@
 
 /* ─── Void Dragon ─── */
 .bd-dragon {
-  position: relative;
-  display: grid;
-  place-items: center;
-}
-
-.bd-p1 .bd-body {
-  filter: hue-rotate(140deg) saturate(1.5);
-}
-
-.bd-p2 .bd-body {
-  filter: hue-rotate(240deg) saturate(1.8) brightness(1.1);
-}
-
-.bd-form {
   position: absolute;
-  top: -10px;
-  right: -22px;
-  font-size: 2.4rem;
-  animation: bc-shift 0.6s ease-out;
-  filter: drop-shadow(0 0 10px var(--ba-aura));
+  inset: 0;
 }
+
+
 
 .bd-en {
   font-size: 1.05rem;

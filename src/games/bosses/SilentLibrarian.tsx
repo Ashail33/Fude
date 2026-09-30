@@ -7,6 +7,8 @@ import { canSpeak, hasJapaneseVoice, speak } from '../../engine/speech'
 import { weakness } from '../../engine/srs'
 import { getState } from '../../engine/store'
 import { T, useAnswerTimer } from '../../components/ui'
+import { PixelSprite } from '../../art'
+import { tintFilter, type StripCell } from '../pixel'
 import { BossArena, ChoiceGrid, Feedback } from './BossArena'
 import { useBossBattle } from './battle'
 import {
@@ -25,8 +27,9 @@ import './bosses.css'
 
 type Q = { kind: 'rune'; q: RuneQ } | { kind: 'whisper'; q: WhisperQ; audio: boolean } | { kind: 'sentence'; q: SentenceQ }
 
-const SPRITES = ['🧙‍♀️', '🧙‍♀️', '🦉']
 const AURAS = ['#9be7e0', '#a0a8ff', '#ffe066']
+const PHASE_FILTERS = ['none', tintFilter('#a0a8ff', 0.4), tintFilter('#ffe066', 0.5)]
+const LIBRARY_FLOOR: StripCell[][] = [['stone-floor', 'stone-floor', { id: 'lantern', under: 'stone-floor' }, 'stone-floor', 'stone-floor', 'stone-floor', 'stone-floor', { id: 'bookshelf' }, 'stone-floor', 'stone-floor']]
 const TAUNTS = [
   { jp: 'しずかに… よみなさい。', en: 'Quietly… read.' },
   { jp: 'きこえますか？', en: 'Can you hear me?' },
@@ -86,14 +89,13 @@ export default function SilentLibrarian({ activity, onFinish, onExit }: GameProp
   const sprite = (
     <div className="bl-librarian">
       <span className="bl-book b1" aria-hidden>
-        📕
+        <PixelSprite id="book" scale={2} />
       </span>
-      <span>{SPRITES[battle.phase]}</span>
       <span className="bl-book b2" aria-hidden>
-        📘
+        <PixelSprite id="scroll" scale={2} />
       </span>
       <span className="bl-book b3" aria-hidden>
-        📗
+        <PixelSprite id="book" scale={2} />
       </span>
     </div>
   )
@@ -104,7 +106,10 @@ export default function SilentLibrarian({ activity, onFinish, onExit }: GameProp
       activity={activity}
       onExit={onExit}
       name={{ en: 'Silent Librarian', jp: 'しずかなししょ' }}
+      spriteId="wisp"
+      spriteFilter={PHASE_FILTERS[battle.phase]}
       sprite={sprite}
+      floor={LIBRARY_FLOOR}
       aura={AURAS[battle.phase]}
       phaseNames={[
         { en: 'Written Riddles', jp: 'かかれたなぞ' },

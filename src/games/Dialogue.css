@@ -43,18 +43,15 @@
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  animation: dlgBob 3s ease-in-out infinite;
 }
 
 .dlg-emoji {
-  width: 96px;
-  height: 96px;
-  display: grid;
-  place-items: center;
-  font-size: 58px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--npc) 70%, white), var(--npc) 55%, color-mix(in srgb, var(--npc) 40%, black));
-  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.12), 0 0 28px color-mix(in srgb, var(--npc) 60%, transparent);
+  display: block;
+  line-height: 0;
+}
+
+.dlg-emoji .px-portrait {
+  border-color: color-mix(in srgb, var(--npc) 45%, var(--win-border));
 }
 
 .dlg-name {
@@ -297,16 +294,7 @@
   gap: 4px;
   margin: -6px 0 18px;
 }
-.dlg-intro-portrait span {
-  width: 84px;
-  height: 84px;
-  display: grid;
-  place-items: center;
-  font-size: 50px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--npc) 70%, white), var(--npc) 60%);
-  box-shadow: 0 0 24px color-mix(in srgb, var(--npc) 60%, transparent);
-}
+
 .dlg-intro-portrait small {
   font-family: var(--font-jp);
   color: var(--muted);
@@ -346,10 +334,5 @@
 @media (max-width: 400px) {
   .dlg-portrait {
     width: 84px;
-  }
-  .dlg-emoji {
-    width: 78px;
-    height: 78px;
-    font-size: 46px;
   }
 }

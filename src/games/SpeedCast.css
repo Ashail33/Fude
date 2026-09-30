@@ -65,36 +65,32 @@
   height: clamp(210px, 34vh, 300px);
   border-radius: var(--radius);
   overflow: hidden;
-  border: 1px solid var(--line);
+  border: 3px solid var(--win-border);
+  box-shadow: var(--win-shadow);
   background: linear-gradient(180deg, #2b2a6e 0%, #5a4fb0 55%, #f0a07a 100%);
   user-select: none;
 }
 
-.sc-hills {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 22%;
-  height: 40%;
-  background:
-    radial-gradient(ellipse 30% 60% at 20% 100%, rgba(40, 30, 90, 0.85) 98%, transparent 100%),
-    radial-gradient(ellipse 35% 70% at 70% 100%, rgba(50, 36, 110, 0.8) 98%, transparent 100%);
-  background-size: 50% 100%;
-  background-repeat: repeat-x;
-  animation: scScroll 9s linear infinite;
-}
-
+.sc-hills,
 .sc-ground {
   position: absolute;
   left: 0;
-  right: 0;
+  line-height: 0;
+  animation: scScroll 9s steps(128) infinite;
+}
+
+/* A row of trees along the horizon, scrolling slowly (period 8 tiles). */
+.sc-hills {
+  bottom: 64px;
+  width: calc(100% + 256px);
+  opacity: 0.9;
+}
+
+/* The road: grass verge + dirt path (period 4 tiles), scrolling fast. */
+.sc-ground {
   bottom: 0;
-  height: 22%;
-  background:
-    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.08) 0 24px, transparent 24px 48px),
-    linear-gradient(180deg, #3c7d4f, #22472f);
-  border-top: 3px solid #6fd08a;
-  animation: scScrollFast 0.8s linear infinite;
+  width: calc(100% + 128px);
+  animation: scScrollFast 1s steps(64) infinite;
 }
 
 .sc-stopped .sc-hills,
@@ -104,25 +100,23 @@
 
 @keyframes scScroll {
   to {
-    background-position: -50% 0;
+    transform: translateX(-256px);
   }
 }
 
 @keyframes scScrollFast {
   to {
-    background-position:
-      -48px 0,
-      0 0;
+    transform: translateX(-128px);
   }
 }
 
-.sc-player {
+.sc-lane .sc-player {
   position: absolute;
-  bottom: 20%;
+  bottom: 22px;
   transform: translateX(-50%);
-  font-size: clamp(2.2rem, 9vw, 3rem);
-  animation: scRun 0.36s ease-in-out infinite alternate;
-  filter: drop-shadow(0 0 8px var(--accent));
+  line-height: 0;
+  animation: scRun 0.36s steps(2) infinite alternate;
+  filter: drop-shadow(0 0 6px var(--accent));
   z-index: 2;
 }
 
@@ -132,10 +126,10 @@
   }
 }
 
-.sc-enemy {
+.sc-lane .sc-enemy {
   --sc-color: var(--accent);
   position: absolute;
-  bottom: 20%;
+  bottom: 22px;
   transform: translateX(-50%);
   display: flex;
   flex-direction: column;
@@ -146,10 +140,10 @@
 
 .sc-card {
   padding: 6px 10px;
-  border-radius: 12px;
-  background: rgba(15, 16, 36, 0.92);
-  border: 2px solid var(--sc-color);
-  box-shadow: 0 0 14px color-mix(in srgb, var(--sc-color) 60%, transparent);
+  border-radius: 4px;
+  background: var(--win-fill);
+  border: 2px solid var(--win-border);
+  box-shadow: 0 0 0 2px var(--win-inset), 0 0 0 4px var(--sc-color), 0 0 14px color-mix(in srgb, var(--sc-color) 60%, transparent);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -172,13 +166,13 @@
 }
 
 .sc-monster {
-  font-size: clamp(2rem, 8vw, 2.8rem);
-  animation: scBob 0.3s ease-in-out infinite alternate;
+  line-height: 0;
+  animation: scBob 0.3s steps(2) infinite alternate;
 }
 
 @keyframes scBob {
   to {
-    transform: translateY(-4px) rotate(-4deg);
+    transform: translateY(-4px);
   }
 }
 
@@ -213,7 +207,7 @@
 .sc-shot {
   --sc-color: var(--accent);
   position: absolute;
-  bottom: calc(20% + 28px);
+  bottom: 44px;
   width: 40px;
   height: 12px;
   margin-left: -20px;

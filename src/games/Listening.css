@@ -21,19 +21,8 @@
 }
 
 .ls-npc {
-  font-size: clamp(2.6rem, 12vw, 3.6rem);
-  line-height: 1;
+  line-height: 0;
   flex-shrink: 0;
-}
-
-.ls-npc.ls-talking {
-  animation: lsTalk 0.25s ease-in-out infinite alternate;
-}
-
-@keyframes lsTalk {
-  to {
-    transform: translateY(-3px) rotate(-3deg);
-  }
 }
 
 .ls-bubble {

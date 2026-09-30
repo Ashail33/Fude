@@ -8,12 +8,15 @@ import { getState } from '../../engine/store'
 import { sfx } from '../../engine/sfx'
 import { T, useAnswerTimer } from '../../components/ui'
 import type { ChimeraTurn } from './bossData'
+import { tintFilter, type StripCell } from '../pixel'
 import { BossArena, ChoiceGrid, Feedback } from './BossArena'
 import { useBossBattle, useKey, useNumberKeys } from './battle'
 import { checkChimera, chimeraQuestion, chimeraTurnsFor, createDeck, skinOf, type ChimeraQ } from './bossLogic'
 import './bosses.css'
 
 const weight = (t: ChimeraTurn) => weakness(getState().srs[item.adjective(t.adj)])
+
+const TOWER_FLOOR: StripCell[][] = [['stone-floor', 'stone-floor', { id: 'lantern', under: 'stone-floor' }, 'stone-floor', 'stone-floor', 'stone-floor', 'stone-floor', { id: 'lantern', under: 'stone-floor' }]]
 
 export default function AdjectiveChimera({ activity, onFinish, onExit }: GameProps<'boss-chimera'>) {
   const [decks] = useState(() => [0, 1, 2].map((p) => createDeck(chimeraTurnsFor(p), weight)))
@@ -65,8 +68,11 @@ export default function AdjectiveChimera({ activity, onFinish, onExit }: GamePro
   const skin = q ? skinOf(q.turn) : null
   const sprite = (
     <div className="bc-chimera" key={skin?.id}>
-      <span className="bc-body">🦁</span>
-      <span className="bc-skin">{skin?.emoji ?? '❔'}</span>
+      <span className="bc-motes" aria-hidden>
+        {Array.from({ length: 6 }, (_, i) => (
+          <i key={i} style={{ ['--i' as string]: i }} />
+        ))}
+      </span>
     </div>
   )
   const nounInfo = (n: string) => ELEMENT_SPELLS.find((e) => e.noun === n)
@@ -77,7 +83,10 @@ export default function AdjectiveChimera({ activity, onFinish, onExit }: GamePro
       activity={activity}
       onExit={onExit}
       name={{ en: 'The Shifting Chimera', jp: 'かわるキメラ' }}
+      spriteId="kitsune"
+      spriteFilter={skin ? tintFilter(skin.color, 0.6) : 'none'}
       sprite={sprite}
+      floor={TOWER_FLOOR}
       aura={skin?.color ?? '#ff9f43'}
       phaseNames={[
         { en: 'Describe your magic', jp: 'まほうを えがけ' },

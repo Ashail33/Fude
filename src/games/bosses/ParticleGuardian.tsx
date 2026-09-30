@@ -7,6 +7,7 @@ import { weakness } from '../../engine/srs'
 import { getState } from '../../engine/store'
 import { sfx } from '../../engine/sfx'
 import { T, useAnswerTimer } from '../../components/ui'
+import { tintFilter, type StripCell } from '../pixel'
 import { BossArena, ChoiceGrid, Feedback, TimerBar } from './BossArena'
 import { useBossBattle, useKey } from './battle'
 import { BLIND_INDICES, createDeck, isAccepted, particleQuestion, type ParticleQ } from './bossLogic'
@@ -14,6 +15,7 @@ import './bosses.css'
 
 const ALL_INDICES = PARTICLE_QUESTIONS.map((_, i) => i)
 const AURAS = ['#3da5ff', '#ff6fb5']
+const FOREST_FLOOR: StripCell[][] = [['grass-dark', 'tall-grass', 'grass-dark', 'flowers', 'grass-dark', 'grass', 'tall-grass', 'grass-dark']]
 const TAUNTS = [
   { jp: 'じょしを えらべ！', en: 'Choose your particle!' },
   { jp: 'いみは もう みせない！', en: 'No more meanings for you!' },
@@ -78,7 +80,6 @@ export default function ParticleGuardian({ activity, onFinish, onExit }: GamePro
   const sprite = (
     <div className={`bp-guardian ${stage === 'weak' ? 'bp-open' : ''}`}>
       <span className="bp-shield-ring" aria-hidden />
-      <span>{battle.phase === 0 ? '🧿' : '👁️'}</span>
     </div>
   )
 
@@ -95,7 +96,10 @@ export default function ParticleGuardian({ activity, onFinish, onExit }: GamePro
       activity={activity}
       onExit={onExit}
       name={{ en: 'Particle Guardian', jp: 'じょしのしゅご' }}
+      spriteId="treant"
+      spriteFilter={battle.phase === 0 ? 'none' : tintFilter('#ff6fb5', 0.45)}
       sprite={sprite}
+      floor={FOREST_FLOOR}
       aura={AURAS[battle.phase]}
       phaseNames={[
         { en: 'Shields of Meaning', jp: 'いみのたて' },

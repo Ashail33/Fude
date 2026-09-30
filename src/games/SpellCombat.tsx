@@ -9,6 +9,8 @@ import type { Review } from '../engine/srs'
 import type { GameProps } from './types'
 import { checkIncantation, checkSpoken, ELEMENT_WORD, type CastResult } from './incantation'
 import { readingOf } from './forge'
+import { PixelSprite, type SpriteId } from '../art'
+import { PlayerMage, TileStrip, useHitFlash, useWide, type StripCell } from './pixel'
 import './SpellCombat.css'
 
 const PLAYER_HP = 5
@@ -23,6 +25,27 @@ const ENEMY_HINTS: Record<string, { anim: string; aura: string; jp: string; en: 
   treant: { anim: 'sway', aura: '🍂', jp: 'かれた えだは よく もえる…', en: 'Dry branches burn easily…' },
   dragon: { anim: 'void', aura: '🌀', jp: 'かぜが こわい…', en: 'I fear the wind…' },
 }
+
+/** Pixel sprite for each enemy id (data/sentences ENEMIES). */
+const ENEMY_SPRITE: Record<string, SpriteId> = {
+  slime: 'ice-slime',
+  imp: 'imp',
+  golem: 'golem',
+  wisp: 'wisp',
+  harpy: 'harpy',
+  treant: 'treant',
+  dragon: 'dragon',
+}
+const spriteOf = (id: string): SpriteId => ENEMY_SPRITE[id] ?? 'slime'
+
+/** Battle backdrop: a tree line on the horizon and a grassy field. */
+const BACKDROP: StripCell[][] = [
+  [{ id: 'pine', under: 'grass-dark' }, { id: 'tree', under: 'grass-dark' }, { id: 'pine', under: 'grass-dark' }, { id: 'bush', under: 'grass-dark' }, { id: 'tree', under: 'grass-dark' }, { id: 'pine', under: 'grass-dark' }],
+  ['grass-dark', 'grass', 'grass', 'tall-grass', 'grass', 'grass'],
+  ['grass', 'grass', 'flowers', 'grass', 'grass', 'tall-grass'],
+  ['grass', 'tall-grass', 'grass', 'grass', 'flowers', 'grass'],
+  ['path', 'path', 'path', 'path', 'path', 'path'],
+]
 
 interface Tile {
   text: string
@@ -45,6 +68,9 @@ export default function SpellCombat({ activity, params, onFinish, onExit }: Game
   const [ei, setEi] = useState(0)
   const enemy = enemies[ei] as Enemy | undefined
   const [enemyHp, setEnemyHp] = useState(enemies[0]?.hp ?? 1)
+  const [hits, setHits] = useState(0)
+  const hitFlash = useHitFlash(hits)
+  const wide = useWide()
   const [hp, setHp] = useState(PLAYER_HP)
   const [anim, setAnim] = useState<Anim>(null)
   const [missile, setMissile] = useState<{ emoji: string; color: string; key: number } | null>(null)
@@ -138,6 +164,7 @@ export default function SpellCombat({ activity, params, onFinish, onExit }: Game
           sfx.hit()
           sfx.correct()
           burst(50, 22, 10 + r.damage * 4)
+          setHits((h) => h + 1)
           const left = Math.max(0, enemyHp - r.damage)
           setEnemyHp(left)
           setMissile(null)
@@ -297,12 +324,13 @@ export default function SpellCombat({ activity, params, onFinish, onExit }: Game
       <div className="sc-foes" aria-label="Enemies">
         {enemies.map((e, i) => (
           <span key={e.id + i} className={`sc-foe-pip ${i < ei ? 'done' : i === ei ? 'now' : ''}`} title={e.name}>
-            {i < ei ? '✔' : e.emoji}
+            {i < ei ? '✔' : <PixelSprite id={spriteOf(e.id)} scale={1} className={e.id === 'dragon' ? 'half' : ''} title={e.name} />}
           </span>
         ))}
       </div>
 
       <div className={`sc-arena ${flashCls} ${anim === 'enemy-attack' ? 'hurt' : ''}`}>
+        <TileStrip rows={BACKDROP} scale={2} className="sc-backdrop" animate={false} />
         {burstNode}
         <div className="sc-enemy-side">
           <div className="sc-enemy-head">
@@ -314,7 +342,7 @@ export default function SpellCombat({ activity, params, onFinish, onExit }: Game
               {hint.aura}
             </span>
             <span className="sc-enemy-emoji" role="img" aria-label={enemy.name}>
-              {enemy.emoji}
+              <PixelSprite id={spriteOf(enemy.id)} scale={enemy.id === 'dragon' ? 2 : wide ? 4 : 3} animate flash={hitFlash} title={enemy.name} />
             </span>
             {anim === 'resisted' && <span className="sc-resist">🛡️</span>}
           </div>
@@ -343,7 +371,7 @@ export default function SpellCombat({ activity, params, onFinish, onExit }: Game
 
         <div className="sc-player">
           <span className={`sc-mage ${anim === 'cast' ? 'casting' : ''}`} aria-hidden>
-            🧙
+            <PlayerMage scale={3} dir="up" flash={anim === 'enemy-attack'} />
           </span>
           <HpBar value={hp} max={PLAYER_HP} color="linear-gradient(90deg,#4ade80,#a3e635)" label={<T en="You" jp="あなた" />} />
         </div>

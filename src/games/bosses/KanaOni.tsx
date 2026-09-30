@@ -8,6 +8,7 @@ import { weakness } from '../../engine/srs'
 import { getState } from '../../engine/store'
 import { sample } from '../../engine/random'
 import { KanaInput, T, useAnswerTimer } from '../../components/ui'
+import { tintFilter, type StripCell } from '../pixel'
 import { BossArena, ChoiceGrid, Feedback, TimerBar } from './BossArena'
 import { hasFinePointer, useBossBattle } from './battle'
 import { checkKanaRomaji, createDeck, isAccepted, kanaPool, kanaQuestion, kanaWordPool, kanaWordQuestion, type KanaQ, type KanaWordQ } from './bossLogic'
@@ -15,8 +16,10 @@ import './bosses.css'
 
 type Q = { kind: 'kana'; q: KanaQ; timed: boolean } | { kind: 'word'; q: KanaWordQ }
 
-const SPRITES = ['👹', '👺', '👿']
 const AURAS = ['#ff5d73', '#ff9f43', '#c77dff']
+/** The oni darkens and burns hotter each phase. */
+const PHASE_FILTERS = ['none', 'saturate(1.5) brightness(1.1)', tintFilter('#c77dff', 0.55)]
+const VILLAGE_FLOOR: StripCell[][] = [['grass', 'flowers', 'grass', 'path', 'path', 'grass', 'grass', 'tall-grass', 'grass', 'path']]
 const TAUNTS = [
   { jp: 'よめるか？', en: 'Can you read me?' },
   { jp: 'ことばを くらえ！', en: 'Eat my words!' },
@@ -73,7 +76,6 @@ export default function KanaOni({ activity, params, onFinish, onExit }: GameProp
 
   const sprite = (
     <div className="bk-oni">
-      <span>{SPRITES[phase]}</span>
       <div className="bk-orbit" aria-hidden>
         {orbit.map((c, i) => (
           <span key={c + i} lang="ja" style={{ ['--i' as string]: i }}>
@@ -90,7 +92,10 @@ export default function KanaOni({ activity, params, onFinish, onExit }: GameProp
       activity={activity}
       onExit={onExit}
       name={{ en: 'Kana Oni', jp: 'かなのおに' }}
+      spriteId="oni"
+      spriteFilter={PHASE_FILTERS[phase]}
       sprite={sprite}
+      floor={VILLAGE_FLOOR}
       aura={AURAS[phase]}
       phaseNames={[
         { en: 'Scrambled Kana', jp: 'みだれもじ' },

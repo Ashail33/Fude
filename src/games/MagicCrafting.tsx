@@ -31,6 +31,8 @@ import {
   type Objective,
   type ReactionHit,
 } from './crafting'
+import { PixelSprite } from '../art'
+import { PixelTile, TileStrip, useWide, type StripCell } from './pixel'
 import './MagicCrafting.css'
 
 /** setTimeout that is cleared automatically on unmount. */
@@ -47,6 +49,18 @@ function useTimers() {
     }, ms)
     ids.current.add(id)
   }, [])
+}
+
+/** What each element turns a map cell into (drawn as pixel terrain tiles). */
+const TERRAIN: Record<string, StripCell> = {
+  '': 'grass',
+  '#': { id: 'boulder', under: 'grass' },
+  火: { id: 'campfire', under: 'dirt' },
+  水: 'water',
+  木: { id: 'tree', under: 'grass' },
+  土: 'dirt',
+  石: { id: 'rock', under: 'dirt' },
+  日: 'flowers',
 }
 
 export default function MagicCrafting({ activity, params, onFinish, onExit }: GameProps<'crafting'>) {
@@ -352,7 +366,11 @@ function Evolution({ goal, onFinish, setHud }: { goal: number; onFinish: (r: Gam
           ))}
         </div>
         <div className="mc-cauldron" aria-hidden>
-          🔮
+          <span className="mc-cauldron-fude">
+            <PixelSprite id="fude" scale={3} animate />
+          </span>
+          <PixelTile id="altar" under="stone-floor" scale={3} />
+          <span className="mc-cauldron-glow" />
         </div>
         <div className="row mc-altar-actions">
           <button type="button" className="btn btn-primary btn-lg" onClick={doFuse} disabled={slots.filter(Boolean).length < 2 || !!reveal || ending}>
@@ -470,6 +488,7 @@ type WorldPhase = 'play' | 'complete' | 'failed'
 
 function World({ goal, onFinish, setHud }: { goal: number; onFinish: (r: GameResult) => void; setHud: HudSetter }) {
   const player = usePlayer()
+  const wide = useWide()
   const showRomaji = player.settings.showRomaji
   const later = useTimers()
   const [burstNode, fire] = useBurst()
@@ -621,6 +640,9 @@ function World({ goal, onFinish, setHud }: { goal: number; onFinish: (r: GameRes
 
   const rows = map.length
   const cols = map[0].length
+  const scale = wide ? 4 : 3
+  const cell = 16 * scale
+  const terrain: StripCell[][] = map.map((row) => row.map((t) => TERRAIN[t ?? ''] ?? 'grass'))
   const reacting = new Map<string, ReactionHit>()
   for (const h of reactions) {
     reacting.set(h.a.join(), h)
@@ -643,7 +665,10 @@ function World({ goal, onFinish, setHud }: { goal: number; onFinish: (r: GameRes
 
       <div className={`mc-map-wrap ${flashCls}`}>
         {burstNode}
-        <div className="mc-map" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
+        <div className="mc-map" style={{ gridTemplateColumns: `repeat(${cols}, ${cell}px)`, gridAutoRows: `${cell}px` }}>
+          <div className="mc-terrain" style={{ width: cols * cell }} aria-hidden>
+            <TileStrip rows={terrain} scale={scale} align="start" />
+          </div>
           {map.map((row, r) =>
             row.map((t, c) => {
               const key = `${r},${c}`
@@ -658,15 +683,10 @@ function World({ goal, onFinish, setHud }: { goal: number; onFinish: (r: GameRes
                   onClick={() => cast(r, c)}
                   aria-label={t === '#' ? 'Boulder' : t ? `${t} tile` : `Empty tile row ${r + 1} column ${c + 1}`}
                 >
-                  {t === '#' ? (
-                    <span className="mc-tile-emoji">🗿</span>
-                  ) : el ? (
-                    <>
-                      <span className="mc-tile-emoji">{el.emoji}</span>
-                      <span className="mc-tile-kanji" lang="ja">
-                        {t}
-                      </span>
-                    </>
+                  {t !== '#' && el ? (
+                    <span className="mc-tile-kanji" lang="ja">
+                      {t}
+                    </span>
                   ) : null}
                   {fz && (
                     <span key={fz.k} className="mc-fizzle" aria-hidden>

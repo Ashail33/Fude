@@ -7,6 +7,7 @@ import { weakness } from '../../engine/srs'
 import { getState } from '../../engine/store'
 import { sfx } from '../../engine/sfx'
 import { T, useAnswerTimer } from '../../components/ui'
+import { tintFilter, type StripCell } from '../pixel'
 import { BossArena, ChoiceGrid, Feedback } from './BossArena'
 import { useBossBattle, useKey, useNumberKeys } from './battle'
 import { checkSplit, createDeck, fuseQuestion, isAccepted, meaningQuestion, radicalLabel, splitQuestion, type FuseQ, type MeaningQ, type SplitQ } from './bossLogic'
@@ -15,6 +16,9 @@ import './bosses.css'
 type Q = { kind: 'split'; q: SplitQ } | { kind: 'fuse'; q: FuseQ } | { kind: 'meaning'; q: MeaningQ }
 
 const AURAS = ['#c8955a', '#4cd07d', '#ffd166']
+/** Moss creeps over the golem in phase 2; it glows gold in phase 3. */
+const PHASE_FILTERS = ['none', tintFilter('#4cd07d', 0.35), tintFilter('#ffd166', 0.4) + ' brightness(1.1)']
+const FIELD_FLOOR: StripCell[][] = [['dirt', 'grass', 'dirt', 'dirt', 'grass', 'sand', 'dirt', 'grass']]
 const TAUNTS = [
   { jp: 'わたしを わってみろ！', en: 'Try to split me!' },
   { jp: 'ぶしゅを あわせる…', en: 'I fuse the radicals…' },
@@ -83,7 +87,6 @@ export default function RadicalGolem({ activity, onFinish, onExit }: GameProps<'
   const core = !q ? '?' : q.kind === 'split' ? q.q.kanji : reveal ? q.q.recipe.result : '?'
   const sprite = (
     <div className={`bg-golem ${reveal?.ok ? 'bg-cracked' : ''}`}>
-      <span className="bg-body">🗿</span>
       <span className="bg-core" lang="ja">
         {core}
       </span>
@@ -96,7 +99,10 @@ export default function RadicalGolem({ activity, onFinish, onExit }: GameProps<'
       activity={activity}
       onExit={onExit}
       name={{ en: 'Radical Golem', jp: 'ぶしゅのゴーレム' }}
+      spriteId="golem"
+      spriteFilter={PHASE_FILTERS[battle.phase]}
       sprite={sprite}
+      floor={FIELD_FLOOR}
       aura={AURAS[battle.phase]}
       phaseNames={[
         { en: 'Fused Body', jp: 'ゆうごうのからだ' },

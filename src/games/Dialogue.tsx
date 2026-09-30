@@ -21,7 +21,21 @@ import { shuffle } from '../engine/random'
 import { sfx } from '../engine/sfx'
 import { canListen, listen, matchUtterance, speak } from '../engine/speech'
 import { adjustTrust, grantSpell, usePlayer } from '../engine/store'
+import { CHARACTER_SPRITES, type CharacterSprite } from '../art'
+import type { TileId } from '../art/tiles'
+import { Portrait, useWide } from './pixel'
 import './Dialogue.css'
+
+/** Where each NPC stands (the tile under their portrait). */
+const GROUND: Record<string, TileId> = {
+  merchant: 'wood-floor',
+  guard: 'bridge-h',
+  priest: 'stone-floor',
+  king: 'carpet',
+  jailer: 'stone-floor',
+  innkeeper: 'tatami',
+}
+const spriteOfNpc = (id: string): CharacterSprite => ((CHARACTER_SPRITES as readonly string[]).includes(id) ? (id as CharacterSprite) : 'villager-a')
 
 const SPELL_ICON: Record<string, string> = { 火: '🔥', 水: '💧', 木: '🌳' }
 
@@ -115,6 +129,7 @@ function DialogueGame({
   const lineSpeech = fill(shownNode.kana ?? shownNode.line.jp, vars)
   const speechText = feedback ? (feedback.reply?.jp ?? (feedback.correct ? feedback.said?.jp : undefined) ?? lineSpeech) : lineSpeech
   const [shown, typedOut, skipType] = useTypewriter(started ? bubbleJp : '')
+  const wide = useWide()
 
   // Options for this visit: all correct ones + decoys, max 4, shuffled once per visit.
   const options = useMemo(() => {
@@ -289,7 +304,7 @@ function DialogueGame({
           }}
         >
           <div className="dlg-intro-portrait" style={{ ['--npc' as string]: mainNpc.color }}>
-            <span aria-hidden>{mainNpc.emoji}</span>
+            <Portrait id={spriteOfNpc(mainNpc.id)} ground={GROUND[mainNpc.id] ?? 'grass'} scale={5} />
             <small lang="ja">{mainNpc.jp}</small>
           </div>
         </Intro>
@@ -312,7 +327,7 @@ function DialogueGame({
             aria-label={speaker.name}
           >
             <span className="dlg-emoji" aria-hidden>
-              {speaker.emoji}
+              <Portrait id={spriteOfNpc(speaker.id)} ground={GROUND[speaker.id] ?? 'grass'} scale={wide ? 5 : 4} talking={!typedOut} />
             </span>
             <span className="dlg-name" lang="ja">
               {speaker.jp}

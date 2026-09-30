@@ -10,12 +10,13 @@
   overflow: hidden;
   border-radius: var(--radius);
   min-height: 250px;
-  padding: 44px 14px 18px;
+  padding: 44px 14px 56px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--line);
+  border: 3px solid var(--win-border);
+  box-shadow: var(--win-shadow);
   /* Deeper chambers get darker and more violet. */
   background:
     radial-gradient(ellipse at 50% 35%, rgba(255, 200, 120, calc(0.28 - var(--depth, 1) * 0.015)), transparent 60%),
@@ -29,17 +30,19 @@
   pointer-events: none;
 }
 
-.rr-hall::before {
-  /* receding floor lines */
-  content: '';
+.rr-floor {
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
-  height: 40%;
-  background: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.04) 0 2px, transparent 2px 18px);
-  transform: perspective(200px) rotateX(55deg);
-  transform-origin: bottom;
+}
+
+/* Deeper chambers are darker. */
+.rr-floor::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(10, 8, 30, 0.75), rgba(10, 8, 30, calc(0.1 + var(--depth, 1) * 0.04)));
 }
 
 .rr-far-door {
@@ -56,18 +59,19 @@
 
 .rr-lantern {
   position: absolute;
-  top: 10px;
-  font-size: 1.6rem;
-  filter: drop-shadow(0 0 10px rgba(255, 120, 60, 0.9));
-  animation: rrFlicker 2.4s ease-in-out infinite;
+  bottom: 6px;
+  z-index: 3;
+  line-height: 0;
+  filter: drop-shadow(0 0 10px rgba(255, 170, 80, 0.7));
+  animation: rrFlicker 2.4s steps(4) infinite;
 }
 
 .rr-lantern.l {
-  left: 12px;
+  left: 10px;
 }
 
 .rr-lantern.r {
-  right: 12px;
+  right: 10px;
   animation-delay: 0.8s;
 }
 
