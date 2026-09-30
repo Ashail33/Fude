@@ -23,7 +23,8 @@ import { canListen, listen, matchUtterance, speak } from '../engine/speech'
 import { adjustTrust, grantSpell, usePlayer } from '../engine/store'
 import { CHARACTER_SPRITES, type CharacterSprite } from '../art'
 import type { TileId } from '../art/tiles'
-import { Portrait, useWide } from './pixel'
+import { Portrait } from './pixel'
+import { useWide } from './pixelHooks'
 import './Dialogue.css'
 
 /** Where each NPC stands (the tile under their portrait). */

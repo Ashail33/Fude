@@ -3,50 +3,16 @@
  * hit-flash hook, a tint filter for elemental "skins", and a small tile
  * strip (village / shrine / forge scenery) drawn with `drawTile`.
  */
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { PixelSprite, spriteSize, type Dir, type SpriteId } from '../art'
 import { computeNeighbours, drawTile, type TileId } from '../art/tiles'
 import { usePlayer } from '../engine/store'
-import { tintFilter } from './pixelTint'
 import './pixel.css'
-
-export { tintFilter }
 
 /** The player's mage, wearing their current outfit. */
 export function PlayerMage({ scale = 3, dir = 'down', animate = true, flash, className }: { scale?: number; dir?: Dir; animate?: boolean; flash?: boolean; className?: string }) {
   const outfit = usePlayer().outfit
   return <PixelSprite id="mage" outfit={outfit} scale={scale} dir={dir} animate={animate} flash={flash} className={className} title="you" />
-}
-
-/** True for `ms` after `trigger` changes to a new truthy value. */
-export function useHitFlash(trigger: unknown, ms = 160): boolean {
-  const [on, setOn] = useState(false)
-  const first = useRef(true)
-  useEffect(() => {
-    if (first.current) {
-      first.current = false
-      return
-    }
-    if (!trigger) return
-    setOn(true)
-    const t = setTimeout(() => setOn(false), ms)
-    return () => clearTimeout(t)
-  }, [trigger, ms])
-  return on
-}
-
-/** True when the viewport is at least `px` wide (for choosing integer sprite scales). */
-export function useWide(px = 700): boolean {
-  const q = `(min-width: ${px}px)`
-  const [wide, setWide] = useState(() => typeof window !== 'undefined' && !!window.matchMedia?.(q).matches)
-  useEffect(() => {
-    const m = window.matchMedia?.(q)
-    if (!m) return
-    const on = () => setWide(m.matches)
-    m.addEventListener('change', on)
-    return () => m.removeEventListener('change', on)
-  }, [q])
-  return wide
 }
 
 export type StripCell = TileId | { id: TileId; under?: TileId } | null
@@ -67,8 +33,11 @@ export function TileStrip({ rows, scale = 2, className, animate = true, align = 
     setWidth(el.clientWidth)
     return () => ro.disconnect()
   }, [])
+  // Callers often build `rows` inline; redraw only when its content changes.
   const key = JSON.stringify(rows)
+  const grid = useMemo(() => JSON.parse(key) as StripCell[][], [key])
   useEffect(() => {
+    const rows = grid
     const c = ref.current
     if (!c || !width) return
     const size = 16 * scale
@@ -112,7 +81,7 @@ export function TileStrip({ rows, scale = 2, className, animate = true, align = 
     }
     raf = requestAnimationFrame(draw)
     return () => cancelAnimationFrame(raf)
-  }, [key, width, scale, animate, align])
+  }, [grid, width, scale, animate, align])
   return (
     <div ref={wrap} className={`tile-strip ${className ?? ''}`} aria-hidden>
       <canvas ref={ref} className="pixel" style={{ display: 'block', marginLeft: width ? Math.floor((width - Math.ceil(width / (16 * scale)) * 16 * scale) / 2) : 0 }} />

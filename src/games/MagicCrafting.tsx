@@ -32,7 +32,8 @@ import {
   type ReactionHit,
 } from './crafting'
 import { PixelSprite } from '../art'
-import { PixelTile, TileStrip, useWide, type StripCell } from './pixel'
+import { PixelTile, TileStrip, type StripCell } from './pixel'
+import { useWide } from './pixelHooks'
 import './MagicCrafting.css'
 
 /** setTimeout that is cleared automatically on unmount. */

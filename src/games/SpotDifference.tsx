@@ -5,7 +5,8 @@ import { speak } from '../engine/speech'
 import type { Review } from '../engine/srs'
 import { buildRounds, glossOf, isKana, spotItemId, type SpotRound } from './spot'
 import type { GameProps } from './types'
-import { Portrait, useHitFlash } from './pixel'
+import { Portrait } from './pixel'
+import { useHitFlash } from './pixelHooks'
 import './SpotDifference.css'
 
 const PENALTY_MS = 3000

@@ -10,7 +10,8 @@ import type { GameProps } from './types'
 import { checkIncantation, checkSpoken, ELEMENT_WORD, type CastResult } from './incantation'
 import { readingOf } from './forge'
 import { PixelSprite, type SpriteId } from '../art'
-import { PlayerMage, TileStrip, useHitFlash, useWide, type StripCell } from './pixel'
+import { PlayerMage, TileStrip, type StripCell } from './pixel'
+import { useHitFlash, useWide } from './pixelHooks'
 import './SpellCombat.css'
 
 const PLAYER_HP = 5
