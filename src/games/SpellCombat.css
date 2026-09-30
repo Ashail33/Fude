@@ -1,0 +1,491 @@
+/* G8 Spell Creation Combat */
+
+.sc-foes {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.sc-foe-pip {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  opacity: 0.55;
+  font-size: 1.1rem;
+}
+
+.sc-foe-pip.now {
+  opacity: 1;
+  border-color: var(--accent);
+  box-shadow: 0 0 10px rgba(255, 209, 102, 0.5);
+}
+
+.sc-foe-pip.done {
+  color: var(--good);
+  opacity: 0.8;
+}
+
+.sc-arena {
+  position: relative;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  padding: 12px 12px 10px;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 50% 30%, rgba(155, 120, 255, 0.25), transparent 60%),
+    radial-gradient(ellipse at 50% 120%, rgba(61, 165, 255, 0.25), transparent 60%),
+    linear-gradient(180deg, #221c4a, #14132e);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 300px;
+}
+
+.sc-arena.hurt {
+  background:
+    radial-gradient(ellipse at 50% 100%, rgba(255, 93, 115, 0.45), transparent 60%),
+    linear-gradient(180deg, #2a1a3a, #1b1230);
+}
+
+.sc-enemy-side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.sc-enemy-head {
+  width: min(100%, 320px);
+  text-align: center;
+}
+
+.sc-enemy-name {
+  font-weight: 800;
+}
+
+.sc-enemy {
+  position: relative;
+  font-size: clamp(4rem, 20vw, 5.5rem);
+  line-height: 1;
+  height: 1.15em;
+  display: grid;
+  place-items: center;
+}
+
+.sc-enemy-emoji {
+  position: relative;
+  z-index: 1;
+}
+
+.sc-aura {
+  position: absolute;
+  font-size: 0.4em;
+  top: -0.1em;
+  right: -0.5em;
+  animation: float 2.5s ease-in-out infinite;
+}
+
+.sc-resist {
+  position: absolute;
+  font-size: 0.6em;
+  z-index: 2;
+  animation: pop 0.35s ease-out;
+}
+
+/* Weakness tells */
+.sc-enemy.shiver .sc-enemy-emoji {
+  animation: scShiver 0.18s linear infinite;
+  filter: drop-shadow(0 0 10px rgba(155, 231, 255, 0.8));
+}
+
+@keyframes scShiver {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-2px) rotate(-1deg);
+  }
+  75% {
+    transform: translateX(2px) rotate(1deg);
+  }
+}
+
+.sc-enemy.blaze .sc-enemy-emoji {
+  filter: drop-shadow(0 0 14px rgba(255, 107, 61, 0.95));
+  animation: scFlicker 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes scFlicker {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.05) translateY(-2px);
+  }
+}
+
+.sc-enemy.heavy .sc-enemy-emoji {
+  filter: drop-shadow(0 6px 0 rgba(0, 0, 0, 0.5)) sepia(0.3);
+  animation: scStomp 2s ease-in-out infinite;
+}
+
+@keyframes scStomp {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(3px);
+  }
+}
+
+.sc-enemy.fade .sc-enemy-emoji {
+  filter: drop-shadow(0 0 16px rgba(20, 0, 40, 0.95)) brightness(0.8);
+  animation: ghost 2.4s ease-in-out infinite;
+}
+
+.sc-enemy.fly .sc-enemy-emoji {
+  animation: float 1.4s ease-in-out infinite;
+  filter: drop-shadow(0 20px 8px rgba(0, 0, 0, 0.35));
+}
+
+.sc-enemy.sway .sc-enemy-emoji {
+  transform-origin: bottom center;
+  animation: scSway 2.6s ease-in-out infinite;
+  filter: sepia(0.6) saturate(0.7);
+}
+
+@keyframes scSway {
+  0%,
+  100% {
+    transform: rotate(-3deg);
+  }
+  50% {
+    transform: rotate(3deg);
+  }
+}
+
+.sc-enemy.void .sc-enemy-emoji {
+  filter: drop-shadow(0 0 18px rgba(155, 120, 255, 0.9)) hue-rotate(200deg);
+  animation: float 3s ease-in-out infinite;
+}
+
+.sc-enemy.lunge .sc-enemy-emoji {
+  animation: scLunge 0.5s ease-in-out;
+}
+
+@keyframes scLunge {
+  50% {
+    transform: translateY(40px) scale(1.2);
+  }
+}
+
+.sc-enemy.defeated .sc-enemy-emoji {
+  animation: scDefeat 1.2s ease-in forwards;
+}
+
+@keyframes scDefeat {
+  30% {
+    transform: scale(1.15) rotate(-8deg);
+    filter: brightness(2);
+  }
+  100% {
+    transform: scale(0.2) rotate(40deg) translateY(-40px);
+    opacity: 0;
+  }
+}
+
+.sc-bubble {
+  position: relative;
+  max-width: 320px;
+  padding: 6px 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #22223a;
+  text-align: center;
+  font-size: 1.05rem;
+}
+
+.sc-bubble::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 8px solid transparent;
+  border-top: 0;
+  border-bottom-color: rgba(255, 255, 255, 0.92);
+}
+
+.sc-bubble .jp {
+  color: #22223a;
+}
+
+.sc-bubble .romaji {
+  display: block;
+  font-size: 0.7em;
+  color: #666;
+}
+
+.sc-bubble-en {
+  font-size: 0.8rem;
+  color: #555;
+}
+
+.sc-translate {
+  margin-top: 4px;
+  background: #e8e8f4;
+  color: #22223a;
+  padding: 4px 10px;
+}
+
+.sc-weak {
+  font-size: 0.85rem;
+  color: var(--muted);
+  padding: 2px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--el);
+}
+
+.sc-weak-ico {
+  font-size: 1.1rem;
+}
+
+.sc-player {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sc-player .hpbar {
+  flex: 1;
+}
+
+.sc-mage {
+  font-size: 2.4rem;
+}
+
+.sc-mage.casting {
+  animation: scCast 0.5s ease-out;
+}
+
+@keyframes scCast {
+  40% {
+    transform: translateY(-8px) scale(1.15);
+    filter: drop-shadow(0 0 12px var(--accent));
+  }
+}
+
+.sc-missile {
+  position: absolute;
+  left: 14%;
+  bottom: 30px;
+  font-size: 2.2rem;
+  z-index: 10;
+  filter: drop-shadow(0 0 12px var(--el));
+  animation: scFly 0.65s ease-in forwards;
+  pointer-events: none;
+}
+
+@keyframes scFly {
+  from {
+    transform: translate(0, 0) scale(0.6);
+  }
+  to {
+    transform: translate(calc(min(80vw, 640px) * 0.45), -170px) scale(1.4);
+  }
+}
+
+.sc-missile.bounce {
+  animation: scBounce 0.65s ease-in-out forwards;
+}
+
+@keyframes scBounce {
+  0% {
+    transform: translate(0, 0) scale(0.6);
+  }
+  60% {
+    transform: translate(calc(min(80vw, 640px) * 0.4), -150px) scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(calc(min(80vw, 640px) * 0.1), -40px) scale(0.4) rotate(180deg);
+    opacity: 0;
+  }
+}
+
+.sc-feedback {
+  min-height: 2.8em;
+  font-size: 0.95rem;
+}
+
+.sc-cast-text {
+  font-family: var(--font-jp);
+  font-size: 1.3rem;
+  text-shadow: 0 0 10px currentColor;
+}
+
+.sc-example {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.sc-input {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sc-slot {
+  min-height: 60px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  border-radius: 14px;
+  border: 2px dashed rgba(255, 209, 102, 0.45);
+  background: rgba(255, 209, 102, 0.06);
+}
+
+.sc-tiles {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.sc-tile {
+  --el: var(--accent);
+  min-width: 46px;
+  min-height: 46px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  border: 2px solid var(--line);
+  background: var(--panel-2);
+  color: var(--text);
+  font-family: var(--font-jp);
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.sc-tile .jp {
+  color: inherit;
+}
+
+.sc-tile rt {
+  font-size: 0.5em;
+  color: var(--muted);
+}
+
+.sc-tile .romaji {
+  display: block;
+  font-size: 0.55em;
+}
+
+.sc-tile:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.sc-tile:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.sc-tile.k-element {
+  border-color: var(--el);
+  color: var(--el);
+  box-shadow: inset 0 0 12px color-mix(in srgb, var(--el) 30%, transparent);
+}
+
+.sc-tile.k-particle {
+  border-radius: 50%;
+  background: #3a2f6e;
+  color: #ffb3dc;
+}
+
+.sc-tile.k-adj {
+  color: #ffd166;
+  border-style: dotted;
+}
+
+.sc-tile.placed {
+  background: rgba(255, 209, 102, 0.12);
+  border-color: var(--accent);
+}
+
+.sc-actions {
+  justify-content: center;
+  gap: 12px;
+}
+
+.sc-type-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.sc-type-row .kana-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.sc-mic {
+  width: 56px;
+  height: 56px;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.sc-mic.on {
+  border-color: var(--bad);
+  box-shadow: 0 0 0 0 rgba(255, 93, 115, 0.7);
+  animation: flashBad 1s infinite;
+}
+
+.sc-listening {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.sc-mic-msg {
+  font-size: 0.9rem;
+}
+
+.sc-book {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+}
+
+.sc-book-patterns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  justify-content: center;
+  font-family: var(--font-jp);
+  font-size: 1.1rem;
+}
+
+.sc-book-patterns b {
+  color: var(--accent);
+}
+
+.sc-book-els {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  justify-content: center;
+}
+
+.sc-book-els .jp {
+  color: inherit;
+}

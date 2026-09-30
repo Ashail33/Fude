@@ -1,0 +1,299 @@
+/* G7 Rune Interpretation */
+
+.rr-score {
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.rr-scene {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius);
+  min-height: 250px;
+  padding: 44px 14px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  /* Deeper chambers get darker and more violet. */
+  background:
+    radial-gradient(ellipse at 50% 35%, rgba(255, 200, 120, calc(0.28 - var(--depth, 1) * 0.015)), transparent 60%),
+    linear-gradient(180deg, hsl(calc(260 - var(--depth, 1) * 4), 35%, calc(22% - var(--depth, 1) * 0.8%)), hsl(calc(250 - var(--depth, 1) * 3), 40%, 9%));
+  transition: background 0.8s;
+}
+
+.rr-hall {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.rr-hall::before {
+  /* receding floor lines */
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 40%;
+  background: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.04) 0 2px, transparent 2px 18px);
+  transform: perspective(200px) rotateX(55deg);
+  transform-origin: bottom;
+}
+
+.rr-far-door {
+  position: absolute;
+  left: 50%;
+  top: 18%;
+  width: 60px;
+  height: 90px;
+  transform: translateX(-50%);
+  border-radius: 30px 30px 0 0;
+  background: radial-gradient(ellipse at 50% 70%, rgba(255, 220, 150, 0.35), rgba(0, 0, 0, 0.5));
+  border: 2px solid rgba(255, 209, 102, 0.2);
+}
+
+.rr-lantern {
+  position: absolute;
+  top: 10px;
+  font-size: 1.6rem;
+  filter: drop-shadow(0 0 10px rgba(255, 120, 60, 0.9));
+  animation: rrFlicker 2.4s ease-in-out infinite;
+}
+
+.rr-lantern.l {
+  left: 12px;
+}
+
+.rr-lantern.r {
+  right: 12px;
+  animation-delay: 0.8s;
+}
+
+@keyframes rrFlicker {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  45% {
+    opacity: 0.75;
+  }
+  55% {
+    opacity: 0.95;
+  }
+}
+
+.rr-room-label {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.85rem;
+  color: var(--accent);
+  letter-spacing: 0.1em;
+  z-index: 3;
+}
+
+/* Sliding shrine doors (fusuma) */
+.rr-doors {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.rr-door {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 38px, rgba(90, 50, 20, 0.6) 38px 42px),
+    repeating-linear-gradient(0deg, transparent 0 38px, rgba(90, 50, 20, 0.6) 38px 42px),
+    linear-gradient(180deg, #f3e4c4, #d9c49a);
+  border: 4px solid #6b3f1d;
+  transition: transform 0.8s cubic-bezier(0.6, 0, 0.3, 1);
+}
+
+.rr-door.left {
+  left: 0;
+  transform: translateX(-102%);
+}
+
+.rr-door.right {
+  right: 0;
+  transform: translateX(102%);
+}
+
+.rr-doors.open .rr-door.left,
+.rr-doors.open .rr-door.right {
+  animation: rrDoor 0.9s ease-in-out forwards;
+}
+
+.rr-doors.open .rr-door.right {
+  animation-name: rrDoorR;
+}
+
+@keyframes rrDoor {
+  0% {
+    transform: translateX(0);
+  }
+  35% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-102%);
+  }
+}
+
+@keyframes rrDoorR {
+  0% {
+    transform: translateX(0);
+  }
+  35% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(102%);
+  }
+}
+
+/* Stone tablet */
+.rr-tablet {
+  position: relative;
+  z-index: 2;
+  width: min(100%, 460px);
+  padding: 22px 16px 10px;
+  border-radius: 18px 18px 8px 8px;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.08), transparent 40%),
+    radial-gradient(circle at 80% 70%, rgba(0, 0, 0, 0.18), transparent 50%),
+    linear-gradient(180deg, #8a8fa3, #5f6478);
+  border: 3px solid #43475a;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.2),
+    0 12px 24px rgba(0, 0, 0, 0.5);
+  text-align: center;
+  transition:
+    box-shadow 0.4s,
+    filter 0.4s;
+}
+
+.rr-tablet.rise {
+  animation: rrRise 0.5s ease-out;
+}
+
+.rr-tablet.sink {
+  animation: rrSink 0.9s ease-in forwards;
+}
+
+@keyframes rrRise {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes rrSink {
+  to {
+    opacity: 0;
+    transform: scale(1.25);
+  }
+}
+
+.rr-carving .rr-jp {
+  font-size: clamp(1.5rem, 7vw, 2.4rem);
+  color: #2b2d3a;
+  text-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.35),
+    0 -1px 0 rgba(0, 0, 0, 0.35);
+  line-height: 1.8;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.rr-carving rt {
+  font-size: 0.42em;
+  color: #fff3c4;
+  text-shadow: 0 0 6px rgba(255, 209, 102, 0.9);
+}
+
+.rr-carving .romaji {
+  display: block;
+  font-size: 0.45em;
+  color: #1f2130;
+}
+
+.rr-tablet.glow {
+  box-shadow:
+    0 0 0 3px var(--accent),
+    0 0 40px rgba(255, 209, 102, 0.8),
+    0 12px 24px rgba(0, 0, 0, 0.5);
+}
+
+.rr-tablet.glow .rr-jp {
+  color: #fff6d0;
+  text-shadow:
+    0 0 10px rgba(255, 209, 102, 1),
+    0 0 24px rgba(255, 150, 60, 0.7);
+}
+
+.rr-tablet.cracked {
+  filter: saturate(0.6) brightness(0.85);
+}
+
+.rr-crack {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.rr-crack path {
+  fill: none;
+  stroke: #1a1b24;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-dasharray: 200;
+  stroke-dashoffset: 200;
+  animation: rrCrack 0.4s ease-out forwards;
+}
+
+@keyframes rrCrack {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.rr-tablet-foot {
+  min-height: 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.rr-illuminate {
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.rr-choices .choice {
+  text-align: left;
+}
+
+.rr-num {
+  display: inline-block;
+  min-width: 1.4em;
+  color: var(--muted);
+  font-size: 0.85em;
+}
+
+.rr-actions {
+  justify-content: center;
+}
