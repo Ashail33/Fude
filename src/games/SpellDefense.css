@@ -1,0 +1,321 @@
+.sd-game .game-header-right {
+  gap: 6px;
+}
+
+.sd-game .game-header-right .hearts {
+  font-size: 0.8rem;
+  letter-spacing: -2px;
+}
+
+.sd-count {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.sd-field {
+  position: relative;
+  height: clamp(270px, 50vh, 480px);
+  height: clamp(270px, 50dvh, 480px);
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background:
+    radial-gradient(circle at 80% 12%, rgba(255, 224, 102, 0.35), transparent 18%),
+    linear-gradient(180deg, #2a2466 0%, #3d3a8f 45%, #6f63c9 72%, #f3a683 100%);
+  touch-action: manipulation;
+  user-select: none;
+}
+
+.sd-field.sd-storm {
+  background:
+    radial-gradient(circle at 20% 10%, rgba(155, 231, 224, 0.25), transparent 22%),
+    linear-gradient(180deg, #14123a 0%, #2c2470 50%, #5b3f8f 78%, #d77a6b 100%);
+}
+
+.sd-stars {
+  position: absolute;
+  inset: 0 0 20% 0;
+  background-image:
+    radial-gradient(1.5px 1.5px at 10% 20%, #fff, transparent),
+    radial-gradient(1px 1px at 30% 60%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 55% 15%, #fff, transparent),
+    radial-gradient(1px 1px at 72% 45%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 90% 30%, #fff, transparent),
+    radial-gradient(1px 1px at 42% 38%, #fff, transparent);
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.sd-hurt {
+  animation: sdHurt 0.45s;
+}
+
+@keyframes sdHurt {
+  0%,
+  100% {
+    box-shadow: inset 0 0 0 0 transparent;
+  }
+  30% {
+    box-shadow: inset 0 -60px 60px -10px rgba(255, 93, 115, 0.8);
+  }
+}
+
+/* ─── Falling blocks ───────────────────────────── */
+
+.sd-block {
+  --sd-color: var(--accent);
+  /* translateX(-x%) keeps the block inside the field at any lane */
+  --sd-tx: -50%;
+  position: absolute;
+  transform: translateX(var(--sd-tx));
+  min-height: 64px;
+  justify-content: center;
+  min-width: 78px;
+  max-width: 60%;
+  padding: 8px 10px 6px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(38, 42, 92, 0.95), rgba(24, 26, 58, 0.95));
+  border: 2px solid var(--sd-color);
+  box-shadow:
+    0 0 14px color-mix(in srgb, var(--sd-color) 55%, transparent),
+    0 6px 0 rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-align: center;
+  z-index: 2;
+  will-change: top;
+}
+
+.sd-block::before {
+  /* little flame trail above the block */
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -18px;
+  width: 12px;
+  height: 18px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 80%, var(--sd-color), transparent 70%);
+  opacity: 0.6;
+}
+
+.sd-block.sd-danger {
+  animation: sdPulse 0.6s infinite alternate;
+}
+
+@keyframes sdPulse {
+  to {
+    box-shadow:
+      0 0 22px rgba(255, 93, 115, 0.9),
+      0 6px 0 rgba(0, 0, 0, 0.35);
+  }
+}
+
+.sd-block.sd-reveal {
+  border-color: var(--bad);
+}
+
+.sd-block.sd-dying {
+  animation: sdDie 0.38s ease-out forwards;
+}
+
+@keyframes sdDie {
+  to {
+    transform: translateX(var(--sd-tx)) scale(1.6);
+    opacity: 0;
+    filter: brightness(2.5);
+  }
+}
+
+.sd-emoji {
+  font-size: 2rem;
+  line-height: 1.1;
+}
+
+.sd-en {
+  font-weight: 800;
+  font-size: 0.95rem;
+  line-height: 1.1;
+}
+
+.sd-jp {
+  font-family: var(--font-jp);
+  font-size: 1.7rem;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+.sd-d3 .sd-jp {
+  font-size: 1.5rem;
+}
+
+.sd-kana {
+  font-family: var(--font-jp);
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.sd-answer {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  padding: 3px 8px;
+  border-radius: 8px;
+  background: var(--good);
+  color: #0f1024;
+  font-weight: 800;
+  font-size: 0.95rem;
+  animation: pop 0.25s;
+}
+
+/* ─── Spell projectile ─────────────────────────── */
+
+.sd-shot {
+  --sd-color: var(--accent);
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0 25%, var(--sd-color) 60%, transparent 72%);
+  box-shadow:
+    0 0 12px 4px var(--sd-color),
+    0 0 30px 8px color-mix(in srgb, var(--sd-color) 50%, transparent);
+  z-index: 3;
+  animation: sdFly linear forwards;
+  pointer-events: none;
+}
+
+@keyframes sdFly {
+  from {
+    left: var(--x0);
+    top: var(--y0);
+    transform: scale(0.6);
+  }
+  to {
+    left: var(--x1);
+    top: var(--y1);
+    transform: scale(1.5);
+  }
+}
+
+/* ─── Village ──────────────────────────────────── */
+
+.sd-village {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 20%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  padding: 0 4px 4px;
+  font-size: clamp(1.3rem, 5.5vw, 2rem);
+  background: linear-gradient(180deg, transparent, rgba(40, 90, 60, 0.9) 45%, #23452f);
+  border-top: 2px dashed rgba(255, 255, 255, 0.18);
+  z-index: 1;
+}
+
+.sd-mage {
+  font-size: 1.3em;
+  animation: float 2.4s ease-in-out infinite;
+  filter: drop-shadow(0 0 8px var(--accent));
+}
+
+.sd-toast {
+  position: absolute;
+  left: 50%;
+  bottom: 22%;
+  transform: translateX(-50%);
+  padding: 6px 12px;
+  border-radius: 10px;
+  background: rgba(15, 16, 36, 0.9);
+  border: 1px solid var(--good);
+  font-weight: 700;
+  white-space: nowrap;
+  z-index: 4;
+  animation: pop 0.25s;
+}
+
+.sd-toast.bad {
+  border-color: var(--bad);
+}
+
+.sd-end {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: rgba(15, 16, 36, 0.55);
+  font-family: var(--font-jp);
+  font-size: clamp(1.6rem, 7vw, 2.4rem);
+  font-weight: 800;
+  z-index: 10;
+  text-shadow: 0 0 18px var(--accent);
+}
+
+.sd-end small {
+  font-family: var(--font);
+  font-size: 1rem;
+  color: var(--muted);
+  text-shadow: none;
+}
+
+/* ─── Controls ─────────────────────────────────── */
+
+.sd-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sd-choices {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.sd-choices .choice {
+  position: relative;
+  min-height: 60px;
+  padding: 10px 8px;
+}
+
+.sd-key {
+  position: absolute;
+  top: 4px;
+  left: 8px;
+  font-size: 0.7rem;
+  font-family: var(--font);
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.sd-wait {
+  min-height: 128px;
+  display: grid;
+  place-items: center;
+}
+
+.sd-input {
+  font-size: 1.15rem;
+  padding: 10px 14px;
+}
+
+@media (min-width: 720px) {
+  .sd-choices {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .sd-wait {
+    min-height: 60px;
+  }
+}

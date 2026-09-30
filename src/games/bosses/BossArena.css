@@ -1,0 +1,658 @@
+/* ─── Boss arena (shared by all six bosses) ─────────────────────────── */
+
+.ba-game .game-body {
+  gap: 10px;
+}
+
+.ba-arena {
+  --ba-aura: #c77dff;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.ba-hud {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Header: name + HP */
+.ba-top {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ba-name {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ba-name-jp {
+  font-family: var(--font-jp);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--ba-aura);
+  text-shadow: 0 0 12px color-mix(in srgb, var(--ba-aura) 60%, transparent);
+}
+
+.ba-name-en {
+  color: var(--muted);
+  font-size: 0.9rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.ba-phase-pips {
+  margin-left: auto;
+  display: inline-flex;
+  gap: 4px;
+}
+
+.ba-phase-pips span {
+  width: 10px;
+  height: 10px;
+  transform: rotate(45deg);
+  border: 1.5px solid var(--ba-aura);
+  opacity: 0.5;
+}
+
+.ba-phase-pips span.on {
+  background: var(--ba-aura);
+  opacity: 1;
+}
+
+.ba-hp {
+  position: relative;
+  height: 16px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+
+.ba-hp-fill,
+.ba-hp-ghost {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 999px;
+}
+
+.ba-hp-fill {
+  z-index: 2;
+  background: linear-gradient(90deg, #ff3d6b, var(--ba-aura));
+  transition: width 0.25s ease-out;
+}
+
+.ba-hp-ghost {
+  z-index: 1;
+  background: #fff6;
+  transition: width 0.9s ease-in 0.3s;
+}
+
+.ba-hp-text {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-shadow: 0 1px 2px #000;
+}
+
+/* Stage */
+.ba-stage {
+  position: relative;
+  height: clamp(170px, 30vh, 260px);
+  border-radius: var(--radius);
+  background:
+    radial-gradient(ellipse at 50% 45%, color-mix(in srgb, var(--ba-aura) 28%, transparent), transparent 65%),
+    linear-gradient(180deg, rgba(10, 10, 30, 0.6), rgba(30, 20, 60, 0.6));
+  border: 1px solid var(--line);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ba-floor {
+  position: absolute;
+  left: 15%;
+  right: 15%;
+  bottom: 12px;
+  height: 18px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(0, 0, 0, 0.55), transparent 70%);
+}
+
+.ba-boss {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ba-aura {
+  position: absolute;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--ba-aura) 55%, transparent), transparent 70%);
+  animation: ba-pulse 2.4s ease-in-out infinite;
+  filter: blur(4px);
+}
+
+.ba-sprite {
+  position: relative;
+  font-size: clamp(4.5rem, 20vw, 6.5rem);
+  line-height: 1;
+  animation: ba-idle 3s ease-in-out infinite;
+  filter: drop-shadow(0 0 14px color-mix(in srgb, var(--ba-aura) 70%, transparent));
+  user-select: none;
+}
+
+.ba-intro-boss {
+  --ba-aura: #c77dff;
+  display: flex;
+  justify-content: center;
+  padding: 8px 0;
+}
+
+@keyframes ba-idle {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-1.5deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(1.5deg);
+  }
+}
+
+@keyframes ba-pulse {
+  0%,
+  100% {
+    transform: scale(0.9);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+}
+
+/* Hit recoil */
+.ba-anim-hit {
+  animation: ba-recoil 0.5s ease-out;
+}
+
+.ba-anim-hit .ba-sprite {
+  animation:
+    ba-flash 0.5s ease-out,
+    ba-idle 3s ease-in-out 0.5s infinite;
+}
+
+@keyframes ba-recoil {
+  0% {
+    transform: translate(0, 0);
+  }
+  20% {
+    transform: translate(14px, -6px) rotate(8deg) scale(0.94);
+  }
+  45% {
+    transform: translate(-6px, 0) rotate(-4deg);
+  }
+  100% {
+    transform: translate(0, 0);
+  }
+}
+
+@keyframes ba-flash {
+  0%,
+  40% {
+    filter: brightness(3) saturate(0) drop-shadow(0 0 20px #fff);
+  }
+  100% {
+    filter: drop-shadow(0 0 14px color-mix(in srgb, var(--ba-aura) 70%, transparent));
+  }
+}
+
+/* Boss strikes the player */
+.ba-anim-attack {
+  animation: ba-lunge 0.6s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+
+@keyframes ba-lunge {
+  0% {
+    transform: scale(1);
+  }
+  25% {
+    transform: scale(0.9) translateY(-8px);
+  }
+  50% {
+    transform: scale(1.35) translateY(24px);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Phase-change transformation */
+.ba-transform {
+  animation: ba-morph 2s ease-in-out;
+}
+
+.ba-transform .ba-aura {
+  animation: ba-surge 2s ease-in-out;
+}
+
+@keyframes ba-morph {
+  0% {
+    transform: scale(1) rotate(0);
+    filter: none;
+  }
+  30% {
+    transform: scale(0.6) rotate(-20deg);
+    filter: brightness(0) drop-shadow(0 0 20px var(--ba-aura));
+  }
+  60% {
+    transform: scale(1.4) rotate(15deg);
+    filter: brightness(2) hue-rotate(90deg);
+  }
+  100% {
+    transform: scale(1) rotate(0);
+    filter: none;
+  }
+}
+
+@keyframes ba-surge {
+  0% {
+    transform: scale(1);
+  }
+  60% {
+    transform: scale(2.6);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Defeat dissolve */
+.ba-dissolve {
+  animation: ba-dissolve 2.2s ease-in forwards;
+}
+
+@keyframes ba-dissolve {
+  0% {
+    opacity: 1;
+    filter: none;
+    transform: scale(1);
+  }
+  20% {
+    filter: brightness(3);
+    transform: scale(1.1) rotate(4deg);
+  }
+  100% {
+    opacity: 0;
+    filter: blur(14px) brightness(3);
+    transform: scale(1.6) translateY(-30px);
+  }
+}
+
+/* Screen shake when the player is hit */
+.ba-shake {
+  animation: ba-shake 0.45s;
+}
+
+@keyframes ba-shake {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  15% {
+    transform: translate(-8px, 3px);
+  }
+  30% {
+    transform: translate(7px, -4px);
+  }
+  45% {
+    transform: translate(-6px, 2px);
+  }
+  60% {
+    transform: translate(5px, 3px);
+  }
+  80% {
+    transform: translate(-3px, -1px);
+  }
+}
+
+.ba-shake::after,
+.ba-lost::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 45%, rgba(255, 40, 70, 0.4));
+  z-index: 20;
+}
+
+/* Taunt bubble */
+.ba-taunt {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 92%;
+  padding: 5px 12px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid color-mix(in srgb, var(--ba-aura) 50%, transparent);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 0.9rem;
+  text-align: center;
+  animation: pop 0.3s ease-out;
+}
+
+.ba-taunt span {
+  font-family: var(--font-jp);
+  font-weight: 700;
+}
+
+.ba-taunt small {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+/* Damage numbers */
+.ba-pops {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.ba-pop {
+  position: absolute;
+  left: 50%;
+  font-weight: 900;
+  font-size: 2rem;
+  text-shadow:
+    0 2px 0 #000,
+    0 0 10px #000;
+  animation: ba-pop-up 1.1s ease-out forwards;
+}
+
+.ba-pop-boss {
+  top: 30%;
+  color: #fff;
+  margin-left: 40px;
+}
+
+.ba-pop-crit {
+  top: 26%;
+  color: var(--accent);
+  font-size: 2.6rem;
+  margin-left: 40px;
+}
+
+.ba-pop-player {
+  bottom: 12%;
+  color: var(--bad);
+  margin-left: -80px;
+}
+
+@keyframes ba-pop-up {
+  0% {
+    transform: translateY(10px) scale(0.6);
+    opacity: 0;
+  }
+  20% {
+    transform: translateY(0) scale(1.25);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-46px) scale(1);
+    opacity: 0;
+  }
+}
+
+/* Banners */
+.ba-banner,
+.ba-end {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  text-align: center;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.ba-banner {
+  background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.7) 20%, rgba(0, 0, 0, 0.7) 80%, transparent);
+  animation: ba-banner 2s ease-in-out forwards;
+}
+
+.ba-banner-small {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.ba-banner-jp,
+.ba-end-jp {
+  font-family: var(--font-jp);
+  font-weight: 700;
+  font-size: clamp(1.8rem, 8vw, 2.6rem);
+  color: var(--ba-aura);
+  text-shadow: 0 0 18px var(--ba-aura);
+}
+
+.ba-banner-en,
+.ba-end-en {
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 0.9rem;
+}
+
+@keyframes ba-banner {
+  0% {
+    opacity: 0;
+    transform: scaleY(0.2);
+  }
+  15%,
+  85% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.ba-end {
+  animation: ba-end-in 0.8s ease-out 0.3s both;
+}
+
+.ba-end-win .ba-end-jp {
+  color: var(--accent);
+  text-shadow: 0 0 24px var(--accent);
+}
+
+.ba-end-lose {
+  background: rgba(20, 0, 10, 0.55);
+}
+
+.ba-end-lose .ba-end-jp {
+  color: var(--bad);
+  text-shadow: 0 0 18px var(--bad);
+}
+
+@keyframes ba-end-in {
+  from {
+    opacity: 0;
+    transform: scale(1.6);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.ba-phase-label {
+  text-align: center;
+  font-size: 0.8rem;
+  margin-top: -4px;
+}
+
+/* Question panel */
+.ba-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.ba-panel-wait {
+  min-height: 120px;
+}
+
+.ba-prompt {
+  text-align: center;
+  padding: 12px;
+  border-radius: 14px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+}
+
+.ba-prompt-label {
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin-bottom: 4px;
+}
+
+.ba-prompt-main {
+  font-family: var(--font-jp);
+  font-size: clamp(1.6rem, 7vw, 2.4rem);
+  font-weight: 700;
+  line-height: 1.3;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.ba-prompt-big {
+  font-family: var(--font-jp);
+  font-size: clamp(3rem, 16vw, 4.8rem);
+  line-height: 1.1;
+}
+
+.ba-choices {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.ba-choices.ba-choices-1 {
+  grid-template-columns: 1fr;
+}
+
+.ba-choice {
+  position: relative;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--text);
+}
+
+.ba-choice.ba-dim {
+  opacity: 0.45;
+}
+
+.ba-key {
+  position: absolute;
+  top: 4px;
+  left: 7px;
+  font-size: 0.65rem;
+  color: var(--muted);
+  font-family: var(--font);
+  font-weight: 600;
+}
+
+@media (pointer: coarse) {
+  .ba-key {
+    display: none;
+  }
+}
+
+.ba-feedback {
+  min-height: 1.4em;
+  font-size: 0.95rem;
+}
+
+.ba-feedback small {
+  display: block;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.ba-timer {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.ba-timer-fill {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, var(--bad), var(--accent));
+  transform-origin: left;
+}
+
+.ba-timer-fill.run {
+  animation: ba-timer linear forwards;
+}
+
+.ba-timer-fill.stop {
+  animation: none;
+  opacity: 0.4;
+}
+
+@keyframes ba-timer {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+.ba-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+
+.ba-row > input {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ba-sprite,
+  .ba-aura,
+  .ba-shake,
+  .ba-anim-hit,
+  .ba-anim-attack,
+  .ba-transform {
+    animation: none !important;
+  }
+}

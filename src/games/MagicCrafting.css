@@ -1,0 +1,580 @@
+/* G4 Magic Crafting — prefix mc- */
+
+.mc-hud {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.mc-hud-mana {
+  width: 92px;
+}
+
+.mc-hud-mana .hpbar {
+  min-width: 0;
+}
+
+.mc-hud-mana .hpbar-label {
+  font-size: 0.75rem;
+}
+
+/* ─── Evolution ─────────────────────────────── */
+
+.mc-evo {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 640px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.mc-riddle {
+  text-align: center;
+  background: linear-gradient(135deg, rgba(199, 146, 234, 0.18), rgba(255, 209, 102, 0.1)), var(--panel);
+}
+
+.mc-riddle-main {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+
+.mc-riddle-emoji {
+  font-size: 2.6rem;
+  filter: drop-shadow(0 0 10px rgba(255, 209, 102, 0.5));
+}
+
+.mc-riddle-en {
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+.mc-riddle-jp {
+  font-family: var(--font-jp);
+  font-size: 1.15rem;
+  color: var(--muted);
+}
+
+.mc-riddle-kanji {
+  font-size: 1.8rem;
+  color: var(--accent);
+}
+
+.mc-riddle-hint {
+  margin-top: 8px;
+  font-family: var(--font-jp);
+  color: var(--accent);
+}
+
+.mc-altar {
+  position: relative;
+  text-align: center;
+  background: radial-gradient(ellipse at 50% 70%, rgba(111, 139, 255, 0.25), transparent 65%), var(--panel);
+}
+
+.mc-slots {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.mc-slot {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  border: 2px dashed rgba(178, 139, 255, 0.6);
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--text);
+  font-family: var(--font-jp);
+  font-size: 2.4rem;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.2s;
+}
+
+.mc-slot.filled {
+  border-style: solid;
+  border-color: var(--accent);
+  box-shadow: 0 0 18px rgba(255, 209, 102, 0.45), inset 0 0 14px rgba(178, 139, 255, 0.4);
+  animation: pop 0.3s ease-out;
+}
+
+.mc-slot:hover {
+  transform: scale(1.05);
+}
+
+.mc-slot-empty {
+  font-size: 1.1rem;
+  color: var(--muted);
+}
+
+.mc-cauldron {
+  font-size: 2rem;
+  margin: 4px 0;
+  animation: float 3s ease-in-out infinite;
+}
+
+.mc-altar-actions {
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.mc-grimoire .prompt-label {
+  text-align: center;
+}
+
+.mc-radicals {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(58px, 1fr));
+  gap: 8px;
+}
+
+.mc-radical {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 4px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  color: var(--text);
+  cursor: grab;
+  touch-action: manipulation;
+  transition: transform 0.12s, border-color 0.2s;
+}
+
+.mc-radical:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+}
+
+.mc-radical:disabled {
+  opacity: 0.5;
+}
+
+.mc-radical-char {
+  font-family: var(--font-jp);
+  font-size: 1.7rem;
+  line-height: 1;
+}
+
+.mc-radical-emoji {
+  font-size: 0.8rem;
+}
+
+.mc-scene {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 2px;
+  padding: 10px;
+  min-height: 56px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(126, 217, 87, 0) 0%, rgba(126, 217, 87, 0.18) 100%);
+  border-bottom: 3px solid rgba(126, 217, 87, 0.5);
+}
+
+.mc-scene-item {
+  font-size: 1.8rem;
+  animation: mcGrow 0.6s ease-out backwards;
+  transform-origin: bottom center;
+}
+
+@keyframes mcGrow {
+  from {
+    transform: scaleY(0.1) scaleX(0.6);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+/* Reveal */
+
+.mc-reveal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(8, 8, 24, 0.72);
+  backdrop-filter: blur(3px);
+  animation: mcFade 0.25s ease-out;
+}
+
+@keyframes mcFade {
+  from {
+    opacity: 0;
+  }
+}
+
+.mc-reveal {
+  width: min(440px, 100%);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: radial-gradient(circle at 50% 25%, rgba(255, 209, 102, 0.2), transparent 60%), var(--panel-solid);
+}
+
+.mc-reveal-stage {
+  position: relative;
+  height: 150px;
+}
+
+.mc-reveal-part {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  font-family: var(--font-jp);
+  font-size: 2.6rem;
+  color: var(--wind);
+  transform: translate(-50%, -50%);
+  animation: mcConverge 0.8s ease-in forwards;
+}
+
+@keyframes mcConverge {
+  0% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--sx)), calc(-50% + var(--sy))) scale(1);
+  }
+  25% {
+    opacity: 1;
+    transform: translate(calc(-50% + var(--sx)), calc(-50% + var(--sy))) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.4) rotate(180deg);
+  }
+}
+
+.mc-reveal-kanji {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  font-family: var(--font-jp);
+  font-size: 6rem;
+  line-height: 1;
+  color: var(--accent);
+  transform: translate(-50%, -50%);
+  animation: mcKanjiIn 0.7s 0.7s ease-out backwards;
+}
+
+@keyframes mcKanjiIn {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.2);
+    filter: brightness(3) blur(6px);
+  }
+  60% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.2);
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    filter: none;
+  }
+}
+
+.mc-reveal-text {
+  animation: mcFade 0.4s 1.1s ease-out backwards;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mc-reveal-title {
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+
+.mc-reveal-recipe {
+  font-family: var(--font-jp);
+  font-size: 1.3rem;
+}
+
+.mc-reveal-story {
+  margin: 0;
+  font-style: italic;
+  color: var(--muted);
+}
+
+.mc-unlock {
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: rgba(74, 222, 128, 0.14);
+  border: 1px solid rgba(74, 222, 128, 0.5);
+  color: var(--good);
+  font-weight: 700;
+}
+
+.mc-unlock-char {
+  font-family: var(--font-jp);
+  font-size: 1.5rem;
+  color: var(--text);
+  margin: 0 4px;
+}
+
+/* ─── Shape the Land ─────────────────────────── */
+
+.mc-world {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 520px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.mc-quest {
+  text-align: center;
+  padding: 12px 16px;
+}
+
+.mc-quest-jp {
+  font-family: var(--font-jp);
+  font-size: 1.6rem;
+  color: var(--accent);
+}
+
+.mc-quest-emoji {
+  font-size: 1.4rem;
+}
+
+.mc-quest-en {
+  font-weight: 700;
+}
+
+.mc-quest-hint {
+  font-size: 0.85rem;
+  margin-top: 2px;
+}
+
+.mc-map-wrap {
+  position: relative;
+  border-radius: 18px;
+}
+
+.mc-map {
+  position: relative;
+  display: grid;
+  gap: 4px;
+  padding: 6px;
+  border-radius: 18px;
+  background: linear-gradient(160deg, #2d5a3a, #3a6b40 55%, #4d7a44);
+  box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.35), var(--shadow);
+}
+
+.mc-tile {
+  position: relative;
+  aspect-ratio: 1;
+  min-width: 0;
+  border: none;
+  border-radius: 10px;
+  background: rgba(126, 217, 87, 0.22);
+  color: var(--text);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  transition: transform 0.12s, background 0.25s, box-shadow 0.25s;
+}
+
+.mc-tile:hover {
+  transform: scale(1.05);
+  background: rgba(200, 255, 170, 0.3);
+}
+
+.mc-tile.filled {
+  background: color-mix(in srgb, var(--tile) 55%, #1d2b24);
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.25);
+  animation: pop 0.3s ease-out;
+}
+
+.mc-tile.boulder {
+  background: rgba(40, 40, 50, 0.55);
+  cursor: not-allowed;
+}
+
+.mc-tile.reacting {
+  box-shadow: 0 0 10px 2px color-mix(in srgb, var(--tile, #fff) 70%, transparent);
+}
+
+.mc-tile.done {
+  box-shadow: 0 0 0 2px var(--accent), 0 0 18px 4px rgba(255, 209, 102, 0.7);
+  animation: mcGlow 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes mcGlow {
+  to {
+    filter: brightness(1.3);
+  }
+}
+
+.mc-tile-emoji {
+  font-size: clamp(1.1rem, 5.5vw, 1.8rem);
+  line-height: 1;
+}
+
+.mc-tile-kanji {
+  position: absolute;
+  right: 4px;
+  bottom: 2px;
+  font-family: var(--font-jp);
+  font-size: clamp(0.65rem, 2.6vw, 0.9rem);
+  opacity: 0.85;
+}
+
+.mc-fizzle {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 1.1rem;
+  pointer-events: none;
+  animation: mcFizzle 0.9s ease-out forwards;
+}
+
+@keyframes mcFizzle {
+  from {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-24px) scale(0.6);
+  }
+}
+
+.mc-reaction {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font-size: clamp(0.9rem, 4vw, 1.3rem);
+  pointer-events: none;
+  filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.7));
+  z-index: 2;
+}
+
+.mc-reaction.fresh {
+  animation: mcReact 0.7s ease-out;
+}
+
+@keyframes mcReact {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+  }
+  60% {
+    transform: translate(-50%, -50%) scale(1.8);
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+.mc-map-banner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  text-align: center;
+  padding: 12px;
+  animation: pop 0.4s ease-out;
+}
+
+.mc-banner-kanji {
+  font-family: var(--font-jp);
+  font-size: 4rem;
+  line-height: 1;
+  color: var(--accent);
+}
+
+.mc-banner-kanji.bad {
+  color: var(--bad);
+  opacity: 0.8;
+}
+
+.mc-banner-sub {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.mc-world-msg {
+  font-size: 0.9rem;
+}
+
+.mc-palette {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+}
+
+.mc-spell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 2px 8px;
+  min-height: 64px;
+  border-radius: 14px;
+  border: 2px solid var(--line);
+  background: var(--panel-2);
+  color: var(--text);
+  cursor: pointer;
+  transition: transform 0.12s, border-color 0.2s, box-shadow 0.2s;
+}
+
+.mc-spell.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 16px rgba(255, 209, 102, 0.6);
+  transform: translateY(-3px);
+}
+
+.mc-spell:disabled {
+  opacity: 0.5;
+}
+
+.mc-spell-kanji {
+  font-family: var(--font-jp);
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
+.mc-spell-romaji {
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+.mc-spell-key {
+  position: absolute;
+  top: 2px;
+  left: 6px;
+  font-size: 0.6rem;
+  color: var(--muted);
+}
+
+@media (max-width: 420px) {
+  .mc-slot {
+    width: 64px;
+    height: 64px;
+    font-size: 2rem;
+  }
+  .mc-hud-mana {
+    width: 64px;
+  }
+  .mc-spell-key {
+    display: none;
+  }
+}

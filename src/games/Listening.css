@@ -1,0 +1,175 @@
+.ls-note {
+  color: var(--accent);
+  font-size: 0.95rem;
+}
+
+.ls-stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 14px;
+  background:
+    radial-gradient(circle at 15% 20%, rgba(199, 146, 234, 0.25), transparent 45%),
+    var(--panel);
+}
+
+.ls-npc-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ls-npc {
+  font-size: clamp(2.6rem, 12vw, 3.6rem);
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.ls-npc.ls-talking {
+  animation: lsTalk 0.25s ease-in-out infinite alternate;
+}
+
+@keyframes lsTalk {
+  to {
+    transform: translateY(-3px) rotate(-3deg);
+  }
+}
+
+.ls-bubble {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 72px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--line);
+}
+
+.ls-bubble::before {
+  content: '';
+  position: absolute;
+  left: -9px;
+  top: 50%;
+  margin-top: -8px;
+  border: 8px solid transparent;
+  border-right-color: rgba(255, 255, 255, 0.12);
+  border-left: 0;
+}
+
+.ls-kana {
+  font-family: var(--font-jp);
+  font-size: clamp(1.6rem, 7vw, 2.2rem);
+  font-weight: 700;
+}
+
+.ls-wave {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 34px;
+}
+
+.ls-wave i {
+  display: block;
+  width: 6px;
+  height: 10px;
+  border-radius: 3px;
+  background: var(--accent);
+  opacity: 0.6;
+}
+
+.ls-wave.on i {
+  animation: lsWave 0.5s ease-in-out infinite alternate;
+  opacity: 1;
+}
+
+.ls-wave.on i:nth-child(2) {
+  animation-delay: 0.1s;
+}
+.ls-wave.on i:nth-child(3) {
+  animation-delay: 0.2s;
+}
+.ls-wave.on i:nth-child(4) {
+  animation-delay: 0.3s;
+}
+.ls-wave.on i:nth-child(5) {
+  animation-delay: 0.4s;
+}
+
+@keyframes lsWave {
+  to {
+    height: 32px;
+  }
+}
+
+.ls-replay {
+  flex-shrink: 0;
+  width: 52px;
+  height: 52px;
+  font-size: 1.5rem;
+}
+
+.ls-meaning {
+  font-weight: 700;
+}
+
+.ls-meaning [lang='ja'] {
+  font-family: var(--font-jp);
+}
+
+.ls-choices {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.ls-choices .choice {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 76px;
+  font-size: 1.8rem;
+}
+
+.ls-choices .choice.ls-dim {
+  opacity: 0.55;
+}
+
+.ls-key {
+  position: absolute;
+  top: 4px;
+  left: 8px;
+  font-size: 0.7rem;
+  font-family: var(--font);
+  color: var(--muted);
+}
+
+.ls-reading {
+  font-family: var(--font);
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.ls-end {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: inherit;
+  background: rgba(15, 16, 36, 0.6);
+  font-family: var(--font-jp);
+  font-size: clamp(1.6rem, 7vw, 2.2rem);
+  font-weight: 800;
+  text-shadow: 0 0 18px var(--accent);
+  z-index: 10;
+}

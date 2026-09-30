@@ -1,0 +1,318 @@
+.sc-score {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.sc-score b {
+  font-size: 1.15rem;
+  color: var(--accent);
+}
+
+.sc-mult {
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--accent-2);
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.85rem;
+}
+
+.sc-timer {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sc-timer .hpbar {
+  flex: 1;
+}
+
+.sc-time {
+  min-width: 3ch;
+  text-align: right;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.sc-penalty {
+  position: absolute;
+  right: 0;
+  top: -18px;
+  color: var(--bad);
+  font-weight: 800;
+  animation: scFloatUp 0.9s ease-out forwards;
+  pointer-events: none;
+}
+
+@keyframes scFloatUp {
+  from {
+    opacity: 1;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-16px);
+  }
+}
+
+/* ─── Runner lane ──────────────────────────────── */
+
+.sc-lane {
+  position: relative;
+  height: clamp(210px, 34vh, 300px);
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, #2b2a6e 0%, #5a4fb0 55%, #f0a07a 100%);
+  user-select: none;
+}
+
+.sc-hills {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 22%;
+  height: 40%;
+  background:
+    radial-gradient(ellipse 30% 60% at 20% 100%, rgba(40, 30, 90, 0.85) 98%, transparent 100%),
+    radial-gradient(ellipse 35% 70% at 70% 100%, rgba(50, 36, 110, 0.8) 98%, transparent 100%);
+  background-size: 50% 100%;
+  background-repeat: repeat-x;
+  animation: scScroll 9s linear infinite;
+}
+
+.sc-ground {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 22%;
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.08) 0 24px, transparent 24px 48px),
+    linear-gradient(180deg, #3c7d4f, #22472f);
+  border-top: 3px solid #6fd08a;
+  animation: scScrollFast 0.8s linear infinite;
+}
+
+.sc-stopped .sc-hills,
+.sc-stopped .sc-ground {
+  animation-play-state: paused;
+}
+
+@keyframes scScroll {
+  to {
+    background-position: -50% 0;
+  }
+}
+
+@keyframes scScrollFast {
+  to {
+    background-position:
+      -48px 0,
+      0 0;
+  }
+}
+
+.sc-player {
+  position: absolute;
+  bottom: 20%;
+  transform: translateX(-50%);
+  font-size: clamp(2.2rem, 9vw, 3rem);
+  animation: scRun 0.36s ease-in-out infinite alternate;
+  filter: drop-shadow(0 0 8px var(--accent));
+  z-index: 2;
+}
+
+@keyframes scRun {
+  to {
+    transform: translate(-50%, -6px);
+  }
+}
+
+.sc-enemy {
+  --sc-color: var(--accent);
+  position: absolute;
+  bottom: 20%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  z-index: 3;
+}
+
+.sc-card {
+  padding: 6px 10px;
+  border-radius: 12px;
+  background: rgba(15, 16, 36, 0.92);
+  border: 2px solid var(--sc-color);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--sc-color) 60%, transparent);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  white-space: nowrap;
+  max-width: 62vw;
+}
+
+.sc-jp {
+  font-size: 1.6rem;
+  line-height: 1.2;
+}
+
+.sc-emoji {
+  font-size: 1.6rem;
+  line-height: 1.1;
+}
+
+.sc-en {
+  font-weight: 800;
+}
+
+.sc-monster {
+  font-size: clamp(2rem, 8vw, 2.8rem);
+  animation: scBob 0.3s ease-in-out infinite alternate;
+}
+
+@keyframes scBob {
+  to {
+    transform: translateY(-4px) rotate(-4deg);
+  }
+}
+
+.sc-close .sc-card {
+  border-color: var(--bad);
+  animation: sdPulseSc 0.4s infinite alternate;
+}
+
+@keyframes sdPulseSc {
+  to {
+    box-shadow: 0 0 22px rgba(255, 93, 115, 0.9);
+  }
+}
+
+.sc-dying {
+  animation: scDie 0.4s ease-out forwards;
+}
+
+@keyframes scDie {
+  to {
+    opacity: 0;
+    transform: translateX(-50%) scale(1.5) rotate(20deg);
+    filter: brightness(2.5);
+  }
+}
+
+.sc-struck .sc-monster {
+  animation: none;
+  transform: scale(1.3);
+}
+
+.sc-shot {
+  --sc-color: var(--accent);
+  position: absolute;
+  bottom: calc(20% + 28px);
+  width: 40px;
+  height: 12px;
+  margin-left: -20px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, var(--sc-color) 50%, #fff);
+  box-shadow: 0 0 16px 4px var(--sc-color);
+  z-index: 4;
+  animation: scFly linear forwards;
+}
+
+@keyframes scFly {
+  from {
+    left: var(--x0);
+  }
+  to {
+    left: var(--x1);
+  }
+}
+
+.sc-reveal {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  background: rgba(15, 16, 36, 0.92);
+  border: 1px solid var(--good);
+  font-weight: 800;
+  white-space: nowrap;
+  z-index: 6;
+}
+
+.sc-reveal [lang='ja'] {
+  font-family: var(--font-jp);
+  font-size: 1.3rem;
+}
+
+.sc-reveal small {
+  color: var(--muted);
+}
+
+.sc-end {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: rgba(15, 16, 36, 0.55);
+  font-family: var(--font-jp);
+  font-size: clamp(1.6rem, 7vw, 2.4rem);
+  font-weight: 800;
+  text-shadow: 0 0 18px var(--accent);
+  z-index: 10;
+}
+
+.sc-end small {
+  font-family: var(--font);
+  font-size: 1rem;
+  color: var(--muted);
+  text-shadow: none;
+}
+
+.sc-combo {
+  text-align: center;
+  font-weight: 800;
+  font-size: 1.1rem;
+  margin: -8px 0;
+  animation: pop 0.25s;
+}
+
+.sc-choices {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.sc-choices .choice {
+  position: relative;
+  min-height: 64px;
+  padding: 10px 8px;
+}
+
+.sc-key {
+  position: absolute;
+  top: 4px;
+  left: 8px;
+  font-size: 0.7rem;
+  font-family: var(--font);
+  color: var(--muted);
+  font-weight: 700;
+}
+
+@media (min-width: 720px) {
+  .sc-choices {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
