@@ -72,7 +72,7 @@ function ghostIds(p: PlayerState, m: GameMap): Set<string> {
 
 function markerMap(p: PlayerState, m: GameMap): Map<string, 'next' | 'done'> {
   const out = new Map<string, 'next' | 'done'>()
-  const next = nextActivity(p)
+  const next = nextActivity(p, m.spec.region)
   for (const e of m.entitySpecs) {
     const acts = e.activities ?? []
     if (!acts.length) continue
@@ -90,7 +90,7 @@ function exitLockedFor(ex: Exit): boolean {
 function fudeHint(p: PlayerState, m: GameMap, n: number): Line {
   const due = dueItems(p).length
   const ghosts = ghostIds(p, m).size
-  const next = nextActivity(p)
+  const next = nextActivity(p, m.spec.region)
   const options: Line[] = []
   if (next) {
     const loc = locateActivity(next.id)
@@ -100,7 +100,8 @@ function fudeHint(p: PlayerState, m: GameMap, n: number): Line {
       const ext = exteriorOf(loc.map)
       const where = loc.map.spec.interior ? `${ext.spec.jp}の「${loc.map.spec.jp}」` : loc.map.spec.jp
       const whereEn = loc.map.spec.interior ? `the ${loc.map.spec.name} in ${ext.spec.name}` : ext.spec.name
-      options.push({ jp: `つぎは『${next.jp}』！ ${where}の ${host.name.jp}に あいに いこう。`, en: `Next: “${next.title}”. Go see the ${host.name.en} — ${whereEn}.` })
+      if (host.sprite) options.push({ jp: `つぎは『${next.jp}』！ ${where}の ${host.name.jp}に あいに いこう。`, en: `Next: “${next.title}”. Go see the ${host.name.en} — ${whereEn}.` })
+      else options.push({ jp: `つぎは『${next.jp}』！ ${where}の「${host.name.jp}」へ いこう。`, en: `Next: “${next.title}”. Head for the ${host.name.en} — ${whereEn}.` })
     }
   } else options.push({ jp: 'すごい！ ぜんぶの しれんを クリアしたね！', en: 'Amazing! You’ve cleared every trial!' })
   if (due > 0) options.push({ jp: `ことばが ${due}こ きえかけてる… メニューの「クエスト」で ふくしゅうしよう！`, en: `${due} words are fading… review them from Quests in the menu!` })
@@ -109,6 +110,9 @@ function fudeHint(p: PlayerState, m: GameMap, n: number): Line {
   options.push({ jp: 'たかい くさには まものが いるよ。きを つけてね。', en: 'Monsters lurk in tall grass. Be careful!' })
   return options[n % options.length]
 }
+
+/** Map whose name banner was shown last (so returning from a mini-game doesn't repeat it). */
+let lastBanner = ''
 
 interface DialogState {
   steps: Step[]
@@ -186,7 +190,8 @@ export default function Overworld() {
       R.current!.setMap(m)
       setMapId(id)
       playMusic(m.spec.music)
-      if (opts.banner !== false) setBanner({ jp: m.spec.jp, en: m.spec.name, key: Date.now() })
+      if (opts.banner !== false && lastBanner !== id) setBanner({ jp: m.spec.jp, en: m.spec.name, key: Date.now() })
+      lastBanner = id
       savePos(true)
       const arrive = `arrive-${id}`
       if (!m.spec.interior && hasScene(arrive) && !s.seenScenes.includes(arrive)) setScenes((q) => [...q, { id: arrive }])

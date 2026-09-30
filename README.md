@@ -2,6 +2,8 @@
 
 A Japanese-learning fantasy RPG for the web. Words are magic: learn them, and you can burn, flood, grow and shape the world.
 
+**v2 is a 16-bit Japanese RPG.** You walk your mage (with Fude, a floating brush spirit) through five hand-built pixel-art regions, talk to townsfolk in Japanese, enter buildings to take on trials, open word-locked chests, and fight turn-based battles in the tall grass where every command (たたかう・まほう・どうぐ・にげる) is powered by Japanese. All art (tiles, characters, 16 folklore monsters) and all music (11 chiptune tracks in yo/in scales) are original and generated in code.
+
 The player travels through five elemental regions, from **English → mixed → mostly Japanese → fully Japanese**. Each region follows **Learn → Practice → Challenge → Boss → Mastery**, so progress can't be brute-forced.
 
 ## Play it
@@ -50,6 +52,9 @@ Bosses are built around grammar concepts. The Particle Guardian only exposes wea
 - **Rewards**: XP, levels and titles, spirit shards, outfits, spell effects, streaks, and a daily rotation of featured games at ×1.5 XP.
 - Designed for **10–15 minute sessions**, mobile-first, with keyboard shortcuts on desktop.
 
+## Controls
+Arrow keys / WASD to walk (hold X or Shift to run), Z / Enter / Space to talk or confirm, X / Esc to cancel, Esc for the menu. On phones: on-screen D-pad with A/B buttons, or tap anywhere to walk there.
+
 ## Project layout
 
 ```
@@ -57,7 +62,12 @@ src/
   data/       vocabulary (150 words), kana, kanji recipes, sentences, regions & activities, NPCs, stroke data
   engine/     srs, store (save state), quests, speech (TTS/recognition), sfx (WebAudio), stroke evaluation, crossword, dialogue, echoSoul
   games/      one component per mini-game + bosses/, all implementing GameProps → GameResult
-  screens/    Home (world map, quests), Region, Play (game host + results), Grimoire, Tavern, Wardrobe, Settings
+  art/        original pixel art (tiles, characters, enemies, icons) authored as palette-indexed pixel maps
+  world/      overworld engine, renderer, maps (5 regions + interiors), NPCs, dialogue
+  battle/     turn-based random-encounter battles
+  story/      cutscenes and the story script
+  ui/         pause menu
+  screens/    Title, Journal, Region, Play (game host + results), Grimoire, Tavern, Wardrobe, Settings
 ```
 
 To add content, add words to `src/data/vocab.ts` and activities to `src/data/regions.ts`. Games read their parameters from the activity.

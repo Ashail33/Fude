@@ -298,3 +298,16 @@ describe('pathfinding & camera', () => {
     expect(1280 / (16 * s)).toBeGreaterThan(16)
   })
 })
+
+describe('recommendations', () => {
+  it('prefers the next open activity in the current region', async () => {
+    const { nextActivity } = await import('./progress')
+    const { freshState } = await import('../engine/store')
+    const s = freshState()
+    expect(nextActivity(s)?.id).toBe('r1-words-1')
+    const passed = { stars: 1, best: 80, plays: 1, lastPlayed: 1 }
+    const s2 = { ...s, progress: { 'r1-words-1': passed, 'r1-trace-1': passed, 'r1-shop': passed, 'r1-defense-1': passed, 'r1-words-2': passed, 'r1-spot': passed, 'r1-trace-2': passed, 'r1-defense-2': passed, 'r1-recall': passed, 'r1-listen': passed, 'r1-boss': passed } }
+    expect(nextActivity(s2)?.id).toBe('r1-mastery')
+    expect(nextActivity(s2, 2)?.id).toBe('r2-words-1')
+  })
+})
