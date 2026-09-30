@@ -126,8 +126,8 @@ export default function Crossword({ activity, params, onFinish, onExit }: GamePr
   }
 
   /**
-   * Marks entry `i` as finished, fills its cells, and auto-completes any
-   * entry whose cells have all become known through crossings.
+   * Marks entry `i` as finished and fills its cells. Crossing entries whose
+   * squares all become known still need to be answered (one review each).
    */
   const complete = (i: number, kind: CellKind, patch: Partial<EntryState>, nextCells: Map<string, { ch: string; kind: CellKind }>, st: EntryState[]) => {
     const e = entries[i]
@@ -137,14 +137,6 @@ export default function Crossword({ activity, params, onFinish, onExit }: GamePr
       const prev = nextCells.get(k)
       if (!prev || prev.kind === 'hint' || kind === 'gold') nextCells.set(k, { ch: cw.grid[r][c]!, kind: prev?.kind === 'gold' ? 'gold' : kind })
     }
-    // Crossing entries now fully known.
-    entries.forEach((o, j) => {
-      if (st[j].solved) return
-      if (entryCells(o).every(([r, c]) => nextCells.has(key(r, c)))) {
-        st[j] = { ...st[j], solved: true }
-        if (st[j].mistakes > 0 || st[j].reveals > 0) reviews.current.push({ itemId: item.word(o.id), correct: false })
-      }
-    })
   }
 
   const afterUpdate = (st: EntryState[], nextCells: Map<string, { ch: string; kind: CellKind }>, from: number) => {
