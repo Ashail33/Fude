@@ -82,7 +82,7 @@ export interface ParticleQuestion {
 }
 
 export const PARTICLE_QUESTIONS: ParticleQuestion[] = [
-  { en: 'I eat rice.', before: 'ご飯', after: '食べます', answer: 'を', options: ['は', 'を', 'に'], why: 'を marks the direct object.' },
+  { en: 'I eat rice.', before: 'ご飯', after: '食べます', answer: 'を', options: ['に', 'を', 'へ'], why: 'を marks the direct object.' },
   { en: 'I drink water.', before: '水', after: '飲みます', answer: 'を', options: ['を', 'が', 'で'], why: 'を marks what is drunk.' },
   { en: 'As for me, I am a student.', before: '私', after: '学生です', answer: 'は', options: ['を', 'は', 'に'], why: 'は marks the topic.' },
   { en: 'I go to school.', before: '学校', after: '行きます', answer: 'に', accept: ['へ'], options: ['を', 'に', 'で'], why: 'に marks the destination.' },

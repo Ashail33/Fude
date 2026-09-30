@@ -118,7 +118,11 @@ export default function KanaOni({ activity, params, onFinish, onExit }: GameProp
               key={battle.turn}
               mode="romaji"
               value={typed}
-              onChange={setTyped}
+              onChange={(v) => {
+                // Number keys still pick a choice while the input has focus.
+                if (/^[1-4]$/.test(v)) answer(q.q.options[Number(v) - 1])
+                else setTyped(v)
+              }}
               onSubmit={(v) => v.trim() && answer(v.trim(), v)}
               placeholder="or type romaji + Enter"
               autoFocus={hasFinePointer()}

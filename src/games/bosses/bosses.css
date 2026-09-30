@@ -308,8 +308,20 @@
   }
 }
 
-.bp-shields.bp-five {
+.bp-shields.bp-n3 {
   grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.bp-shields.bp-n4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.bp-shields.bp-n5 {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.bp-shields .choice {
+  padding: 12px 2px;
 }
 
 .bp-shields .choice {

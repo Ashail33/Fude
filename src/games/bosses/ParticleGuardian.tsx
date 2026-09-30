@@ -133,7 +133,7 @@ export default function ParticleGuardian({ activity, onFinish, onExit }: GamePro
           </div>
           {stage === 'weak' && <TimerBar ms={WEAK_MS} active id={battle.turn} onTimeout={() => strike(false)} />}
           <ChoiceGrid
-            className={`bp-shields ${q.options.length > 4 ? 'bp-five' : ''}`}
+            className={`bp-shields bp-n${q.options.length}`}
             options={q.options}
             jp
             onPick={pick}
