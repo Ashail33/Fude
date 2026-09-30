@@ -41,4 +41,7 @@ const available = readdirSync(OUT)
   .map((f) => f.slice(0, -4))
   .sort()
 writeFileSync(join(OUT, 'available.json'), JSON.stringify(available) + '\n')
+// TEMP (orientation check): text copies of the models, readable through the Vercel fetch tool
+mkdirSync(join(OUT, 'b64'), { recursive: true })
+for (const id of available) writeFileSync(join(OUT, 'b64', `${id}.txt`), readFileSync(join(OUT, `${id}.glb`)).toString('base64'))
 console.log(`models: ${Object.keys(sources).length} sources, ${fetched} downloaded, ${failed} unavailable, ${available.length} available`)

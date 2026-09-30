@@ -69,6 +69,8 @@ function prepare(id: string, scene: THREE.Group): THREE.Group {
     if (!mesh.isMesh) return
     mesh.castShadow = true
     mesh.receiveShadow = false
+    // some generators (SAM 3D) ship positions and UVs only: lighting needs normals
+    if (!mesh.geometry.getAttribute('normal')) mesh.geometry.computeVertexNormals()
     mesh.material = Array.isArray(mesh.material) ? mesh.material.map(toon) : toon(mesh.material)
   })
   scene.updateMatrixWorld(true)
