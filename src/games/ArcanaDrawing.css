@@ -1,0 +1,281 @@
+.ad-game .game-body {
+  gap: 10px;
+  align-items: center;
+}
+
+.ad-game .progress {
+  width: 100%;
+}
+
+.ad-count,
+.ad-score {
+  white-space: nowrap;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.ad-score {
+  color: var(--accent);
+}
+
+.ad-prompt {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    'label strokes'
+    'main main'
+    'sub sub';
+  align-items: center;
+  width: 100%;
+  max-width: 420px;
+  text-align: center;
+  row-gap: 2px;
+}
+
+.ad-prompt-label {
+  grid-area: label;
+  color: var(--muted);
+  font-size: 0.9rem;
+  text-align: left;
+}
+
+.ad-strokes {
+  grid-area: strokes;
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.ad-prompt-main {
+  grid-area: main;
+  font-family: var(--font-jp);
+  font-size: 2rem;
+  line-height: 1.2;
+  color: var(--accent);
+}
+
+.ad-romaji,
+.ad-meaning {
+  font-family: var(--font);
+  font-weight: 900;
+  font-size: 2.2rem;
+  letter-spacing: 0.04em;
+}
+
+.ad-prompt-sub {
+  grid-area: sub;
+  color: var(--muted);
+}
+
+/* ─── The scroll ─── */
+
+.ad-scroll {
+  width: min(100%, 400px, calc(100dvh - 330px));
+  min-width: 240px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  border-radius: 14px;
+}
+
+.ad-rod {
+  height: 14px;
+  margin: 0 -10px;
+  border-radius: 7px;
+  background: linear-gradient(180deg, #a8683a, #6d3b1d 60%, #4a260f);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.45);
+  position: relative;
+  z-index: 2;
+}
+
+.ad-paper {
+  position: relative;
+  aspect-ratio: 1;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.35), transparent 60%),
+    radial-gradient(circle at 80% 90%, rgba(160, 110, 50, 0.18), transparent 55%),
+    linear-gradient(180deg, #f4e4c1, #ead3a2);
+  box-shadow: inset 0 0 30px rgba(120, 70, 20, 0.35);
+  margin: -3px 0;
+}
+
+.ad-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: crosshair;
+}
+
+.ad-svg path,
+.ad-svg polyline {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ad-grid line {
+  stroke: rgba(120, 70, 20, 0.22);
+  stroke-width: 0.5;
+  stroke-dasharray: 2 2;
+}
+
+.ad-guide path {
+  stroke: rgba(70, 40, 20, 0.16);
+  stroke-width: 5.5;
+}
+
+.ad-guide path.ad-guide-next {
+  stroke: rgba(70, 40, 20, 0.28);
+}
+
+.ad-ink path {
+  stroke: #c98a12;
+  stroke-width: 5;
+  filter: drop-shadow(0 0 1.5px rgba(255, 190, 40, 0.9));
+  animation: ad-ink 0.35s ease-out;
+}
+
+@keyframes ad-ink {
+  from {
+    stroke: #fff3b0;
+    stroke-width: 7;
+  }
+}
+
+.ad-nums text {
+  font-size: 5px;
+  font-weight: 700;
+  fill: rgba(90, 50, 20, 0.45);
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+.ad-nums .ad-num-next text {
+  font-size: 7px;
+  fill: #d0453b;
+}
+
+.ad-start {
+  fill: #d0453b;
+  opacity: 0.8;
+}
+
+.ad-demo path {
+  stroke: #d0453b;
+  stroke-width: 4;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  opacity: 0.85;
+  animation: ad-demo 0.9s ease-in-out 0.1s forwards;
+}
+
+.ad-demo circle {
+  fill: #d0453b;
+  animation: ad-pulse 0.9s ease-in-out 2;
+}
+
+@keyframes ad-demo {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes ad-pulse {
+  50% {
+    opacity: 0.2;
+  }
+}
+
+.ad-current {
+  stroke: #2b1a10;
+  stroke-width: 4.5;
+  opacity: 0.85;
+}
+
+.ad-bad {
+  stroke: var(--bad);
+  stroke-width: 5;
+  animation: ad-burn 0.7s ease-out forwards;
+}
+
+@keyframes ad-burn {
+  0% {
+    opacity: 1;
+  }
+  40% {
+    opacity: 1;
+    stroke-width: 7;
+  }
+  100% {
+    opacity: 0;
+    stroke-width: 1;
+  }
+}
+
+/* ─── Spell activation ─── */
+
+.ad-casting .ad-paper {
+  box-shadow:
+    inset 0 0 30px rgba(120, 70, 20, 0.35),
+    0 0 40px rgba(255, 209, 102, 0.8);
+  transition: box-shadow 0.3s;
+}
+
+.ad-casting .ad-ink path {
+  stroke: #ffb300;
+  filter: drop-shadow(0 0 3px #ffd166) drop-shadow(0 0 6px #ff9f1c);
+}
+
+.ad-spell {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.ad-spell span {
+  font-family: var(--font-jp);
+  font-size: clamp(5rem, 40vw, 12rem);
+  color: #ffd166;
+  text-shadow:
+    0 0 20px #ffb300,
+    0 0 40px #ff6fb5;
+  animation: ad-spell 1.4s ease-out forwards;
+}
+
+@keyframes ad-spell {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  30% {
+    opacity: 0.85;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.6) translateY(-20px);
+  }
+}
+
+.ad-controls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.ad-controls small {
+  opacity: 0.75;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ad-spell span,
+  .ad-ink path {
+    animation-duration: 0.01s;
+  }
+}
