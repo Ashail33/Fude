@@ -58,6 +58,7 @@
 }
 
 .dlg-name {
+  word-break: keep-all;
   font-family: var(--font-jp);
   font-size: 0.8rem;
   font-weight: 700;

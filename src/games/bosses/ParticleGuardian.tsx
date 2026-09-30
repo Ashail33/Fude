@@ -15,7 +15,7 @@ import './bosses.css'
 const ALL_INDICES = PARTICLE_QUESTIONS.map((_, i) => i)
 const AURAS = ['#3da5ff', '#ff6fb5']
 const TAUNTS = [
-  { jp: 'ただしい じょしだけが とおる。', en: 'Only the right particle passes.' },
+  { jp: 'じょしを えらべ！', en: 'Choose your particle!' },
   { jp: 'いみは もう みせない！', en: 'No more meanings for you!' },
 ]
 const WEAK_MS = 2200
@@ -78,7 +78,7 @@ export default function ParticleGuardian({ activity, onFinish, onExit }: GamePro
   const sprite = (
     <div className={`bp-guardian ${stage === 'weak' ? 'bp-open' : ''}`}>
       <span className="bp-shield-ring" aria-hidden />
-      <span>{battle.phase === 0 ? '🗿' : '👁️'}</span>
+      <span>{battle.phase === 0 ? '🧿' : '👁️'}</span>
     </div>
   )
 

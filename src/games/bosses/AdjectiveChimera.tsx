@@ -99,7 +99,7 @@ export default function AdjectiveChimera({ activity, onFinish, onExit }: GamePro
             <div className="bc-situation">{q.turn.situation}</div>
             <div className="bc-instruction">{q.turn.instruction}</div>
             <div className="bc-form muted">
-              {q.adj.kind}-adjective · {ADJ_FORM_LABEL[q.turn.form]}
+              {ADJ_FORM_LABEL[q.turn.form]}
             </div>
             <div className="ba-prompt-main bc-spell" lang="ja">
               {attributive ? (
@@ -129,6 +129,7 @@ export default function AdjectiveChimera({ activity, onFinish, onExit }: GamePro
                 <T en="Element" jp="ぞくせい" />
               </div>
               <TileRow
+                className="bc-tiles-3"
                 options={q.nounOptions!}
                 value={noun}
                 onPick={setNoun}
@@ -183,7 +184,9 @@ function TileRow({
   answer,
   offset,
   render,
+  className,
 }: {
+  className?: string
   options: string[]
   value: string | null
   onPick: (o: string) => void
@@ -193,7 +196,7 @@ function TileRow({
   render?: (o: string) => ReactNode
 }) {
   return (
-    <div className="bc-tiles">
+    <div className={`bc-tiles ${className ?? ''}`}>
       {options.map((o, i) => {
         let cls = 'bc-tile choice-jp'
         if (value === o) cls += ' sel'

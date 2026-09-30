@@ -108,7 +108,7 @@
 /* Stage */
 .ba-stage {
   position: relative;
-  height: clamp(170px, 30vh, 260px);
+  height: clamp(150px, 25vh, 240px);
   border-radius: var(--radius);
   background:
     radial-gradient(ellipse at 50% 45%, color-mix(in srgb, var(--ba-aura) 28%, transparent), transparent 65%),
@@ -355,8 +355,10 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  font-size: 0.9rem;
+  font-size: 0.82rem;
+  line-height: 1.25;
   text-align: center;
+  white-space: nowrap;
   animation: pop 0.3s ease-out;
 }
 
@@ -367,7 +369,7 @@
 
 .ba-taunt small {
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 0.68rem;
 }
 
 /* Damage numbers */

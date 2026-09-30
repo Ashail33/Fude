@@ -139,10 +139,10 @@ export default function VoidDragon({ activity, onFinish, onExit }: GameProps<'bo
     phase === 0
       ? { jp: 'よめなければ しぬ。', en: 'Read, or perish.' }
       : phase === 1
-        ? { jp: 'ことばを ならべてみよ！', en: 'Put your words in order!' }
+        ? { jp: 'ならべてみよ！', en: 'Put your words in order!' }
         : form && q?.kind === 'cast'
           ? { jp: form.jp, en: form.en }
-          : { jp: 'わがちからを えがけるか？', en: 'Can you even describe my power?' }
+          : { jp: 'えがけるか？', en: 'Can you describe your magic?' }
 
   return (
     <BossArena

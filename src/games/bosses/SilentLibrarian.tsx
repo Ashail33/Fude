@@ -30,7 +30,7 @@ const AURAS = ['#9be7e0', '#a0a8ff', '#ffe066']
 const TAUNTS = [
   { jp: 'しずかに… よみなさい。', en: 'Quietly… read.' },
   { jp: 'きこえますか？', en: 'Can you hear me?' },
-  { jp: 'ただしい ぶんは どれ？', en: 'Which sentence is true?' },
+  { jp: 'まことの ぶんは？', en: 'Which sentence is true?' },
 ]
 
 const w = (id: string) => weakness(getState().srs[id])
