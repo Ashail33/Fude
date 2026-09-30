@@ -5,7 +5,7 @@
  */
 import { drawSprite as rawDrawSprite, spriteSize as rawSpriteSize, type SpriteId, type SpriteOpts } from '../art'
 import { PAL } from '../art/palette'
-import { drawTile as rawDrawTile, type Neighbours, type TileId } from '../art/tiles'
+import { computeNeighbours, drawTile as rawDrawTile, type Neighbours, type TileId } from '../art/tiles'
 
 // The art library is authored concurrently; never let a missing sprite/tile kill the frame loop.
 const broken = new Set<string>()
@@ -18,10 +18,11 @@ function drawSprite(ctx: CanvasRenderingContext2D, id: SpriteId, x: number, y: n
     console.warn('sprite unavailable', id, err)
   }
 }
-function drawTile(ctx: CanvasRenderingContext2D, id: TileId, x: number, y: number, scale: number, time: number, nb: Neighbours) {
+/** Draw a tile. `cell` gives positional variation; `bare` skips the prop's built-in ground (drawn over existing ground). */
+function drawTile(ctx: CanvasRenderingContext2D, id: TileId, x: number, y: number, scale: number, time: number, nb: Neighbours, cell?: Pt, bare = false) {
   if (broken.has('t:' + id)) return
   try {
-    rawDrawTile(ctx, id, x, y, scale, time, nb)
+    rawDrawTile(ctx, id, x, y, scale, time, nb, { tx: cell?.x, ty: cell?.y, under: bare ? id : undefined })
   } catch (err) {
     broken.add('t:' + id)
     console.warn('tile unavailable', id, err)
@@ -35,7 +36,7 @@ function spriteSize(id: SpriteId): { w: number; h: number } {
   }
 }
 import { cameraFor, chooseScale, walkerPos, type Walker, type World } from './engine'
-import { ANIMATED, neighbours } from './mapdef'
+import { ANIMATED } from './mapdef'
 import type { Entity, Exit, GameMap, ParticleKind, Pt } from './types'
 
 export interface RenderInfo {
@@ -74,6 +75,7 @@ export class Renderer {
   overCells: number[] = []
   groundNb: number[] = []
   objNb: number[] = []
+  overNb: number[] = []
   particles: Particle[] = []
   particleKind: ParticleKind = 'none'
   vignette: HTMLCanvasElement | null = null
@@ -122,14 +124,21 @@ export class Renderer {
     this.objNb = []
     this.animCells = []
     this.overCells = []
+    const inb = (x: number, y: number) => x >= 0 && y >= 0 && x < m.w && y < m.h
+    const gGet = (x: number, y: number) => (inb(x, y) ? m.ground[y * m.w + x] : null)
+    const oGet = (x: number, y: number) => (inb(x, y) ? (m.obj[y * m.w + x] ?? m.ground[y * m.w + x]) : null)
+    const vGet = (x: number, y: number) => (inb(x, y) ? (m.over[y * m.w + x] ?? m.ground[y * m.w + x]) : null)
+    this.overNb = []
     for (let y = 0; y < m.h; y++)
       for (let x = 0; x < m.w; x++) {
         const i = y * m.w + x
-        this.groundNb[i] = neighbours(m.ground, m.w, m.h, x, y)
-        this.objNb[i] = m.obj[i] ? neighbours(m.obj, m.w, m.h, x, y) : 0
-        drawTile(g, m.ground[i], x * 16, y * 16, 1, 0, this.groundNb[i])
+        const cell = { x, y }
+        this.groundNb[i] = computeNeighbours(gGet, x, y)
+        this.objNb[i] = m.obj[i] ? computeNeighbours(oGet, x, y) : 0
+        this.overNb[i] = m.over[i] ? computeNeighbours(vGet, x, y) : 0
+        drawTile(g, m.ground[i], x * 16, y * 16, 1, 0, this.groundNb[i], cell)
         const o = m.obj[i]
-        if (o) drawTile(g, o, x * 16, y * 16, 1, 0, this.objNb[i])
+        if (o) drawTile(g, o, x * 16, y * 16, 1, 0, this.objNb[i], cell, true)
         if (ANIMATED.has(m.ground[i]) || (o && ANIMATED.has(o))) this.animCells.push(i)
         if (m.over[i]) this.overCells.push(i)
       }
@@ -193,7 +202,7 @@ export class Renderer {
       b.beginPath()
       b.rect(cx * 16 - this.cam.x, cy * 16 - this.cam.y + 9, 16, 7)
       b.clip()
-      drawTile(b, 'tall-grass', cx * 16 - this.cam.x, cy * 16 - this.cam.y, 1, performance.now(), this.groundNb[cy * m.w + cx])
+      drawTile(b, 'tall-grass', cx * 16 - this.cam.x, cy * 16 - this.cam.y, 1, performance.now(), this.groundNb[cy * m.w + cx], { x: cx, y: cy })
       b.restore()
     }
   }
@@ -211,7 +220,7 @@ export class Renderer {
     if (e.spec.kind === 'chest') tile = info.opened.has(e.spec.id) ? 'chest-open' : 'chest'
     if (tile) {
       const jitter = ghost && Math.sin(now / 90 + e.y) > 0.85 ? 1 : 0
-      drawTile(b, tile, x + jitter, y, 1, now, 0)
+      drawTile(b, tile, x + jitter, y, 1, now, 0, { x: e.x, y: e.y }, true)
     }
     if (e.spec.sprite) {
       if (e.big) {
@@ -419,9 +428,10 @@ export class Renderer {
       const x = i % m.w
       const y = (i - x) / m.w
       if (x < tx0 || x > tx1 || y < ty0 || y > ty1) continue
-      drawTile(b, m.ground[i], x * 16 - cam.x, y * 16 - cam.y, 1, now, this.groundNb[i])
+      const cell = { x, y }
+      drawTile(b, m.ground[i], x * 16 - cam.x, y * 16 - cam.y, 1, now, this.groundNb[i], cell)
       const o = m.obj[i]
-      if (o) drawTile(b, o, x * 16 - cam.x, y * 16 - cam.y, 1, now, this.objNb[i])
+      if (o) drawTile(b, o, x * 16 - cam.x, y * 16 - cam.y, 1, now, this.objNb[i], cell, true)
     }
     for (const ex of m.exits.values()) if (info.exitLocked(ex)) this.drawBarrier(ex, now)
 
@@ -440,7 +450,7 @@ export class Renderer {
       const x = i % m.w
       const y = (i - x) / m.w
       if (x < tx0 || x > tx1 || y < ty0 || y > ty1) continue
-      drawTile(b, m.over[i]!, x * 16 - cam.x, y * 16 - cam.y, 1, now, neighbours(m.over, m.w, m.h, x, y))
+      drawTile(b, m.over[i]!, x * 16 - cam.x, y * 16 - cam.y, 1, now, this.overNb[i], { x, y }, true)
     }
     for (const e of world.ents) {
       const mk = info.markers.get(e.spec.id)

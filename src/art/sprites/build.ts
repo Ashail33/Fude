@@ -106,10 +106,10 @@ export function enemySize(def: EnemyDef) {
   return { w: def.w ?? 32, h: def.h ?? 32 }
 }
 
-function enemyBase(def: EnemyDef): Img {
+function enemyBase(def: EnemyDef, frame = 0): Img {
   const { w, h } = enemySize(def)
   let img: Img
-  if (def.build) img = def.build()
+  if (def.build) img = def.build(frame)
   else {
     img = new Img(w, h)
     img.map(enemyRows(def), 0, 0, def.slots)
@@ -121,18 +121,15 @@ function enemyBase(def: EnemyDef): Img {
 const SWAP_FIRE: Record<string, string> = {
   [PAL.fire]: PAL.orange,
   [PAL.orange]: PAL.gold,
-  [PAL.gold]: PAL.light,
   [PAL.light]: PAL.gold,
   [PAL.crimson]: PAL.fire,
-  [PAL.ice]: PAL.foam,
-  [PAL.wind]: PAL.ice,
 }
 
 export function buildEnemy(id: string, o: BuildOpts = {}): Img {
   const def = ENEMIES[id]
   if (!def) throw new Error(`no enemy ${id}`)
   const frame = (o.frame ?? 0) % 2
-  let img = enemyBase(def)
+  let img = enemyBase(def, frame)
   if (frame) {
     for (const p of def.frame1 ?? []) applyPatch(img, p, def.slots)
     const anims = Array.isArray(def.anim) ? def.anim : [def.anim]

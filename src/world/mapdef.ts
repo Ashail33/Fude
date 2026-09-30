@@ -130,11 +130,13 @@ export function parseMap(spec: MapSpec): GameMap {
       if (en) entitySpecs.push({ ...en, x, y })
     }
 
-  // Markers take the ground of the nearest plain neighbour (left, right, up, down, then further).
+  // Markers take the most common bare ground (no object) among their neighbours, nearest ring first.
   const isMarker = (x: number, y: number) => !legend[grid[y]?.[x] ?? ' ']
   for (const { x, y } of markers) {
     let g: TileId | undefined
-    for (let r = 1; r < 6 && !g; r++)
+    let fallback: TileId | undefined
+    for (let r = 1; r < 6 && !g; r++) {
+      const count = new Map<TileId, number>()
       for (const [dx, dy] of [
         [-r, 0],
         [r, 0],
@@ -145,11 +147,18 @@ export function parseMap(spec: MapSpec): GameMap {
         const ny = y + dy
         if (nx < 0 || ny < 0 || nx >= w || ny >= h || isMarker(nx, ny)) continue
         const c = legend[grid[ny][nx]]
-        if (c.o && !WALKABLE_OBJECTS.has(c.o) && SOLID_GROUND.has(c.g)) continue
-        g = SOLID_GROUND.has(c.g) ? undefined : c.g
-        if (g) break
+        if (SOLID_GROUND.has(c.g)) continue
+        if (c.o) fallback ??= c.g
+        else count.set(c.g, (count.get(c.g) ?? 0) + 1)
       }
-    ground[y * w + x] = g ?? 'grass'
+      let best = 0
+      for (const [t, n] of count)
+        if (n > best) {
+          best = n
+          g = t
+        }
+    }
+    ground[y * w + x] = g ?? fallback ?? 'grass'
   }
 
   return { spec, id: spec.id, w, h, ground, obj, over, exits, points, entitySpecs }
@@ -159,32 +168,8 @@ export function parseMap(spec: MapSpec): GameMap {
 export function tileSolid(m: GameMap, x: number, y: number): boolean {
   if (x < 0 || y < 0 || x >= m.w || y >= m.h) return true
   const i = y * m.w + x
+  if (m.exits.has(i)) return false
   const o = m.obj[i]
-  if (o) {
-    if (o === 'door') return !m.exits.has(i)
-    return !WALKABLE_OBJECTS.has(o)
-  }
+  if (o) return !WALKABLE_OBJECTS.has(o)
   return SOLID_GROUND.has(m.ground[i])
-}
-
-/** 8-neighbour same-tile bitmask (N NE E SE S SW W NW = bits 0..7); off-map counts as same. */
-export function neighbours(layer: (string | null)[], w: number, h: number, x: number, y: number): number {
-  const id = layer[y * w + x]
-  const D = [
-    [0, -1],
-    [1, -1],
-    [1, 0],
-    [1, 1],
-    [0, 1],
-    [-1, 1],
-    [-1, 0],
-    [-1, -1],
-  ]
-  let m = 0
-  D.forEach(([dx, dy], b) => {
-    const nx = x + dx
-    const ny = y + dy
-    if (nx < 0 || ny < 0 || nx >= w || ny >= h || layer[ny * w + nx] === id) m |= 1 << b
-  })
-  return m
 }

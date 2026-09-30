@@ -11,6 +11,7 @@ export const SHRINE: MapSpec = {
   particles: 'dust',
   tint: 'rgba(150, 90, 180, 0.14)',
   rows: LAYOUTS.shrine,
+  legend: { '^': { g: 'grass', o: 'roof-red' }, A: { g: 'grass', o: 'roof-red-edge' } },
   spawn: 'south',
   inn: 'south',
   points: {

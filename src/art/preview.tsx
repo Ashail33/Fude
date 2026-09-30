@@ -9,13 +9,18 @@ import { CHARACTER_SPRITES, ENEMY_SPRITES, ICON_SPRITES, spriteCanvas, spriteSiz
 import { PAL } from './palette'
 import { TILE_IDS, computeNeighbours, drawTile, type TileId } from './tiles'
 
-const S = 3
+const S = typeof location !== 'undefined' ? Number(new URLSearchParams(location.search).get('s') ?? 3) : 3
 
 function Sprite({ id, dir, frame, outfit, flash, scale = S }: { id: SpriteId; dir?: Dir; frame?: number; outfit?: string; flash?: boolean; scale?: number }) {
   const ref = useRef<HTMLCanvasElement>(null)
   useEffect(() => {
     const el = ref.current!
-    const src = spriteCanvas(id, { dir, frame, outfit, flash })
+    let src: HTMLCanvasElement
+    try {
+      src = spriteCanvas(id, { dir, frame, outfit, flash })
+    } catch {
+      return
+    }
     el.width = src.width * scale
     el.height = src.height * scale
     const ctx = el.getContext('2d')!
@@ -98,6 +103,15 @@ function drawScene(ctx: CanvasRenderingContext2D, t: number) {
   draw('priest', 16 * 13, 16 * 9)
 }
 
+function sizeLabel(id: SpriteId) {
+  try {
+    const s = spriteSize(id)
+    return `${s.w}×${s.h}`
+  } catch {
+    return '?'
+  }
+}
+
 const label: React.CSSProperties = { font: '11px monospace', color: PAL.paper, marginTop: 2, textAlign: 'center' }
 const cell: React.CSSProperties = { display: 'flex', flexDirection: 'column', alignItems: 'center', margin: 6 }
 const h2: React.CSSProperties = { font: 'bold 16px monospace', color: PAL.gold, margin: '18px 0 6px' }
@@ -122,7 +136,7 @@ export function ArtPreview() {
       <div style={h2}>Characters</div>
       <div style={{ display: 'flex', flexWrap: 'wrap' }}>
         {CHARACTER_SPRITES.map((id) => (
-          <div key={id} style={{ ...cell, background: PAL.grass, padding: 4 }}>
+          <div key={id} data-char={id} style={{ ...cell, background: PAL.grass, padding: 4 }}>
             <div style={{ display: 'flex', gap: 2 }}>
               {dirs.map((d) => [0, 1].map((f) => <Sprite key={d + f} id={id} dir={d} frame={f} />))}
             </div>
@@ -144,14 +158,14 @@ export function ArtPreview() {
       <div style={h2}>Enemies</div>
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end' }}>
         {ENEMY_SPRITES.map((id) => (
-          <div key={id} style={cell}>
+          <div key={id} style={cell} data-enemy={id}>
             <div style={{ display: 'flex', gap: 4, alignItems: 'flex-end' }}>
               <Sprite id={id} frame={0} />
               <Sprite id={id} frame={1} />
               <Sprite id={id} flash />
             </div>
             <div style={label}>
-              {id} {spriteSize(id).w}×{spriteSize(id).h}
+              {id} {sizeLabel(id)}
             </div>
           </div>
         ))}

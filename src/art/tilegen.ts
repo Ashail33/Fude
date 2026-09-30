@@ -3,7 +3,6 @@
  * Ground/water/walls are procedural (so fields vary and edges blend);
  * props are palette maps from tilemaps.ts composited over a ground tile.
  */
-import { PAL } from './palette'
 import { Img, autoShade, castShadow, colorOf, fromMap, hash2, outline, rng } from './raster'
 import { PROPS } from './tilemaps'
 import type { TileId } from './tiles'
@@ -105,7 +104,7 @@ export const SPECS: Partial<Record<TileId, TileSpec>> = {
   'stairs-down': {},
   'gate-closed': { frames: 4, period: 180 },
   'gate-open': {},
-  portal: { frames: 4, period: 150 },
+  portal: { under: 'stone-floor', frames: 4, period: 150 },
   'warp-circle': { under: 'stone-floor', frames: 4, period: 200 },
   anvil: { under: 'stone-floor' },
   tablet: { under: 'grass' },
@@ -447,16 +446,6 @@ function roof(img: Img, nb: number, edge: boolean, red: boolean) {
     }
     if (!has(nb, W)) for (let y = 9; y < 16; y++) img.set(0, y, C('n'))
     if (!has(nb, E)) for (let y = 9; y < 16; y++) img.set(15, y, C('n'))
-    if (!has(nb, W)) {
-      img.set(0, 13, null)
-      img.set(0, 14, null)
-      img.set(0, 15, null)
-    }
-    if (!has(nb, E)) {
-      img.set(15, 13, null)
-      img.set(15, 14, null)
-      img.set(15, 15, null)
-    }
   }
 }
 
@@ -604,7 +593,7 @@ function castleWall(img: Img, v: number, nb: number) {
     // crenellations
     for (let x = 0; x < 16; x++) {
       const merlon = x % 8 < 5
-      for (let y = 0; y < 4; y++) img.set(x, y, merlon ? C(y === 0 ? 'p' : x % 8 === 4 ? 's' : 'm') : null)
+      for (let y = 0; y < 4; y++) img.set(x, y, merlon ? C(y === 0 ? 'p' : x % 8 === 4 ? 's' : 'm') : C(y === 3 ? 'n' : 'S'))
       img.set(x, 4, C('S'))
     }
   }
@@ -1063,4 +1052,3 @@ export function frameCount(id: TileId): number {
   return specOf(id).frames ?? 1
 }
 
-export { PAL }

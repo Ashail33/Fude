@@ -747,3 +747,7 @@
     font-size: 1rem;
   }
 }
+
+.ow-hud[hidden] {
+  display: none;
+}

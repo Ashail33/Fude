@@ -139,10 +139,11 @@ export default function Overworld() {
   const [banner, setBanner] = useState<{ jp: string; en: string; key: number } | null>(null)
   const [toast, setToast] = useState<{ line: Line; key: number } | null>(null)
   const [run, setRun] = useState(false)
+  const [encountering, setEncountering] = useState(false)
   const [touch] = useState(() => typeof window !== 'undefined' && (window.matchMedia?.('(pointer: coarse)').matches || 'ontouchstart' in window))
 
   const map = getMap(mapId)!
-  const isModal = !!dialog || battle !== null || scenes.length > 0 || menu
+  const isModal = !!dialog || battle !== null || scenes.length > 0 || menu || encountering
   modal.current = isModal
 
   // Keep render info in sync with the save.
@@ -367,6 +368,8 @@ export default function Overworld() {
       },
       onEncounter: () => {
         busy.current = true
+        setEncountering(true)
+        setToast(null)
         fx('encounter')
         playMusic('battle')
         R.current!.startBattleFx(performance.now())
@@ -374,7 +377,7 @@ export default function Overworld() {
       },
     })
     Wd.current = w
-    if (import.meta.env.DEV) (window as unknown as { __ow: unknown }).__ow = { world: w, renderer: r }
+    if (import.meta.env.DEV) (window as unknown as { __ow: unknown }).__ow = { world: w, renderer: r, endBattle: (o: BattleOutcome) => endBattleRef.current(o) }
     const resize = () => {
       const rect = canvas.parentElement!.getBoundingClientRect()
       r.resize(rect.width, rect.height, Math.min(3, window.devicePixelRatio || 1))
@@ -532,6 +535,7 @@ export default function Overworld() {
     const w = Wd.current!
     const r = R.current!
     setBattle(null)
+    setEncountering(false)
     r.battleFx = null
     r.fade = 1
     fadeTarget.current = 0
@@ -550,6 +554,8 @@ export default function Overworld() {
     setTimeout(() => (busy.current = false), 250)
   }
 
+  const endBattleRef = useRef(onBattleEnd)
+  endBattleRef.current = onBattleEnd
   const closeDialog = useCallback(() => setDialog(null), [])
 
   // ─── HUD values ──────────────────────────────────────────────────
@@ -563,7 +569,7 @@ export default function Overworld() {
     <div className="ow-root">
       <canvas ref={canvasRef} className="ow-canvas" onPointerDown={onCanvasPointer} aria-label={`${map.spec.name} — overworld`} />
 
-      <div className="ow-hud">
+      <div className="ow-hud" hidden={encountering || battle !== null}>
         <div className="win ow-stat">
           <div className="ow-lv">
             <span className="ow-lv-num">Lv {lvl}</span>

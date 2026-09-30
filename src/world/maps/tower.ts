@@ -11,6 +11,7 @@ export const TOWER: MapSpec = {
   particles: 'sparkles',
   tint: 'rgba(90, 70, 170, 0.18)',
   rows: LAYOUTS.tower,
+  legend: { M: { g: 'stone-floor', o: 'carpet' }, S: { g: 'stone-floor', o: 'statue' } },
   spawn: 'south',
   inn: 'south',
   points: {
