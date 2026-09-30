@@ -117,6 +117,7 @@ export class Renderer3D extends Renderer {
   private plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)
   private lastT = 0
   private frameDt = 1 / 60
+  private talkingTo: Entity | null = null
 
   constructor(canvas: HTMLCanvasElement) {
     super(canvas, false)
@@ -569,7 +570,7 @@ export class Renderer3D extends Renderer {
   }
 
   /** Show a smooth character model (built on first use / outfit change) at (x, y, z), facing `dir`. */
-  private setModel(c: Card, id: string, outfit: string, x: number, y: number, z: number, dir: string, phase: number, moving: boolean, run: boolean, now: number) {
+  private setModel(c: Card, id: string, outfit: string, x: number, y: number, z: number, dir: string, phase: number, moving: boolean, run: boolean, now: number, talking = false) {
     // a generated 3D model replaces the built-in toy one as soon as it has loaded
     const glb = !c.ghost && glbReady(id)
     const key = `${id}|${outfit}|${glb ? 'glb' : 'toy'}`
@@ -591,7 +592,7 @@ export class Renderer3D extends Renderer {
     while (d < -Math.PI) d += Math.PI * 2
     c.yaw += d * Math.min(1, this.frameDt * 12)
     m.root.rotation.y = c.yaw
-    m.update(phase, moving, run, now / 1000)
+    m.update(phase, moving, run, now / 1000, talking)
     this.blobAt(c, x, y, z, m.shadow)
   }
 
@@ -698,7 +699,7 @@ export class Renderer3D extends Renderer {
       const phase = moving ? npcState(e).steps - 1 + e.t : 0
       const x = e.big ? (p.x + 16) / 16 : (p.x + 8) / 16
       const z = e.big ? p.y / 16 + 0.6 : p.y / 16 + ANCHOR + (tile ? 0.02 : 0)
-      this.setModel(c, sprite, '', x, 0, z, dir, phase, moving, false, now)
+      this.setModel(c, sprite, '', x, 0, z, dir, phase, moving, false, now, this.talkingTo === e)
     } else if (e.big) {
       const cnv = safeSprite(sprite, { frame: Math.floor(now / 450) % 2 })
       if (cnv) this.setVoxel(c, cnv, (p.x + 16) / 16, (Math.sin(now / 420) / 16) * VS, p.y / 16 + 0.95, 10)
@@ -816,6 +817,7 @@ export class Renderer3D extends Renderer {
 
     animateDyn(this.dio, this.atlas, now)
     this.atlas.flush()
+    this.talkingTo = world.talking
     for (const e of world.ents) this.entity3D(e, now, info)
     this.fude3D(world, now)
     this.player3D(world, now, info)

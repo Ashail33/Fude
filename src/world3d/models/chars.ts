@@ -15,7 +15,7 @@ import { G, Mesher, T, mix } from './kit'
 export interface Model {
   root: THREE.Group
   /** Advance the rig: `phase` = distance walked (tiles), `moving`, `run`, time (s). */
-  update(phase: number, moving: boolean, run: boolean, t: number): void
+  update(phase: number, moving: boolean, run: boolean, t: number, talking?: boolean): void
   /** Width of the contact shadow (tiles). */
   shadow: number
   /** Top of the head (tiles), for markers. */

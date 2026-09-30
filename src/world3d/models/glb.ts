@@ -9,12 +9,13 @@
 import * as THREE from 'three'
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
+import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js'
 import type { Model } from './chars'
 
 /** Per-character fit: height in tiles, extra yaw (radians) if the mesh faces the wrong way. */
 const FIT: Record<string, { h: number; yaw?: number; float?: boolean }> = {
-  // the Tripo mesh faces +X; turn it to face +Z like the rest
-  mage: { h: 1.55, yaw: -Math.PI / 2 },
+  // (the mage mesh is turned to face +Z at build time: art-src/models.json "turn")
+  mage: { h: 1.55 },
   fude: { h: 0.85, float: true },
   elder: { h: 1.4 },
   merchant: { h: 1.45 },
@@ -127,16 +128,23 @@ export function glbModel(id: string): Model | null {
   const tpl = templates.get(id)
   if (!tpl) return null
   const root = new THREE.Group()
-  const body = tpl.clone(true)
+  const body = cloneSkinned(tpl) as THREE.Group
   root.add(body)
   const inner = body.children[0] as THREE.Group
   const h = tpl.userData.height as number
   const float = !!FIT[id]?.float
+  const rig = makeRig(inner)
   return {
     root,
     shadow: Math.min(1.1, (tpl.userData.width as number) * 0.9),
     height: h,
-    update(phase, moving, run, t) {
+    update(phase, moving, run, t, talking = false) {
+      if (rig) {
+        rig.pose(phase, moving, run, t, talking)
+        const s = Math.sin(phase * Math.PI)
+        inner.position.y = moving ? Math.abs(s) * (run ? 0.04 : 0.025) : 0
+        return
+      }
       if (float) {
         inner.position.y = Math.sin(t * 2) * 0.05
         inner.rotation.z = Math.sin(t * 1.6) * 0.06
@@ -153,6 +161,98 @@ export function glbModel(id: string): Model | null {
     },
     dispose() {
       // geometry and textures are shared with the cached template
+    },
+  }
+}
+
+// ─── skeleton animation ──────────────────────────────────────────
+/** Bone name patterns (Meshy / Mixamo-style rigs, with or without prefixes). */
+const BONES = {
+  hips: /hips|pelvis/i,
+  spine: /spine(?!.*[12])|spine$/i,
+  chest: /spine2|spine1|chest/i,
+  neck: /neck/i,
+  head: /head(?!.*top|.*end)/i,
+  lUp: /left.?up.?leg|l.?thigh|leftupleg/i,
+  rUp: /right.?up.?leg|r.?thigh|rightupleg/i,
+  lLeg: /left.?leg(?!.*up)|l.?calf|leftleg/i,
+  rLeg: /right.?leg(?!.*up)|r.?calf|rightleg/i,
+  lArm: /left.?arm(?!.*fore)|l.?upperarm|leftarm/i,
+  rArm: /right.?arm(?!.*fore)|r.?upperarm|rightarm/i,
+  lFore: /left.?fore.?arm|l.?forearm/i,
+  rFore: /right.?fore.?arm|r.?forearm/i,
+} as const
+type BoneKey = keyof typeof BONES
+
+interface Joint {
+  bone: THREE.Bone
+  rest: THREE.Quaternion
+  /** Parent's rest rotation in model space (to turn model-space axes into bone space). */
+  parentQ: THREE.Quaternion
+}
+
+const X = new THREE.Vector3(1, 0, 0)
+const Y = new THREE.Vector3(0, 1, 0)
+const Z = new THREE.Vector3(0, 0, 1)
+const qa = new THREE.Quaternion()
+const qb = new THREE.Quaternion()
+
+/** Find the named joints of a skinned model; null when it has no usable skeleton. */
+function makeRig(model: THREE.Object3D) {
+  const bones: THREE.Bone[] = []
+  model.traverse((o) => {
+    if ((o as THREE.Bone).isBone) bones.push(o as THREE.Bone)
+  })
+  if (bones.length < 8) return null
+  model.updateMatrixWorld(true)
+  const modelInv = new THREE.Quaternion()
+  model.getWorldQuaternion(modelInv).invert()
+  const joints: Partial<Record<BoneKey, Joint>> = {}
+  for (const k of Object.keys(BONES) as BoneKey[]) {
+    const b = bones.find((x) => BONES[k].test(x.name) && !Object.values(joints).some((j) => j?.bone === x))
+    if (!b) continue
+    const parentQ = new THREE.Quaternion()
+    if (b.parent) b.parent.getWorldQuaternion(parentQ)
+    parentQ.premultiply(modelInv)
+    joints[k] = { bone: b, rest: b.quaternion.clone(), parentQ }
+  }
+  if (!joints.lUp || !joints.rUp) return null
+  /** Rotate a joint by `angle` about a model-space axis, relative to its rest pose. */
+  const turn = (k: BoneKey, axis: THREE.Vector3, angle: number, add = false) => {
+    const j = joints[k]
+    if (!j) return
+    // L' = P⁻¹ · R(axis, angle) · P · L
+    qa.setFromAxisAngle(axis, angle)
+    qb.copy(j.parentQ).invert().multiply(qa).multiply(j.parentQ)
+    if (add) j.bone.quaternion.premultiply(qb)
+    else j.bone.quaternion.copy(qb).multiply(j.rest)
+  }
+  return {
+    pose(phase: number, moving: boolean, run: boolean, t: number, talking: boolean) {
+      const s = Math.sin(phase * Math.PI)
+      const c = Math.cos(phase * Math.PI)
+      const amp = moving ? (run ? 0.75 : 0.5) : 0
+      // legs swing about the side axis; the back knee bends
+      turn('lUp', X, -s * amp)
+      turn('rUp', X, s * amp)
+      turn('lLeg', X, moving ? Math.max(0, s) * amp * 1.2 : 0)
+      turn('rLeg', X, moving ? Math.max(0, -s) * amp * 1.2 : 0)
+      // arms: relaxed down at the sides, swinging opposite to the legs
+      const idle = Math.sin(t * 2.4)
+      const talk = talking ? Math.sin(t * 5.5) : 0
+      turn('lArm', X, s * amp * 0.9 + (talking ? 0 : idle * 0.03))
+      turn('rArm', X, -s * amp * 0.9 - (talking ? 0.55 + talk * 0.25 : 0))
+      turn('rFore', X, talking ? -0.6 - talk * 0.2 : moving ? -0.25 : -0.08)
+      turn('lFore', X, moving ? -0.25 : -0.08)
+      // body: lean into a run, a little twist with each stride, breathing when idle
+      turn('spine', X, moving ? (run ? 0.18 : 0.05) : 0)
+      turn('spine', Y, moving ? s * 0.12 : 0, true)
+      turn('chest', X, moving ? 0 : idle * 0.02)
+      turn('hips', Y, moving ? -s * 0.08 : 0)
+      // head: bob with the steps, nod while talking, glance around when idle
+      turn('head', X, moving ? c * 0.04 : talking ? Math.sin(t * 3.1) * 0.12 : 0)
+      turn('head', Y, moving || talking ? 0 : Math.sin(t * 0.37) * 0.3, true)
+      turn('neck', Z, talking ? Math.sin(t * 2.2) * 0.06 : 0)
     },
   }
 }
