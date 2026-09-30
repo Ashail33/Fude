@@ -73,6 +73,66 @@ function turnGlb(buf, degrees) {
   return Buffer.concat([head, js, rest])
 }
 
+/**
+ * Re-encode oversized embedded textures (some rigging exports embed 5 MB
+ * PNGs) as ≤1024 px JPEG/PNG so models stay light on phones. Rebuilds the
+ * binary chunk with the new image bytes.
+ */
+async function slimGlb(buf) {
+  const { default: sharp } = await import('sharp')
+  const jsonLen = buf.readUInt32LE(12)
+  const json = JSON.parse(buf.subarray(20, 20 + jsonLen).toString('utf8'))
+  const binStart = 20 + jsonLen + 8
+  const binLen = buf.readUInt32LE(20 + jsonLen)
+  const bin = buf.subarray(binStart, binStart + binLen)
+  const views = json.bufferViews.map((v) => bin.subarray(v.byteOffset ?? 0, (v.byteOffset ?? 0) + v.byteLength))
+  let changed = false
+  for (const img of json.images ?? []) {
+    if (img.bufferView === undefined) continue
+    const data = views[img.bufferView]
+    if (data.length < 600_000) continue
+    const meta = await sharp(data).metadata()
+    const opaque = !meta.hasAlpha
+    const out = await sharp(data)
+      .resize({ width: 1024, height: 1024, fit: 'inside', withoutEnlargement: true })
+      [opaque ? 'jpeg' : 'png'](opaque ? { quality: 86 } : { compressionLevel: 9, palette: true })
+      .toBuffer()
+    views[img.bufferView] = out
+    img.mimeType = opaque ? 'image/jpeg' : 'image/png'
+    changed = true
+  }
+  if (!changed) return buf
+  // repack every view (4-byte aligned) into a fresh binary chunk
+  const parts = []
+  let off = 0
+  json.bufferViews.forEach((v, i) => {
+    const d = views[i]
+    const pad = (4 - (off % 4)) % 4
+    if (pad) parts.push(Buffer.alloc(pad))
+    off += pad
+    v.byteOffset = off
+    v.byteLength = d.length
+    parts.push(d)
+    off += d.length
+  })
+  const endPad = (4 - (off % 4)) % 4
+  if (endPad) parts.push(Buffer.alloc(endPad))
+  const newBin = Buffer.concat(parts)
+  json.buffers[0].byteLength = newBin.length
+  let js = Buffer.from(JSON.stringify(json))
+  js = Buffer.concat([js, Buffer.alloc((4 - (js.length % 4)) % 4, 0x20)])
+  const head = Buffer.alloc(20)
+  head.write('glTF', 0)
+  head.writeUInt32LE(2, 4)
+  head.writeUInt32LE(20 + js.length + 8 + newBin.length, 8)
+  head.writeUInt32LE(js.length, 12)
+  head.write('JSON', 16)
+  const binHead = Buffer.alloc(8)
+  binHead.writeUInt32LE(newBin.length, 0)
+  binHead.write('BIN\0', 4)
+  return Buffer.concat([head, js, binHead, newBin])
+}
+
 await Promise.all(
   Object.entries(sources).map(async ([id, src]) => {
     const { url, turn } = typeof src === 'string' ? { url: src, turn: 0 } : src
@@ -86,7 +146,7 @@ await Promise.all(
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const buf = Buffer.from(await res.arrayBuffer())
       if (buf.subarray(0, 4).toString() !== 'glTF') throw new Error('not a GLB')
-      writeFileSync(dest, turn ? turnGlb(buf, turn) : buf)
+      writeFileSync(dest, await slimGlb(turn ? turnGlb(buf, turn) : buf))
       fetched++
     } catch (e) {
       failed++
@@ -99,7 +159,4 @@ const available = readdirSync(OUT)
   .map((f) => f.slice(0, -4))
   .sort()
 writeFileSync(join(OUT, 'available.json'), JSON.stringify(available) + '\n')
-// TEMP (testing rigs): text copies readable through the Vercel fetch tool
-mkdirSync(join(OUT, 'b64'), { recursive: true })
-for (const id of available) writeFileSync(join(OUT, 'b64', `${id}.txt`), readFileSync(join(OUT, `${id}.glb`)).toString('base64'))
 console.log(`models: ${Object.keys(sources).length} sources, ${fetched} downloaded, ${failed} unavailable, ${available.length} available`)

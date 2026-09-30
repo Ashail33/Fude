@@ -181,6 +181,8 @@ const BONES = {
   rArm: /right.?arm(?!.*fore)|r.?upperarm|rightarm/i,
   lFore: /left.?fore.?arm|l.?forearm/i,
   rFore: /right.?fore.?arm|r.?forearm/i,
+  lHand: /left.?hand$/i,
+  rHand: /right.?hand$/i,
 } as const
 type BoneKey = keyof typeof BONES
 
@@ -249,6 +251,9 @@ function makeRig(model: THREE.Object3D) {
       turn('rArm', X, -s * amp * 0.6 - (talking ? 0.55 + talk * 0.25 : 0), true)
       turn('rFore', X, talking ? -0.6 - talk * 0.2 : moving ? -0.25 : -0.08)
       turn('lFore', X, moving ? -0.25 : -0.08)
+      // hands keep their rest angle, so held staffs, canes and scrolls stay upright
+      turn('lHand', Z, ARM_DOWN)
+      turn('rHand', Z, -ARM_DOWN)
       // body: lean into a run, a little twist with each stride, breathing when idle
       turn('spine', X, moving ? (run ? 0.18 : 0.05) : 0)
       turn('spine', Y, moving ? s * 0.12 : 0, true)
