@@ -52,6 +52,12 @@ Bosses are built around grammar concepts. The Particle Guardian only exposes wea
 - **Rewards**: XP, levels and titles, spirit shards, outfits, spell effects, streaks, and a daily rotation of featured games at ×1.5 XP.
 - Designed for **10–15 minute sessions**, mobile-first, with keyboard shortcuts on desktop.
 
+## Illustrated art (Higgsfield)
+The game can show high-resolution illustrations on top of the pixel art: title key art, dialogue portraits, bosses and monsters, battle backgrounds and story scenes. `src/art/hd/manifest.ts` lists all 49 images with their prompts, sizes and filenames. Put raw images in `art-src/<category>/<id>.png` and run `npm run art:process`: it removes the flat green/magenta background, trims, converts to WebP in `public/art/hd/` and updates `available.json`. Missing images fall back to pixel art.
+
+## Graphics
+The overworld runs an HD-2D WebGL post-process (`src/fx/`): tilt-shift focus around the player, bloom, dynamic lantern/campfire/staff lights, per-region colour grading, light shafts and water glints. It steps down automatically on slow devices and can be set to High/Low/Off in Settings.
+
 ## Controls
 Arrow keys / WASD to walk (hold X or Shift to run), Z / Enter / Space to talk or confirm, X / Esc to cancel, Esc for the menu. On phones: on-screen D-pad with A/B buttons, or tap anywhere to walk there.
 

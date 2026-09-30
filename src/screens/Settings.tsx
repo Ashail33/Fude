@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { T } from '../components/ui'
 import { getMusicVolume, setMusicVolume } from '../engine/music'
+import { fxQuality, setFxQuality, type FxQuality } from '../fx/quality'
 import { canListen, canSpeak, hasJapaneseVoice, speak } from '../engine/speech'
 import { exportSave, immersionOf, importSave, resetProgress, setState, updateSettings, usePlayer, type Settings as S } from '../engine/store'
 
@@ -18,6 +19,7 @@ export default function Settings() {
   const [msg, setMsg] = useState('')
   const [showKey, setShowKey] = useState(false)
   const [musicVol, setMusicVol] = useState(() => getMusicVolume())
+  const [fx, setFx] = useState<FxQuality>(() => fxQuality())
   const fileRef = useRef<HTMLInputElement>(null)
 
   const download = () => {
@@ -110,6 +112,37 @@ export default function Settings() {
             {' · '}
             {canListen() ? 'Voice spells supported 🎤' : 'Voice spells need Chrome, Edge or Safari.'}
           </span>
+        </div>
+      </section>
+
+      <section className="card settings-section">
+        <span className="win-title">
+          <T en="Graphics" jp="グラフィック" />
+        </span>
+        <p className="muted small">Lighting, glow and depth-of-field in the world. Lower it if an older phone feels slow; the game also steps down automatically.</p>
+        <div className="radio-list">
+          {(
+            [
+              ['high', 'High', 'Full lighting, glow, tilt-shift focus and light shafts'],
+              ['low', 'Low', 'Lighting and glow at lower resolution'],
+              ['off', 'Off', 'Plain pixel art, lightest on battery'],
+            ] as const
+          ).map(([v, label, desc]) => (
+            <label key={v} className={`radio ${fx === v ? 'on' : ''}`}>
+              <input
+                type="radio"
+                name="fx"
+                id={`fx-${v}`}
+                checked={fx === v}
+                onChange={() => {
+                  setFx(v)
+                  setFxQuality(v)
+                }}
+              />
+              <strong>{label}</strong>
+              <span className="muted small">{desc}</span>
+            </label>
+          ))}
         </div>
       </section>
 
