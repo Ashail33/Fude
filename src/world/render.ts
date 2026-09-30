@@ -19,7 +19,7 @@ import { computeNeighbours, drawTile as rawDrawTile, tileCanvas, tileFrame, tile
 
 // The art library is authored concurrently; never let a missing sprite/tile kill the frame loop.
 const broken = new Set<string>()
-function safeSprite(id: SpriteId, opts: SpriteOpts): HTMLCanvasElement | null {
+export function safeSprite(id: SpriteId, opts: SpriteOpts): HTMLCanvasElement | null {
   if (broken.has(id)) return null
   try {
     return spriteCanvas(id, opts)
@@ -59,7 +59,7 @@ import { chooseScale } from './engine'
 import { ANIMATED } from './mapdef'
 import type { Entity, Exit, GameMap, ParticleKind, Pt } from './types'
 import { PostFX, type FxFrame } from '../fx/PostFX'
-import { gradeFor } from '../fx/grades'
+import { gradeFor, GRADES, type Grade } from '../fx/grades'
 import { mapLights, tileLight, type Light } from '../fx/lights'
 
 export interface RenderInfo {
@@ -119,7 +119,7 @@ interface DrawRec {
   e: Entity | null
 }
 
-const LIFT = 4
+export const LIFT = 4
 /** Opposite turns pass through a side-facing frame for this long (ms). */
 const TURN_MS = 70
 const PUFFS = 40
@@ -140,7 +140,7 @@ function newAnim(dir: Dir): AnimState {
 }
 
 /** Interpolated tile-tween position (top-left of the tile, world px) into `out`. */
-function wpos(w: { x: number; y: number; px: number; py: number; t: number }, out: Pt): Pt {
+export function wpos(w: { x: number; y: number; px: number; py: number; t: number }, out: Pt): Pt {
   const t = w.t < 1 ? w.t : 1
   out.x = (w.px + (w.x - w.px) * t) * 16
   out.y = (w.py + (w.y - w.py) * t) * 16
@@ -186,40 +186,44 @@ export class Renderer {
   fx: PostFX | null = null
   /** Static tile lights of the current map (world px). */
   lights: Light[] = []
+  /** Colour grade of the current map. */
+  grade: Grade = GRADES.golden
+  /** Height (world px) ambient particles float at (3D parallax). */
+  protected particleLift = 0
 
-  private puffs: Puff[] = Array.from({ length: PUFFS }, () => ({ on: false, kind: 'dust' as PuffKind, x: 0, y: 0, at: 0, life: 1, seed: 0, dx: 0 }))
-  private puffN = 0
-  private rustles = Array.from({ length: 8 }, () => ({ i: -1, at: -1e9 }))
-  private rustleN = 0
-  private anims = new WeakMap<object, AnimState>()
-  private recs: DrawRec[] = []
-  private camS = { x: 0, y: 0, vx: 0, vy: 0 }
-  private fudeS = { x: 0, y: 0, vx: 0, vy: 0 }
-  private snapNext = true
-  private stageX = NaN
-  private stageY = NaN
-  private p0: Pt = { x: 0, y: 0 }
-  private p1: Pt = { x: 0, y: 0 }
-  private markerSince = new Map<string, number>()
-  private prompt: { e: Entity | null; since: number; out: number } = { e: null, since: 0, out: 0 }
-  private chestSeen: Set<string> | null = null
-  private chestAnim: { e: Entity; at: number } | null = null
-  private bubble: HTMLCanvasElement | null = null
-  private fxFrame: FxFrame = { cam: { x: 0, y: 0 }, focusY: 0, now: 0, fade: 0 }
-  private lightBuf: Light[] = []
-  private lightPool: Light[] = []
-  private entLights = new WeakMap<Entity, Light | null>()
+  protected puffs: Puff[] = Array.from({ length: PUFFS }, () => ({ on: false, kind: 'dust' as PuffKind, x: 0, y: 0, at: 0, life: 1, seed: 0, dx: 0 }))
+  protected puffN = 0
+  protected rustles = Array.from({ length: 8 }, () => ({ i: -1, at: -1e9 }))
+  protected rustleN = 0
+  protected anims = new WeakMap<object, AnimState>()
+  protected recs: DrawRec[] = []
+  protected camS = { x: 0, y: 0, vx: 0, vy: 0 }
+  protected fudeS = { x: 0, y: 0, vx: 0, vy: 0 }
+  protected snapNext = true
+  protected stageX = NaN
+  protected stageY = NaN
+  protected p0: Pt = { x: 0, y: 0 }
+  protected p1: Pt = { x: 0, y: 0 }
+  protected markerSince = new Map<string, number>()
+  protected prompt: { e: Entity | null; since: number; out: number } = { e: null, since: 0, out: 0 }
+  protected chestSeen: Set<string> | null = null
+  protected chestAnim: { e: Entity; at: number } | null = null
+  protected bubble: HTMLCanvasElement | null = null
+  protected fxFrame: FxFrame = { cam: { x: 0, y: 0 }, focusY: 0, now: 0, fade: 0 }
+  protected lightBuf: Light[] = []
+  protected lightPool: Light[] = []
+  protected entLights = new WeakMap<Entity, Light | null>()
   /** Per animated cell: cached tile canvases by frame (ground, object). */
-  private animCache: (HTMLCanvasElement | undefined)[][] = []
+  protected animCache: (HTMLCanvasElement | undefined)[][] = []
 
-  constructor(canvas: HTMLCanvasElement) {
+  constructor(canvas: HTMLCanvasElement, postfx = true) {
     this.canvas = canvas
     this.ctx = canvas.getContext('2d')!
     this.buf = document.createElement('canvas')
     this.b = this.buf.getContext('2d')!
     this.stage = canvas.parentElement
     try {
-      if (canvas.parentElement) this.fx = new PostFX(canvas.parentElement, canvas)
+      if (postfx && canvas.parentElement) this.fx = new PostFX(canvas.parentElement, canvas)
     } catch (err) {
       console.warn('[fx] unavailable', err)
     }
@@ -307,6 +311,7 @@ export class Renderer {
       }
     this.stat = c
     const grade = gradeFor(m.spec)
+    this.grade = grade
     this.fx?.setGrade(grade)
     this.lights = mapLights(m, grade.night)
     this.particleKind = m.spec.particles
@@ -320,14 +325,14 @@ export class Renderer {
     for (const r of this.rustles) r.i = -1
   }
 
-  private seedParticles() {
+  protected seedParticles() {
     const n = { none: 0, sakura: 26, pollen: 22, fireflies: 16, dust: 18, sparkles: 22 }[this.particleKind]
     const k = Math.round((n * (this.vw * this.vh)) / (320 * 240))
     this.particles = []
     for (let i = 0; i < k; i++) this.particles.push(this.newParticle(Math.random() * this.vw + this.cam.x, Math.random() * this.vh + this.cam.y))
   }
 
-  private newParticle(x: number, y: number): Particle {
+  protected newParticle(x: number, y: number): Particle {
     const r = Math.random()
     switch (this.particleKind) {
       case 'sakura':
@@ -345,6 +350,16 @@ export class Renderer {
     }
   }
 
+  /**
+   * World px on the ground (plus `h` px of height) → buffer px. A plain
+   * camera offset here; the 3D renderer projects through its camera.
+   */
+  protected proj(wx: number, wy: number, h: number, out: Pt): Pt {
+    out.x = wx - this.cam.x
+    out.y = wy - this.cam.y - h
+    return out
+  }
+
   // ─── pooled effects ──────────────────────────────────────────────
   /** Spawn a short effect at world px (x, y). Legacy tile form: puff(tx, ty, kind). */
   puff(x: number, y: number, kind: PuffKind, now = performance.now(), dx = 0, world = false) {
@@ -359,13 +374,13 @@ export class Renderer {
     p.dx = dx
   }
 
-  private rustle(i: number, now: number) {
+  protected rustle(i: number, now: number) {
     const r = this.rustles[this.rustleN++ % this.rustles.length]
     r.i = i
     r.at = now
   }
 
-  private rustleOffset(i: number, now: number): number {
+  protected rustleOffset(i: number, now: number): number {
     for (const r of this.rustles) {
       if (r.i !== i) continue
       const t = now - r.at
@@ -376,9 +391,9 @@ export class Renderer {
     return 0
   }
 
-  private drawPuffs(now: number) {
+  protected drawPuffs(now: number) {
     const b = this.b
-    const cam = this.cam
+    const q = this.p1
     for (const p of this.puffs) {
       if (!p.on) continue
       const age = now - p.at
@@ -387,8 +402,9 @@ export class Renderer {
         continue
       }
       const t = age / p.life
-      const cx = p.x - cam.x
-      const cy = p.y - cam.y
+      this.proj(p.x, p.y, 0, q)
+      const cx = q.x
+      const cy = q.y
       switch (p.kind) {
         case 'leaf': {
           // blades flung up and out, tumbling back down
@@ -465,7 +481,7 @@ export class Renderer {
   }
 
   // ─── characters ──────────────────────────────────────────────────
-  private animOf(key: object, dir: Dir): AnimState {
+  protected animOf(key: object, dir: Dir): AnimState {
     let st = this.anims.get(key)
     if (!st) {
       st = newAnim(dir)
@@ -475,7 +491,7 @@ export class Renderer {
   }
 
   /** Facing to draw: 180° turns pass through a side-facing frame. */
-  private shownDir(st: AnimState, dir: Dir, now: number): Dir {
+  protected shownDir(st: AnimState, dir: Dir, now: number): Dir {
     if (dir !== st.dir) {
       st.turnVia = OPPOSITE[st.dir] === dir ? (dir === 'up' || dir === 'down' ? (st.shown === 'left' ? 'left' : 'right') : PERP[dir]) : null
       st.turnAt = now
@@ -484,7 +500,7 @@ export class Renderer {
     return st.turnVia && now - st.turnAt < TURN_MS ? st.turnVia : dir
   }
 
-  private frameCanvas(st: AnimState, id: SpriteId, dir: Dir, anim: Anim, frame: number, blink: boolean, outfit: string): HTMLCanvasElement | null {
+  protected frameCanvas(st: AnimState, id: SpriteId, dir: Dir, anim: Anim, frame: number, blink: boolean, outfit: string): HTMLCanvasElement | null {
     if (st.kId !== id || st.kDir !== dir || st.kAnim !== anim || st.kBlink !== blink || st.kOutfit !== outfit) {
       st.kId = id
       st.kDir = dir
@@ -501,7 +517,7 @@ export class Renderer {
     return c
   }
 
-  private shadow(x: number, y: number, w = 1) {
+  protected shadow(x: number, y: number, w = 1) {
     const b = this.b
     b.fillStyle = 'rgba(20, 10, 30, 0.25)'
     b.fillRect(x + 5, y + 11, 6, 1)
@@ -510,7 +526,7 @@ export class Renderer {
   }
 
   /** Hide the feet in tall grass (redraw the grass tile's lower half over them). */
-  private grassOverFeet(cx: number, cy: number, now: number) {
+  protected grassOverFeet(cx: number, cy: number, now: number) {
     const m = this.map!
     const i = cy * m.w + cx
     if (m.ground[i] !== 'tall-grass') return
@@ -525,7 +541,7 @@ export class Renderer {
     b.restore()
   }
 
-  private drawPlayer(world: World, now: number, info: RenderInfo) {
+  protected drawPlayer(world: World, now: number, info: RenderInfo) {
     const w = world.player
     const st = this.animOf(w, w.dir)
     const p = wpos(w, this.p0)
@@ -556,7 +572,7 @@ export class Renderer {
   }
 
   /** A foot touches down: dust when running, grass rustles, ripples on stepping stones. */
-  private footfall(world: World, w: Walker, running: boolean, now: number, start: boolean) {
+  protected footfall(world: World, w: Walker, running: boolean, now: number, start: boolean) {
     const m = this.map!
     const i = w.y * m.w + w.x
     const g = m.ground[i]
@@ -578,7 +594,7 @@ export class Renderer {
     void world
   }
 
-  private drawFude(world: World, now: number) {
+  protected drawFude(world: World, now: number) {
     const w = world.fude
     const st = this.animOf(w, w.dir)
     const s = this.fudeS
@@ -596,7 +612,7 @@ export class Renderer {
     if (c) b.drawImage(c, x, y - LIFT + hover)
   }
 
-  private drawEntity(e: Entity, now: number, info: RenderInfo) {
+  protected drawEntity(e: Entity, now: number, info: RenderInfo) {
     const b = this.b
     const ghost = info.ghosts.has(e.spec.id)
     if (ghost) b.globalAlpha = 0.28 + 0.18 * Math.sin(now / 180 + e.x)
@@ -673,16 +689,16 @@ export class Renderer {
   }
 
   /** Top of an entity's drawn sprite (buffer px) and its centre x. */
-  private headOf(e: Entity, out: Pt): Pt {
+  protected headOf(e: Entity, out: Pt): Pt {
     const p = wpos(e, out)
-    const cx = Math.round(p.x) - this.cam.x + (e.big ? 16 : 8)
-    const top = Math.round(p.y) - this.cam.y + (e.big && e.spec.sprite ? 14 - spriteSize(e.spec.sprite).h : e.spec.sprite ? -LIFT - 2 : 0)
-    out.x = cx
-    out.y = top
+    const top = e.big && e.spec.sprite ? 14 - spriteSize(e.spec.sprite).h : e.spec.sprite ? -LIFT - 2 : 0
+    this.proj(Math.round(p.x) + (e.big ? 16 : 8), Math.round(p.y) + 16, 16 - top, out)
+    out.x = Math.round(out.x)
+    out.y = Math.round(out.y)
     return out
   }
 
-  private getBubble(): HTMLCanvasElement {
+  protected getBubble(): HTMLCanvasElement {
     if (this.bubble) return this.bubble
     const c = document.createElement('canvas')
     c.width = 11
@@ -705,7 +721,7 @@ export class Renderer {
   }
 
   /** "!" bubble with a springy pop: `k` is the pop progress (0..1, eased with overshoot). */
-  private drawBubble(cx: number, bottom: number, k: number) {
+  protected drawBubble(cx: number, bottom: number, k: number) {
     const bub = this.getBubble()
     const sy = easeOutBack(Math.min(1, k))
     const sx = Math.min(1.25, 0.6 + 0.4 * easeOutBack(Math.min(1, k * 1.2)))
@@ -714,7 +730,7 @@ export class Renderer {
     this.b.drawImage(bub, cx - (w >> 1), bottom - h, w, h)
   }
 
-  private drawMarker(e: Entity, kind: 'next' | 'done', now: number) {
+  protected drawMarker(e: Entity, kind: 'next' | 'done', now: number) {
     const b = this.b
     const hp = this.headOf(e, this.p1)
     const cx = hp.x
@@ -749,7 +765,7 @@ export class Renderer {
   }
 
   /** What the mage is facing that can be talked to / opened (for the interaction prompt). */
-  private facedEntity(world: World, info: RenderInfo): Entity | null {
+  protected facedEntity(world: World, info: RenderInfo): Entity | null {
     const p = world.player
     if (p.t < 1 || world.frozen) return null
     const d = DIRS[p.dir]
@@ -765,7 +781,7 @@ export class Renderer {
   }
 
   /** Small white "…" prompt that pops (with overshoot) over what the mage faces. */
-  private drawPrompt(world: World, now: number, info: RenderInfo) {
+  protected drawPrompt(world: World, now: number, info: RenderInfo) {
     const e = this.facedEntity(world, info)
     const pr = this.prompt
     if (e !== pr.e) {
@@ -796,10 +812,11 @@ export class Renderer {
     }
   }
 
-  private drawBarrier(ex: Exit, now: number) {
+  protected drawBarrier(ex: Exit, now: number) {
     const b = this.b
-    const x = ex.x * 16 - this.cam.x
-    const y = ex.y * 16 - this.cam.y
+    const q = this.proj(ex.x * 16, ex.y * 16 + 16, 16, this.p1)
+    const x = Math.round(q.x)
+    const y = Math.round(q.y)
     b.save()
     b.globalCompositeOperation = 'lighter'
     for (let i = 0; i < 16; i += 2) {
@@ -815,7 +832,7 @@ export class Renderer {
     b.restore()
   }
 
-  private updateParticles(dt: number, now: number) {
+  protected updateParticles(dt: number, now: number) {
     const b = this.b
     const x0 = this.cam.x - 8
     const y0 = this.cam.y - 8
@@ -837,8 +854,9 @@ export class Renderer {
       else if (p.x > x0 + W) p.x -= W
       if (p.y < y0) p.y += H
       else if (p.y > y0 + H) p.y -= H
-      const sx = Math.round(p.x - this.cam.x)
-      const sy = Math.round(p.y - this.cam.y)
+      this.proj(p.x, p.y, this.particleLift, this.p1)
+      const sx = Math.round(this.p1.x)
+      const sy = Math.round(this.p1.y)
       const tw = (Math.sin(now / 300 + p.phase) + 1) / 2
       switch (this.particleKind) {
         case 'sakura': {
@@ -883,7 +901,7 @@ export class Renderer {
     b.restore()
   }
 
-  private getVignette(): HTMLCanvasElement {
+  protected getVignette(): HTMLCanvasElement {
     if (this.vignette) return this.vignette
     const c = document.createElement('canvas')
     c.width = this.canvas.width
@@ -907,7 +925,7 @@ export class Renderer {
   }
 
   // ─── camera ──────────────────────────────────────────────────────
-  private updateCamera(world: World, dt: number) {
+  protected updateCamera(world: World, dt: number) {
     const m = this.map!
     const pl = world.player
     const pp = wpos(pl, this.p0)
@@ -1079,27 +1097,7 @@ export class Renderer {
       if (mk) this.drawMarker(e, mk, now)
     }
     this.drawPrompt(world, now, info)
-    if (this.tap) {
-      const age = now - this.tap.at
-      if (age > 450) this.tap = null
-      else {
-        const x = this.tap.x * 16 - cam.x
-        const y = this.tap.y * 16 - cam.y
-        const k = age / 450
-        const o = Math.round(easeOutQuad(k) * 3)
-        b.globalAlpha = 1 - k
-        b.fillStyle = PAL.white
-        for (let c = 0; c < 4; c++) {
-          const sx = c & 1 ? -1 : 1
-          const sy = c & 2 ? -1 : 1
-          const cx = c & 1 ? x + 15 + o : x - o
-          const cy = c & 2 ? y + 15 + o : y - o
-          b.fillRect(Math.min(cx, cx + sx * 3), cy, 4, 1)
-          b.fillRect(cx, Math.min(cy, cy + sy * 3), 1, 4)
-        }
-        b.globalAlpha = 1
-      }
-    }
+    this.drawTap(now)
     this.updateParticles(dt, now)
 
     const fx = this.fx
@@ -1127,7 +1125,34 @@ export class Renderer {
     if (this.battleFx) this.drawBattleFx(now)
   }
 
-  private light(): Light {
+  /** Corner brackets where the player tapped to walk. */
+  protected drawTap(now: number) {
+    const b = this.b
+    if (this.tap) {
+      const age = now - this.tap.at
+      if (age > 450) this.tap = null
+      else {
+        const q = this.proj(this.tap.x * 16, this.tap.y * 16, 0, this.p1)
+        const x = Math.round(q.x)
+        const y = Math.round(q.y)
+        const k = age / 450
+        const o = Math.round(easeOutQuad(k) * 3)
+        b.globalAlpha = 1 - k
+        b.fillStyle = PAL.white
+        for (let c = 0; c < 4; c++) {
+          const sx = c & 1 ? -1 : 1
+          const sy = c & 2 ? -1 : 1
+          const cx = c & 1 ? x + 15 + o : x - o
+          const cy = c & 2 ? y + 15 + o : y - o
+          b.fillRect(Math.min(cx, cx + sx * 3), cy, 4, 1)
+          b.fillRect(cx, Math.min(cy, cy + sy * 3), 1, 4)
+        }
+        b.globalAlpha = 1
+      }
+    }
+  }
+
+  protected light(): Light {
     const l = this.lightPool[this.lightBuf.length]
     if (l) return l
     const n: Light = { x: 0, y: 0, r: 0, color: [1, 1, 1], intensity: 0, flicker: 0, seed: 0 }
@@ -1135,7 +1160,7 @@ export class Renderer {
     return n
   }
 
-  private pushLight(x: number, y: number, r: number, c0: number, c1: number, c2: number, intensity: number, flicker: number, seed: number) {
+  protected pushLight(x: number, y: number, r: number, c0: number, c1: number, c2: number, intensity: number, flicker: number, seed: number) {
     const l = this.light()
     l.x = x
     l.y = y
@@ -1151,8 +1176,8 @@ export class Renderer {
   }
 
   /** Static tile lights + entity props + the mage's staff orb, Fude, fireflies and quest markers. */
-  private frameLights(world: World, now: number, info: RenderInfo): Light[] {
-    const g = this.fx!.grade
+  protected frameLights(world: World, now: number, info: RenderInfo): Light[] {
+    const g = this.grade
     const out = this.lightBuf
     out.length = 0
     const nightK = Math.max(0.3, g.lights)
@@ -1189,7 +1214,7 @@ export class Renderer {
   }
 
   /** Flash ×3, then the scene shatters into falling shards over black. */
-  private drawBattleFx(now: number) {
+  protected drawBattleFx(now: number) {
     const fx = this.battleFx!
     const t = now - fx.start
     const ctx = this.ctx

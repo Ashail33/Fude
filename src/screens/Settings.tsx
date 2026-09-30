@@ -119,12 +119,13 @@ export default function Settings() {
         <span className="win-title">
           <T en="Graphics" jp="グラフィック" />
         </span>
-        <p className="muted small">Lighting, glow and depth-of-field in the world. Lower it if an older phone feels slow; the game also steps down automatically.</p>
+        <p className="muted small">How the world is drawn. Lower it if an older phone feels slow; the game also steps down automatically.</p>
         <div className="radio-list">
           {(
             [
-              ['high', 'High', 'Full lighting, glow, tilt-shift focus and light shafts'],
-              ['low', 'Low', 'Lighting and glow at lower resolution'],
+              ['high', '3D HD', 'Full 3D world: sun shadows, lantern light, glow and depth of field'],
+              ['low', '3D Lite', '3D world at lower resolution with lighter effects'],
+              ['classic', 'Classic 2D', 'The flat pixel-art view with lighting and glow'],
               ['off', 'Off', 'Plain pixel art, lightest on battery'],
             ] as const
           ).map(([v, label, desc]) => (

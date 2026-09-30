@@ -1,17 +1,18 @@
 /**
  * FX quality preference + automatic step-down for weak devices.
  *
- * Preference (localStorage `fude.fx`): 'high' | 'low' | 'off' (default 'high').
+ * Preference (localStorage `fude.fx`): 'high' | 'low' | 'classic' | 'off' (default 'high').
+ * 'high' / 'low' use the 3D overworld; 'classic' is the 2D view with the HD-2D post-process.
  * Levels: 3 = full, 2 = half-res blur passes, 1 = no depth of field, 0 = plain 2D.
  */
-export type FxQuality = 'high' | 'low' | 'off'
+export type FxQuality = 'high' | 'low' | 'classic' | 'off'
 export type FxLevel = 0 | 1 | 2 | 3
 
 const KEY = 'fude.fx'
 const listeners = new Set<(q: FxQuality) => void>()
 
 function parse(v: unknown): FxQuality {
-  return v === 'low' || v === 'off' || v === 'high' ? v : 'high'
+  return v === 'low' || v === 'off' || v === 'high' || v === 'classic' ? v : 'high'
 }
 
 /** The saved preference (defaults to 'high'; never throws). */
@@ -40,7 +41,7 @@ export function onFxQuality(f: (q: FxQuality) => void): () => void {
 }
 
 export function startLevel(q: FxQuality): FxLevel {
-  return q === 'high' ? 3 : q === 'low' ? 2 : 0
+  return q === 'high' || q === 'classic' ? 3 : q === 'low' ? 2 : 0
 }
 
 export interface GovernorOpts {

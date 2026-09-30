@@ -27,6 +27,8 @@ import { makeEntities } from './entities'
 import { tileSolid } from './mapdef'
 import { getMap, locateActivity, REGION_MAPS } from './maps'
 import { Renderer, smoothstep, type RenderInfo } from './render'
+import { canRender3D, Renderer3D } from '../world3d/Renderer3D'
+import { fxQuality } from '../fx/quality'
 import type { Entity, Exit, GameMap, Line } from './types'
 import { Sprite } from './Sprite'
 import './Overworld.css'
@@ -339,7 +341,14 @@ export default function Overworld() {
   // ─── world + renderer setup (once) ──────────────────────────────
   useEffect(() => {
     const canvas = canvasRef.current!
-    const r = new Renderer(canvas)
+    const q = fxQuality()
+    let r: Renderer
+    try {
+      r = (q === 'high' || q === 'low') && canRender3D() ? new Renderer3D(canvas) : new Renderer(canvas)
+    } catch (err) {
+      console.warn('[3d] unavailable, using 2D', err)
+      r = new Renderer(canvas)
+    }
     R.current = r
     const s = getState()
     let m = getMap(s.world.map) ?? getMap('village')!
