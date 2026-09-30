@@ -62,7 +62,8 @@ export function keyOut(data, channels, key) {
         data[i + 2] = Math.min(b, m + 20)
       }
     }
-    data[i + 3] = Math.round(a * 255)
+    // Respect existing transparency (e.g. images generated with a transparent background).
+    data[i + 3] = Math.round(a * data[i + 3])
   }
   return data
 }
