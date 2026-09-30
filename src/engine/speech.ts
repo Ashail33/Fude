@@ -4,9 +4,11 @@ import { getState } from './store'
 
 /**
  * Text-to-speech in Japanese via the Web Speech API. Pass a `speaker`
- * (sprite / story speaker id) and each character gets their own pitch,
- * rate and — when the system has several Japanese voices — a deeper or
- * higher voice (see ./audio/voices.ts).
+ * (sprite / story speaker id, optionally `id#name`) and each character gets
+ * their own pitch and rate (times the learner's speech-rate setting) and a
+ * man's / woman's system voice, spread across the installed Japanese
+ * voices so characters of the same gender still differ (see
+ * ./audio/voices.ts).
  */
 let jaVoice: SpeechSynthesisVoice | null | undefined
 let allVoices: SpeechSynthesisVoice[] = []

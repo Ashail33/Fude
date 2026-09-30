@@ -1,15 +1,19 @@
 /**
- * Character voices on WebAudio: talk blips while dialogue types out, and
- * short signature cries (Fude's chime, a cat's meow, the oni's roar…).
- * Profiles live in ./audio/voices.ts. Everything goes through the shared
- * SFX bus, respects `settings.sound`, and is silent before the first user
- * gesture (like the rest of the game's audio).
+ * Character voices on WebAudio: "animalese" talk syllables while dialogue
+ * types out (./audio/talk.ts), and short signature cries (Fude's chime, a
+ * cat's meow, the oni's roar…). Profiles live in ./audio/voices.ts.
+ * Everything goes through the shared SFX bus, respects `settings.sound`,
+ * and is silent before the first user gesture (like the rest of the game's
+ * audio).
  */
 
 import { audioCtx, getSfxBus } from './audio/context'
 import { noiseBuffer, pulseWave } from './audio/synth'
-import { blipFreq, shouldBlip, voiceFor, voiceKey, type BlipWave, type CryId, type VoiceProfile } from './audio/voices'
+import { playSyllable } from './audio/talk'
+import { shouldBlip, voiceFor, voiceKey, type CryId } from './audio/voices'
 import { getState } from './store'
+
+type BlipWave = 'sine' | 'triangle' | 'square' | 'sawtooth' | 'pulse12' | 'pulse25' | 'pulse50' | 'noise'
 
 function out(): { c: AudioContext; bus: AudioNode } | null {
   try {
@@ -23,6 +27,9 @@ function out(): { c: AudioContext; bus: AudioNode } | null {
 }
 
 type Curve = [number, number][]
+
+/** Cries sit clearly above the music and the talk syllables. */
+const CRY_BOOST = 1.6
 
 interface OscSpec {
   wave: BlipWave
@@ -90,7 +97,7 @@ function voice(spec: OscSpec, pm = 1) {
   const g = c.createGain()
   const atk = Math.min(spec.attack ?? 0.006, spec.dur * 0.5)
   g.gain.setValueAtTime(0.0001, t0)
-  g.gain.linearRampToValueAtTime(spec.gain, t0 + atk)
+  g.gain.linearRampToValueAtTime(spec.gain * CRY_BOOST, t0 + atk)
   g.gain.exponentialRampToValueAtTime(0.0001, end)
   head.connect(g)
   nodes.push(g)
@@ -115,44 +122,37 @@ function voice(spec: OscSpec, pm = 1) {
   }
 }
 
-// ─── Talk blips ──────────────────────────────────────────────────────
+// ─── Talk syllables ──────────────────────────────────────────────────
 
 let lastBlip = 0
-/** Minimum gap between blips (ms) so fast text never machine-guns. */
+/** Minimum gap between syllables (ms) so fast text never machine-guns. */
 const BLIP_GAP = 42
 
-function blipNow(p: VoiceProfile, ch: string, question: boolean) {
-  const f = blipFreq(p, ch, question)
-  const glide = p.glide ?? 1
-  const vib = p.vib ? (ch.charCodeAt(0) % 2 ? p.vib : -p.vib) : 0
-  voice({
-    wave: p.wave,
-    f: glide === 1 ? [[0, f]] : [[0, f], [p.len, f * glide]],
-    gain: p.gain,
-    attack: 0.004,
-    dur: p.len,
-    detune: vib,
-    filter: p.formant ? { type: 'bandpass', f: [[0, p.formant]], q: p.q ?? 1 } : undefined,
-  })
-}
-
 /**
- * Talk blip for the `i`-th character `ch` of a line spoken by `speaker`
- * (sprite or story speaker id; unknown/undefined = narrator). Skips spaces
- * and punctuation, blips every few characters per voice, rate-limited.
+ * Talk syllable for the `i`-th character `ch` of a line spoken by
+ * `speaker` (sprite or story speaker id, optionally `id#name`; unknown or
+ * undefined = narrator). Skips spaces and punctuation, sounds every few
+ * characters per voice, and is rate-limited (slow speakers leave longer
+ * gaps, so big creatures really do talk slower).
  */
 function talk(speaker: string | null | undefined, ch: string, i: number, question = false) {
   const p = voiceFor(speaker)
   if (!shouldBlip(p, ch, i)) return
   const now = typeof performance === 'undefined' ? Date.now() : performance.now()
-  if (now - lastBlip < BLIP_GAP) return
+  if (now - lastBlip < Math.max(BLIP_GAP, p.len * 700)) return
+  const o = out()
+  if (!o) return
   lastBlip = now
-  blipNow(p, ch, question)
+  try {
+    playSyllable(o.c, o.bus, o.c.currentTime + 0.005, p, ch, { question })
+  } catch {
+    /* audio unavailable */
+  }
 }
 
 // ─── Signature cries ─────────────────────────────────────────────────
 
-type CryFn = (pm: number, base: number) => void
+type CryFn = (pm: number, speaker: string) => void
 
 const CRIES: Record<CryId, CryFn> = {
   // Fude: a sparkling yo-scale chime with an inharmonic shimmer.
@@ -201,10 +201,14 @@ const CRIES: Record<CryId, CryFn> = {
       voice({ wave: 'noise', f: [[0, 5200 + i * 400]], gain: 0.05, attack: 0.002, dur: 0.07, delay: d }, pm)
       voice({ wave: 'sine', f: [[0, 2600 + i * 310]], gain: 0.015, attack: 0.002, dur: 0.1, delay: d }, pm)
     }),
-  // Villagers: a curious two-note "hm?" at their own pitch.
-  greet: (pm, base) => {
-    voice({ wave: 'triangle', f: [[0, base]], gain: 0.05, attack: 0.01, dur: 0.08 }, pm)
-    voice({ wave: 'triangle', f: [[0, base * 1.2], [0.12, base * 1.4]], gain: 0.05, attack: 0.01, dur: 0.13, delay: 0.09 }, pm)
+  // Villagers: a curious "ん、ね？" in their own talk voice.
+  greet: (pm, speaker) => {
+    const o = out()
+    if (!o) return
+    const p = voiceFor(speaker)
+    const t = o.c.currentTime + 0.01
+    playSyllable(o.c, o.bus, t, p, 'ん', { pitch: pm, level: 1.2 })
+    playSyllable(o.c, o.bus, t + Math.max(0.1, p.len * 1.4), p, 'ね', { pitch: pm, question: true, level: 1.2 })
   },
   // Child: a giggle of quick chirps.
   giggle: (pm) =>
@@ -297,6 +301,13 @@ const CRIES: Record<CryId, CryFn> = {
   },
 }
 
+/** Roughly how long each cry takes to "land" (ms): dialogue waits this long before talking over it. */
+const CRY_LEAD: Record<CryId, number> = {
+  chime: 380, staff: 450, elder: 450, armor: 280, coins: 260, suzu: 300, fanfare: 450, hum: 380, keys: 260, greet: 300, giggle: 330,
+  meow: 450, bark: 300, kon: 280, slime: 330, imp: 350, screech: 330, puff: 330, croak: 320, pon: 420, rumble: 550, wisp: 550,
+  creak: 520, tengu: 450, roar: 600, rattle: 280, growl: 650,
+}
+
 const lastCry = new Map<string, number>()
 
 /**
@@ -307,24 +318,33 @@ const lastCry = new Map<string, number>()
 function cry(speaker: string | null | undefined, opts: { pitch?: number } = {}): boolean {
   const key = voiceKey(speaker)
   if (!key) return false
-  const p = voiceFor(key)
+  const p = voiceFor(speaker)
   if (!p.cry) return false
   const now = typeof performance === 'undefined' ? Date.now() : performance.now()
   if (now - (lastCry.get(key) ?? -Infinity) < 400) return true
   lastCry.set(key, now)
   try {
-    CRIES[p.cry]((p.cryPitch ?? 1) * (opts.pitch ?? 1), p.base)
+    CRIES[p.cry]((p.cryPitch ?? 1) * (opts.pitch ?? 1), speaker!)
   } catch {
     /* audio unavailable */
   }
   return true
 }
 
+/** How long (ms) to hold off speech so a speaker's cry is heard first (0 = no cry, or sound off). */
+function cryLead(speaker: string | null | undefined): number {
+  const p = voiceKey(speaker) ? voiceFor(speaker) : null
+  if (!p?.cry || !out()) return 0
+  return CRY_LEAD[p.cry]
+}
+
 export const voices = {
-  /** Talk blip for one typed character (see `talk`). */
+  /** Talk syllable for one typed character (see `talk`). */
   talk,
   /** Signature cry for a speaker / sprite id. */
   cry,
+  /** Delay before speech so the cry is heard (see `cryLead`). */
+  cryLead,
   /** Every cry id (for a sound test / tests). */
   cryIds: Object.keys(CRIES) as CryId[],
 }

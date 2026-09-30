@@ -12,7 +12,7 @@ import { activitiesFor, bossOf, REGIONS, STAGE_LABEL } from '../data/regions'
 import { VOCAB, WORD_BY_ID } from '../data/vocab'
 import { item } from '../engine/items'
 import { distractors, shuffle } from '../engine/random'
-import { isQuestion } from '../engine/audio/voices'
+import { isQuestion, voiceId } from '../engine/audio/voices'
 import { sfx } from '../engine/sfx'
 import { speak } from '../engine/speech'
 import { voices } from '../engine/voice'
@@ -45,8 +45,8 @@ export function Bi({ line, className }: { line: Line; className?: string }) {
   )
 }
 
-/** Typewriter text; `voice` (sprite / speaker id) gives the blips that character's voice. */
-function Typewriter({ text, onDone, skip, voice }: { text: string; onDone: () => void; skip: number; voice?: string }) {
+/** Typewriter text; `voice` (sprite / speaker id) gives the talk syllables that character's voice; `delay` (ms) holds the first one. */
+function Typewriter({ text, onDone, skip, voice, delay = 0 }: { text: string; onDone: () => void; skip: number; voice?: string; delay?: number }) {
   const [n, setN] = useState(0)
   const done = useRef(false)
   const chars = useMemo(() => [...text], [text])
@@ -63,9 +63,9 @@ function Typewriter({ text, onDone, skip, voice }: { text: string; onDone: () =>
       setN((v) => v + 1)
       // Lift the last few blips of a question.
       voices.talk(voice, chars[n], n, question && n >= chars.length - 4)
-    }, 34)
+    }, n === 0 ? 34 + delay : 34)
     return () => clearTimeout(id)
-  }, [n, chars, onDone, voice, question])
+  }, [n, chars, onDone, voice, question, delay])
   useEffect(() => {
     if (skip > 0) setN(chars.length)
   }, [skip, chars.length])
@@ -77,7 +77,23 @@ function Typewriter({ text, onDone, skip, voice }: { text: string; onDone: () =>
   )
 }
 
-function SayStep({ step, onNext, bust, onTalking }: { step: Extract<Step, { kind: 'say' }>; onNext: () => void; bust?: string; onTalking?: (on: boolean) => void }) {
+function SayStep({
+  step,
+  onNext,
+  bust,
+  onTalking,
+  voice,
+  cried,
+}: {
+  step: Extract<Step, { kind: 'say' }>
+  onNext: () => void
+  bust?: string
+  onTalking?: (on: boolean) => void
+  /** Voice id (portrait + speaker name). */
+  voice?: string
+  /** This step opens with the speaker's signature cry: let it be heard before talking. */
+  cried?: boolean
+}) {
   const bustShown = useHdLoaded(bust)
   const p = usePlayer()
   const lvl = immersionOf(p)
@@ -86,14 +102,17 @@ function SayStep({ step, onNext, bust, onTalking }: { step: Extract<Step, { kind
   const [showEn, setShowEn] = useState(false)
   const typedRef = useRef(false)
   typedRef.current = typed
+  const [lead] = useState(() => (cried && step.voice !== false ? voices.cryLead(voice) : 0))
   // Drives the speaking portrait's talking bounce while the line types out.
   useEffect(() => {
     onTalking?.(!typed)
     return () => onTalking?.(false)
   }, [typed, onTalking])
   useEffect(() => {
-    if (step.voice !== false) void speak(step.line.jp, { speaker: step.portrait })
-  }, [step])
+    if (step.voice === false) return
+    const id = setTimeout(() => void speak(step.line.jp, { speaker: voice }), lead)
+    return () => clearTimeout(id)
+  }, [step, voice, lead])
   const advance = () => {
     if (!typedRef.current) {
       setSkip((s) => s + 1)
@@ -124,7 +143,7 @@ function SayStep({ step, onNext, bust, onTalking }: { step: Extract<Step, { kind
         </div>
       )}
       <div className="dq-text">
-        <Typewriter text={step.line.jp} onDone={() => setTyped(true)} skip={skip} voice={step.portrait} />
+        <Typewriter text={step.line.jp} onDone={() => setTyped(true)} skip={skip} voice={voice} delay={lead} />
         {typed && (lvl <= 1 || (lvl === 2 && showEn)) && step.line.en && <span className={`bi-en ${lvl >= 1 ? 'small' : ''}`}>{step.line.en}</span>}
         {typed && lvl === 2 && !showEn && step.line.en && (
           <button
@@ -346,14 +365,17 @@ export function Dialog({ steps, speaker, onClose, onStart }: { steps: Step[]; sp
     if (!step) onClose()
   }, [step, onClose])
 
-  // Signature sound (meow, bark, Fude's chime…) the first time each character speaks in this conversation.
-  const cried = useRef(new Set<string>())
+  // Signature sound (meow, bark, roar, Fude's chime…) the first time each
+  // character appears in this conversation — NPCs, activity hosts and
+  // bosses alike (derived from the queue, so it is StrictMode-safe).
   const stepPortrait = portraitOf(step)
+  const stepName = step && (step.kind === 'say' || step.kind === 'activity') ? (step.speaker ?? speaker) : undefined
+  const stepVoice = voiceId(stepPortrait, stepName?.en)
+  const firstAppearance = !!stepPortrait && queue.findIndex((s) => portraitOf(s) === stepPortrait) === i
+  const cries = firstAppearance && !(step?.kind === 'say' && step.voice === false)
   useEffect(() => {
-    if (!stepPortrait || cried.current.has(stepPortrait)) return
-    cried.current.add(stepPortrait)
-    voices.cry(stepPortrait)
-  }, [stepPortrait, i])
+    if (cries) voices.cry(stepVoice)
+  }, [cries, stepVoice, i])
   if (!step) return null
   const next = (more?: Step[] | void) => {
     if (more && more.length) {
@@ -365,7 +387,7 @@ export function Dialog({ steps, speaker, onClose, onStart }: { steps: Step[]; sp
   let body: ReactNode
   switch (step.kind) {
     case 'say':
-      body = <SayStep key={i} step={step} onNext={() => next()} bust={hdOf(step.portrait)} onTalking={setTalking} />
+      body = <SayStep key={i} step={step} onNext={() => next()} bust={hdOf(step.portrait)} onTalking={setTalking} voice={stepVoice} cried={cries} />
       break
     case 'activity':
       body = <ActivityStep key={i} step={step} onStart={onStart} onNext={() => next()} />

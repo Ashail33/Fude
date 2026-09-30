@@ -115,18 +115,29 @@ export function Cutscene({ id, onDone }: CutsceneProps) {
   // Typewriter.
   const voiceId = step?.who ? SPEAKERS[step.who].sprite : undefined
   const cried = useRef(new Set<string>())
+  const leads = useRef(new Map<number, number>())
   useEffect(() => {
     setShown(0)
     setShowEn(false)
     if (!step) return
-    if (step.jp) void speak(speechText(step, getState().name), { speaker: step.who ? SPEAKERS[step.who].sprite : undefined })
     if (step.shake || step.flash) sfx.hit()
-    // Signature sounds: when an actor walks on, or first speaks in the scene.
+    // Signature sounds: when an actor walks on, or first speaks in the scene
+    // (speech then waits a moment so the cry is heard).
     const who = step.enter ?? step.who
     if (who && !cried.current.has(who)) {
       cried.current.add(who)
-      voices.cry(SPEAKERS[who].sprite)
+      if (voices.cry(SPEAKERS[who].sprite) && who === step.who) leads.current.set(i, voices.cryLead(SPEAKERS[who].sprite))
     }
+    const lead = leads.current.get(i) ?? 0
+    if (!step.jp) return
+    const text = speechText(step, getState().name)
+    const speaker = step.who ? SPEAKERS[step.who].sprite : undefined
+    if (!lead) {
+      void speak(text, { speaker })
+      return
+    }
+    const id = setTimeout(() => void speak(text, { speaker }), lead)
+    return () => clearTimeout(id)
   }, [i, step])
 
   useEffect(() => {
