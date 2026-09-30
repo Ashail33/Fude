@@ -77,8 +77,9 @@ function voice(spec: OscSpec, pm = 1) {
     nodes.push(n, bp)
   } else {
     const osc = c.createOscillator()
-    if (spec.wave.startsWith('pulse')) osc.setPeriodicWave(pulseWave(c, spec.wave === 'pulse12' ? 0.125 : spec.wave === 'pulse25' ? 0.25 : 0.5))
-    else osc.type = spec.wave as OscillatorType
+    const wave = spec.wave ?? 'triangle'
+    if (wave.startsWith('pulse')) osc.setPeriodicWave(pulseWave(c, wave === 'pulse12' ? 0.125 : wave === 'pulse25' ? 0.25 : 0.5))
+    else osc.type = wave as OscillatorType
     setCurve(osc.frequency, t0, spec.f, pm)
     if (spec.detune) osc.detune.value = spec.detune
     src = osc

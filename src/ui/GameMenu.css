@@ -240,3 +240,46 @@
     display: inline-flex;
   }
 }
+
+/* Story log + key items */
+.gm-tales,
+.gm-keyitems {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.gm-tales li {
+  padding: 8px 10px;
+  border: 1px solid rgba(247, 201, 72, 0.35);
+  border-radius: 6px;
+  background: rgba(16, 22, 52, 0.4);
+}
+.gm-tales li.done {
+  opacity: 0.6;
+}
+.gm-tale-head,
+.gm-keyitems li {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.gm-tale-head .bi,
+.gm-keyitems .bi {
+  display: flex;
+  flex-direction: column;
+}
+.gm-objective {
+  margin: 4px 0 0;
+  color: var(--gold, #f7c948);
+}
+.gm-objective small {
+  display: block;
+  color: var(--paper, #f4ecd8);
+  opacity: 0.8;
+}
+.gm-key-ico {
+  font-size: 1.5rem;
+}

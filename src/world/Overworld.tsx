@@ -22,7 +22,8 @@ import { Cutscene, hasScene } from '../story/Cutscene'
 import { GameMenu } from '../ui/GameMenu'
 import { Bi, Dialog, type Step } from './Dialog'
 import { nextActivity } from './progress'
-import { OPPOSITE, World } from './engine'
+import { entityAt, OPPOSITE, World } from './engine'
+import { castScript, entityGhost, entityMoved, entityVisible, fizzle, makeCtx, mapCastScript, storyMarkers, talkScript } from '../story/tales/engine'
 import { makeEntities } from './entities'
 import { tileSolid } from './mapdef'
 import { getMap, locateActivity, REGION_MAPS } from './maps'
@@ -71,15 +72,19 @@ function ghostIds(p: PlayerState, m: GameMap): Set<string> {
     const c = p.srs[item.word(e.word)]
     if (c && c.seen > 0 && strength(c, now) < 0.5) out.add(e.id)
   }
+  for (const e of m.entitySpecs) if (entityGhost(p, e.id)) out.add(e.id)
   return out
 }
 
-function markerMap(p: PlayerState, m: GameMap): Map<string, 'next' | 'done'> {
-  const out = new Map<string, 'next' | 'done'>()
+function markerMap(p: PlayerState, m: GameMap): Map<string, 'next' | 'done' | 'tale'> {
+  const out = new Map<string, 'next' | 'done' | 'tale'>()
+  const story = storyMarkers(p)
+  for (const e of m.entitySpecs) if (story.has(e.id)) out.set(e.id, 'tale')
   const next = nextActivity(p, m.spec.region)
   for (const e of m.entitySpecs) {
     const acts = e.activities ?? []
     if (!acts.length) continue
+    if (out.has(e.id)) continue
     if (next && acts.includes(next.id)) out.set(e.id, 'next')
     else if (acts.every((id) => isPassed(p, id))) out.set(e.id, 'done')
   }
@@ -190,8 +195,9 @@ export default function Overworld() {
       const s = getState()
       const ents = makeEntities(m, (eid) => {
         const spec = m.entitySpecs.find((e) => e.id === eid)!
-        return !(spec.kind === 'boss' && spec.activities?.every((a) => isPassed(s, a)))
+        return !(spec.kind === 'boss' && spec.activities?.every((a) => isPassed(s, a))) && entityVisible(s, eid)
       })
+      for (const e of ents) placeMoved(e, s)
       Wd.current!.teleport(m, ents, x, y, dir)
       Wd.current!.encounters = !m.spec.interior
       R.current!.setMap(m)
@@ -266,6 +272,9 @@ export default function Overworld() {
       const say = (line: Line, voice = true): Step => ({ kind: 'say', speaker, portrait, line, voice })
       let steps: Step[] = []
 
+      const story = talkScript(spec.id)?.(makeCtx(e, storyHooks.current))
+      if (story) return { steps: story, speaker }
+
       if (spec.kind === 'chest') {
         const c = spec.chest!
         if (s.opened.includes(spec.id)) steps = [{ kind: 'say', line: { jp: 'からっぽだ。', en: 'It’s empty.' }, voice: false }]
@@ -337,6 +346,59 @@ export default function Overworld() {
     },
     [openChest],
   )
+
+  // ─── story (tales, word magic) ──────────────────────────────────
+  const storyHooks = useRef({
+    sparkle: (e: Entity | null, kind: 'spark' | 'leaf' | 'dust' | 'ripple') => {
+      const r = R.current
+      const w = Wd.current
+      if (!r || !w) return
+      const x = e ? e.x * 16 + 8 : w.player.x * 16 + 8
+      const y = e ? e.y * 16 + 10 : w.player.y * 16 + 10
+      const now = performance.now()
+      for (let i = 0; i < 3; i++) r.puff(x + (i - 1) * 5, y - i * 3, kind, now + i * 90, 0, true)
+    },
+    sfx: (name: string) => fx(name),
+    scene: (id: string) => {
+      if (hasScene(id)) setScenes((q) => [...q, { id }])
+    },
+  })
+
+  /** Word magic: cast a word at whatever the mage faces (or into the open). */
+  const castWord = useCallback(() => {
+    const w = Wd.current
+    if (!w || modal.current || busy.current || w.moving) return
+    const f = w.facing()
+    const e = entityAt(w.ents, f.x, f.y) ?? null
+    const c = makeCtx(e, storyHooks.current)
+    const target = e?.spec.name
+    fx('cast')
+    setDialog({
+      steps: [
+        c.cast(target ? { jp: `${target.jp}に ことばを となえる…`, en: `Cast a word at the ${target.en}…` } : { jp: 'ことばを となえる…', en: 'Cast a word…' }, (k) => {
+          const script = e ? castScript(e.spec.id) : mapCastScript(w.map.id)
+          return script?.(c, k) ?? fizzle(c, k)
+        }),
+      ],
+    })
+  }, [setDialog])
+
+  /** Story state may have shown, hidden or moved people: bring the live entities in line. */
+  const syncStory = useCallback(() => {
+    const w = Wd.current
+    if (!w) return
+    const s = getState()
+    const m = w.map
+    const live = new Set(w.ents.map((e) => e.spec.id))
+    const want = makeEntities(m, (eid) => {
+      const spec = m.entitySpecs.find((e) => e.id === eid)!
+      return !(spec.kind === 'boss' && spec.activities?.every((a) => isPassed(s, a))) && entityVisible(s, eid)
+    })
+    const keep = new Set(want.map((e) => e.spec.id))
+    w.ents = w.ents.filter((e) => keep.has(e.spec.id))
+    for (const e of want) if (!live.has(e.spec.id)) w.ents.push(e)
+    for (const e of w.ents) placeMoved(e, s)
+  }, [])
 
   // ─── world + renderer setup (once) ──────────────────────────────
   useEffect(() => {
@@ -548,6 +610,9 @@ export default function Overworld() {
       else if (e.key === 'z' || e.key === 'Z' || e.key === 'Enter' || e.key === ' ') {
         e.preventDefault()
         if (!e.repeat) Wd.current?.interact()
+      } else if (e.key === 'c' || e.key === 'C') {
+        e.preventDefault()
+        if (!e.repeat) castWord()
       } else if (e.key === 'Escape' || e.key === 'm' || e.key === 'M') {
         e.preventDefault()
         fx('confirm')
@@ -571,7 +636,7 @@ export default function Overworld() {
       window.removeEventListener('keyup', up)
       window.removeEventListener('blur', blur)
     }
-  }, [run])
+  }, [run, castWord])
 
   // ─── touch / pointer ─────────────────────────────────────────────
   const onCanvasPointer = (e: React.PointerEvent<HTMLCanvasElement>) => {
@@ -626,7 +691,10 @@ export default function Overworld() {
 
   const endBattleRef = useRef(onBattleEnd)
   endBattleRef.current = onBattleEnd
-  const closeDialog = useCallback(() => setDialog(null), [])
+  const closeDialog = useCallback(() => {
+    setDialog(null)
+    syncStory()
+  }, [setDialog, syncStory])
 
   // ─── HUD values ──────────────────────────────────────────────────
   const lvl = level(p)
@@ -695,9 +763,15 @@ export default function Overworld() {
           </button>
         </div>
       )}
+      {!isModal && (
+        <button type="button" className={`ow-cast ${touch ? 'touch' : ''}`} onPointerDown={(e) => (e.preventDefault(), castWord())} aria-label="Cast a word (C)">
+          <span className="ow-cast-ico">✨</span>
+          <Bi line={{ jp: 'まほう', en: 'Cast' }} />
+        </button>
+      )}
       {!touch && !isModal && (
         <div className="ow-keys-hint" aria-hidden>
-          <span>←↑↓→ / WASD</span> <span>Z: しらべる</span> <span>X: {run ? 'はしる ON' : 'はしる'}</span> <span>Esc: メニュー</span>
+          <span>←↑↓→ / WASD</span> <span>Z: しらべる</span> <span>C: まほう</span> <span>X: {run ? 'はしる ON' : 'はしる'}</span> <span>Esc: メニュー</span>
         </div>
       )}
 
@@ -782,3 +856,12 @@ function TouchControls({ heldStack, onA, onB, run }: { heldStack: React.MutableR
   )
 }
 
+
+/** Put an entity where the story says it now stands (e.g. a found cat back home). */
+function placeMoved(e: Entity, s: PlayerState) {
+  const to = entityMoved(s, e.spec.id)
+  if (!to || (e.hx === to.x && e.hy === to.y)) return
+  e.x = e.px = e.hx = to.x
+  e.y = e.py = e.hy = to.y
+  e.t = 1
+}

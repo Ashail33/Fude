@@ -791,3 +791,73 @@
 .ow-hud[hidden] {
   display: none;
 }
+
+/* Word magic: grimoire words as tappable chips */
+.dq-cast-words {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+  width: 100%;
+}
+
+.dq-chip {
+  font: inherit;
+  font-size: 0.95rem;
+  color: var(--paper, #f4ecd8);
+  background: rgba(138, 79, 209, 0.35);
+  border: 1px solid rgba(199, 163, 240, 0.8);
+  border-radius: 999px;
+  padding: 3px 10px;
+  cursor: pointer;
+}
+
+.dq-chip:hover,
+.dq-chip:focus-visible {
+  background: rgba(138, 79, 209, 0.7);
+}
+
+/* Word magic button (C key) */
+.ow-cast {
+  position: absolute;
+  right: max(14px, env(safe-area-inset-right));
+  bottom: 56px;
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font: inherit;
+  font-size: 0.95rem;
+  color: var(--paper, #f4ecd8);
+  background: linear-gradient(180deg, rgba(138, 79, 209, 0.92), rgba(61, 74, 140, 0.92));
+  border: 2px solid rgba(247, 201, 72, 0.9);
+  border-radius: 999px;
+  padding: 6px 14px 6px 10px;
+  box-shadow: 0 0 14px rgba(199, 163, 240, 0.55);
+  cursor: pointer;
+  animation: ow-cast-glow 2.4s ease-in-out infinite;
+}
+.ow-cast.touch {
+  bottom: calc(max(26px, env(safe-area-inset-bottom)) + 126px);
+}
+.ow-cast .bi-line {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 6px;
+}
+.ow-cast-ico {
+  font-size: 1.2rem;
+}
+.ow-cast:active {
+  transform: translateY(1px) scale(0.97);
+}
+@keyframes ow-cast-glow {
+  50% {
+    box-shadow: 0 0 22px rgba(247, 201, 72, 0.7);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ow-cast {
+    animation: none;
+  }
+}

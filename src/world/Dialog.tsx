@@ -29,6 +29,8 @@ export type Step =
   | { kind: 'choice'; prompt: Line; options: { id: string; label: Line }[]; onPick: (id: string) => Step[] | void }
   | { kind: 'kana'; prompt: Line; answer: string; onResult: (ok: boolean) => Step[] | void }
   | { kind: 'recall'; wordId: string; onResult: (ok: boolean) => Step[] | void }
+  /** Word magic: type (or tap) a word; `onCast` gets it as hiragana. `plain` hides the grimoire chips (riddles). */
+  | { kind: 'cast'; prompt: Line; plain?: boolean; onCast: (kana: string) => Step[] | void }
 
 /** Bilingual line following the immersion level (0: EN below, 1: small EN, 2: EN on tap, 3: JP only). */
 export function Bi({ line, className }: { line: Line; className?: string }) {
@@ -269,6 +271,61 @@ function KanaStep({ step, onResult }: { step: Extract<Step, { kind: 'kana' }>; o
   )
 }
 
+/** Word magic prompt: type a word, or tap one from the grimoire. */
+function CastStep({ step, onCast }: { step: Extract<Step, { kind: 'cast' }>; onCast: (kana: string) => void }) {
+  const p = usePlayer()
+  const [v, setV] = useState('')
+  const known = useMemo(() => {
+    if (step.plain) return []
+    const ws = VOCAB.filter((w) => (p.srs[item.word(w.id)]?.seen ?? 0) > 0)
+    // elemental words first: they're the ones the world reacts to most
+    return [...ws.filter((w) => w.element), ...ws.filter((w) => !w.element)].slice(0, 10)
+  }, [p.srs, step.plain])
+  const done = useRef(false)
+  const submit = (raw: string) => {
+    const k = toHiragana(raw.trim().toLowerCase(), { passRomaji: false }).replace(/[\s。、！!？?ー〜~]/g, '')
+    if (!k || done.current) return
+    done.current = true
+    sfx.cast()
+    void speak(k)
+    onCast(k)
+  }
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        e.stopImmediatePropagation()
+        if (!done.current) {
+          done.current = true
+          onCast('')
+        }
+      }
+    }
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
+  })
+  return (
+    <div className="dq-msg dq-kana dq-cast" onKeyDown={(e) => e.stopPropagation()}>
+      <Bi line={step.prompt} />
+      <div className="dq-kana-row">
+        <KanaInput value={v} onChange={setV} onSubmit={submit} autoFocus placeholder="romaji → かな" />
+        <button type="button" className="dq-btn" onClick={() => submit(v)}>
+          <Bi line={{ jp: 'となえる', en: 'Cast' }} />
+        </button>
+      </div>
+      {known.length > 0 && (
+        <div className="dq-cast-words">
+          {known.map((w) => (
+            <button key={w.id} type="button" className="dq-chip" onClick={() => submit(w.kana)} title={w.en}>
+              <span>{w.emoji}</span> <span lang="ja">{w.kana}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 const RECALL_MS = 6000
 
 function RecallStep({ step, onResult }: { step: Extract<Step, { kind: 'recall' }>; onResult: (ok: boolean) => void }) {
@@ -405,6 +462,9 @@ export function Dialog({ steps, speaker, onClose, onStart }: { steps: Step[]; sp
       break
     case 'recall':
       body = <RecallStep key={i} step={step} onResult={(ok) => next(step.onResult(ok))} />
+      break
+    case 'cast':
+      body = <CastStep key={i} step={step} onCast={(k) => next(k ? step.onCast(k) : undefined)} />
       break
   }
   return (

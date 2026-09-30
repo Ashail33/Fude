@@ -15,6 +15,7 @@ import { activitiesFor, REGIONS } from '../data/regions'
 import { dueItems } from '../engine/quests'
 import { immersionOf, level, regionMastered, regionUnlocked, usePlayer } from '../engine/store'
 import { MAP_IDS } from '../story/scenes'
+import { KEY_ITEM_BY_ID, taleLog } from '../story/tales/engine'
 import { uiSound } from './sound'
 import './GameMenu.css'
 
@@ -24,7 +25,7 @@ export interface GameMenuProps {
   onTravel?: (mapId: string) => void
 }
 
-type Panel = 'status' | 'items' | 'quests' | 'map'
+type Panel = 'status' | 'story' | 'items' | 'quests' | 'map'
 
 function Label({ jp, en }: { jp: string; en: string }) {
   const p = usePlayer()
@@ -43,7 +44,8 @@ export function GameMenu({ onClose, onTravel }: GameMenuProps) {
   const [focus, setFocus] = useState<'cmd' | 'panel'>('cmd')
   const due = dueItems(p).length
   const questsLeft = p.quests.list.filter((q) => !q.done).length
-  const bagCount = Object.values(p.bag).reduce((a, b) => a + b, 0)
+  const bagCount = Object.values(p.bag).reduce((a, b) => a + b, 0) + (p.keyItems?.length ?? 0)
+  const activeTales = taleLog(p).filter((t) => !t.done).length
 
   // Panels without their own list: X/Esc returns to the command window.
   useEffect(() => {
@@ -63,6 +65,7 @@ export function GameMenu({ onClose, onTravel }: GameMenuProps) {
   const choose = (id: string) => {
     switch (id) {
       case 'status':
+      case 'story':
       case 'items':
       case 'quests':
       case 'map':
@@ -84,6 +87,7 @@ export function GameMenu({ onClose, onTravel }: GameMenuProps) {
 
   const commands = [
     { id: 'status', label: <Label jp="つよさ" en="Status" /> },
+    { id: 'story', label: <Label jp="ものがたり" en="Story" />, hint: activeTales > 0 ? <span className="gm-badge">{activeTales}</span> : undefined },
     { id: 'items', label: <Label jp="どうぐ" en="Items" />, hint: bagCount || undefined },
     { id: 'grimoire', label: <Label jp="まどうしょ" en="Grimoire" /> },
     { id: 'quests', label: <Label jp="クエスト" en="Quests" />, hint: due + questsLeft > 0 ? <span className="gm-badge">{due + questsLeft}</span> : undefined },
@@ -96,6 +100,7 @@ export function GameMenu({ onClose, onTravel }: GameMenuProps) {
 
   let body: ReactNode
   if (panel === 'status') body = <StatusWindow big />
+  else if (panel === 'story') body = <StoryPanel />
   else if (panel === 'items') body = <ItemsPanel active={focus === 'panel'} onBack={() => setFocus('cmd')} />
   else if (panel === 'quests')
     body = (
@@ -209,6 +214,25 @@ function ItemsPanel({ active, onBack }: { active: boolean; onBack: () => void })
         <span className="win-title">
           <T en="Key items" jp="だいじなもの" />
         </span>
+        {(p.keyItems ?? []).length > 0 && (
+          <ul className="gm-keyitems">
+            {(p.keyItems ?? []).map((id) => {
+              const k = KEY_ITEM_BY_ID.get(id)
+              if (!k) return null
+              return (
+                <li key={id}>
+                  <span className="gm-key-ico">{k.emoji}</span>
+                  <span className="bi">
+                    <span lang="ja">{k.jp}</span>
+                    <small>
+                      {k.name} — {k.desc}
+                    </small>
+                  </span>
+                </li>
+              )
+            })}
+          </ul>
+        )}
         <div className="row">
           <span className="chip">💠 ことだま ×{p.shards}</span>
           {p.spells.map((s) => (
@@ -265,6 +289,54 @@ function MapPanel({ active, onBack, onGo }: { active: boolean; onBack: () => voi
       />
       <p className="muted small">
         <T en="Choose a region to travel there." jp="いきたい ところを えらんでください。" />
+      </p>
+    </section>
+  )
+}
+
+/** The story log: active tales with their current objective, then finished ones. */
+function StoryPanel() {
+  const p = usePlayer()
+  const rows = taleLog(p)
+  return (
+    <section className="card gm-story">
+      <span className="win-title">
+        <T en="Story" jp="ものがたり" />
+      </span>
+      {rows.length === 0 ? (
+        <p className="muted">
+          <T en="No tales yet. Look for people with a gold “!” — they need your help." jp="まだ ものがたりは ありません。きんいろの「！」を さがそう。" />
+        </p>
+      ) : (
+        <ul className="gm-tales">
+          {rows.map(({ tale, stage, done }) => (
+            <li key={tale.id} className={done ? 'done' : ''}>
+              <div className="gm-tale-head">
+                <span>{done ? '✨' : tale.main ? '📜' : '🔸'}</span>
+                <span className="bi">
+                  <span lang="ja">{tale.jp}</span>
+                  <small>{tale.title}</small>
+                </span>
+              </div>
+              {done ? (
+                <p className="muted small">
+                  <T en="Complete!" jp="かんりょう！" />
+                </p>
+              ) : (
+                <>
+                  <p className="small muted">{tale.summary}</p>
+                  <p className="gm-objective">
+                    ▶ <span lang="ja">{tale.stages[stage].jp}</span>
+                    {immersionOf(p) < 3 && <small>{tale.stages[stage].en}</small>}
+                  </p>
+                </>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="muted small">
+        <T en="Tip: press ✨ (or C) to cast a word at whatever you face — the world reacts to words!" jp="ヒント：✨（C）で ことばを となえよう！" />
       </p>
     </section>
   )

@@ -1,4 +1,5 @@
 import { parseMap } from '../mapdef'
+import { CONTENT } from '../../story/tales/content'
 import type { GameMap, MapSpec } from '../types'
 import { FIELDS } from './fields'
 import { FOREST } from './forest'
@@ -19,6 +20,8 @@ export function getMap(id: string): GameMap | undefined {
     const spec = MAP_SPECS.find((s) => s.id === id)
     if (!spec) return undefined
     m = parseMap(spec)
+    // characters and objects added by story content
+    for (const c of CONTENT) for (const x of c.entities?.[id] ?? []) m.entitySpecs.push({ ...x, at: '' })
     cache.set(id, m)
   }
   return m

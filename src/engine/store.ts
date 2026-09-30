@@ -74,6 +74,10 @@ export interface PlayerState {
   seenScenes: string[]
   /** Map object ids opened once (chests etc.). */
   opened: string[]
+  /** Story flags and tale stages (see src/story/tales). */
+  flags: Record<string, number>
+  /** Key (story) items carried, by id. */
+  keyItems: string[]
 }
 
 export interface WorldPos {
@@ -122,6 +126,8 @@ export function freshState(): PlayerState {
     bag: { herb: 3 },
     seenScenes: [],
     opened: [],
+    flags: {},
+    keyItems: [],
   }
 }
 
@@ -404,4 +410,26 @@ export function markOpened(id: string) {
 /** Grant XP and shards outside of an activity (battles, chests). */
 export function grantRewards(xp: number, shards: number) {
   setState((s) => ({ ...s, xp: s.xp + xp, shards: s.shards + shards }))
+}
+
+// ─── Story flags & key items ───────────────────────────────────────────
+
+export function flagOf(s: PlayerState, k: string): number {
+  return s.flags?.[k] ?? 0
+}
+
+export function setFlag(k: string, v = 1) {
+  setState((s) => ({ ...s, flags: { ...s.flags, [k]: v } }))
+}
+
+export function hasKeyItem(s: PlayerState, id: string): boolean {
+  return (s.keyItems ?? []).includes(id)
+}
+
+export function giveKeyItem(id: string) {
+  setState((s) => ((s.keyItems ?? []).includes(id) ? s : { ...s, keyItems: [...(s.keyItems ?? []), id] }))
+}
+
+export function takeKeyItem(id: string) {
+  setState((s) => ({ ...s, keyItems: (s.keyItems ?? []).filter((x) => x !== id) }))
 }

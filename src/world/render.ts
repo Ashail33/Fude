@@ -67,7 +67,7 @@ export interface RenderInfo {
   /** Entity ids drawn as fading ghosts. */
   ghosts: Set<string>
   /** Entity id → marker. */
-  markers: Map<string, 'next' | 'done'>
+  markers: Map<string, 'next' | 'done' | 'tale'>
   opened: Set<string>
   exitLocked: (e: Exit) => boolean
 }
@@ -209,6 +209,7 @@ export class Renderer {
   protected chestSeen: Set<string> | null = null
   protected chestAnim: { e: Entity; at: number } | null = null
   protected bubble: HTMLCanvasElement | null = null
+  protected taleBubble: HTMLCanvasElement | null = null
   protected fxFrame: FxFrame = { cam: { x: 0, y: 0 }, focusY: 0, now: 0, fade: 0 }
   protected lightBuf: Light[] = []
   protected lightPool: Light[] = []
@@ -698,6 +699,28 @@ export class Renderer {
     return out
   }
 
+  /** Gold story bubble (tales), same shape as the quest "!". */
+  protected getTaleBubble(): HTMLCanvasElement {
+    if (this.taleBubble) return this.taleBubble
+    const src = this.getBubble()
+    const c = document.createElement('canvas')
+    c.width = src.width
+    c.height = src.height
+    const b = c.getContext('2d')!
+    b.drawImage(src, 0, 0)
+    b.globalCompositeOperation = 'source-atop'
+    b.fillStyle = PAL.gold
+    b.fillRect(2, 1, 7, 9)
+    b.fillRect(1, 2, 9, 7)
+    b.globalCompositeOperation = 'source-over'
+    b.fillStyle = PAL.ink
+    b.fillRect(5, 2, 1, 5)
+    b.fillRect(4, 3, 3, 3)
+    b.fillRect(5, 8, 1, 1)
+    this.taleBubble = c
+    return c
+  }
+
   protected getBubble(): HTMLCanvasElement {
     if (this.bubble) return this.bubble
     const c = document.createElement('canvas')
@@ -721,8 +744,8 @@ export class Renderer {
   }
 
   /** "!" bubble with a springy pop: `k` is the pop progress (0..1, eased with overshoot). */
-  protected drawBubble(cx: number, bottom: number, k: number) {
-    const bub = this.getBubble()
+  protected drawBubble(cx: number, bottom: number, k: number, tale = false) {
+    const bub = tale ? this.getTaleBubble() : this.getBubble()
     const sy = easeOutBack(Math.min(1, k))
     const sx = Math.min(1.25, 0.6 + 0.4 * easeOutBack(Math.min(1, k * 1.2)))
     const w = Math.max(1, Math.round(11 * sx))
@@ -730,12 +753,12 @@ export class Renderer {
     this.b.drawImage(bub, cx - (w >> 1), bottom - h, w, h)
   }
 
-  protected drawMarker(e: Entity, kind: 'next' | 'done', now: number) {
+  protected drawMarker(e: Entity, kind: 'next' | 'done' | 'tale', now: number) {
     const b = this.b
     const hp = this.headOf(e, this.p1)
     const cx = hp.x
     const top = hp.y
-    if (kind === 'next') {
+    if (kind === 'next' || kind === 'tale') {
       let since = this.markerSince.get(e.spec.id)
       if (since === undefined) {
         since = now
@@ -743,7 +766,7 @@ export class Renderer {
       }
       const k = (now - since) / 380
       const bob = k >= 1 ? Math.round(Math.sin((now - since) / 160) * 1.5) : 0
-      this.drawBubble(cx, top - 1 + bob, k)
+      this.drawBubble(cx, top - 1 + bob, k, kind === 'tale')
     } else {
       const tw = (Math.sin(now / 260 + e.x) + 1) / 2
       const y = top - 5
@@ -788,7 +811,7 @@ export class Renderer {
       if (e) pr.since = now + 90 // brief beat before popping, so walking past doesn't flicker
       pr.e = e
     }
-    if (!e || now < pr.since || info.markers.get(e.spec.id) === 'next') return
+    if (!e || now < pr.since || info.markers.get(e.spec.id) === 'next' || info.markers.get(e.spec.id) === 'tale') return
     const k = Math.min(1, (now - pr.since) / 260)
     const hp = this.headOf(e, this.p1)
     const b = this.b
@@ -1192,7 +1215,7 @@ export class Renderer {
         if (l) this.pushLight(l.x + p.x, l.y + p.y, l.r, l.color[0], l.color[1], l.color[2], l.intensity, l.flicker, e.x * 1.7 + e.y)
       }
       // Quest markers stay readable at night.
-      if (info.markers.get(e.spec.id) === 'next') this.pushLight(p.x + (e.big ? 16 : 8), p.y - 14, 22, 1, 0.95, 0.85, 0.7 / nightK, 0, 0)
+      if (info.markers.get(e.spec.id) === 'next' || info.markers.get(e.spec.id) === 'tale') this.pushLight(p.x + (e.big ? 16 : 8), p.y - 14, 22, 1, 0.95, 0.85, 0.7 / nightK, 0, 0)
     }
     const pp = wpos(world.player, this.p0)
     if (g.orb > 0) {
