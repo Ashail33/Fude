@@ -188,6 +188,8 @@ export class Renderer {
   lights: Light[] = []
   /** Colour grade of the current map. */
   grade: Grade = GRADES.golden
+  /** Light quest-marked NPCs so they read at night (the 3D view uses its bubbles instead). */
+  protected markerLights = true
   /** Height (world px) ambient particles float at (3D parallax). */
   protected particleLift = 0
 
@@ -1215,7 +1217,7 @@ export class Renderer {
         if (l) this.pushLight(l.x + p.x, l.y + p.y, l.r, l.color[0], l.color[1], l.color[2], l.intensity, l.flicker, e.x * 1.7 + e.y)
       }
       // Quest markers stay readable at night.
-      if (info.markers.get(e.spec.id) === 'next' || info.markers.get(e.spec.id) === 'tale') this.pushLight(p.x + (e.big ? 16 : 8), p.y - 14, 22, 1, 0.95, 0.85, 0.7 / nightK, 0, 0)
+      if (this.markerLights && (info.markers.get(e.spec.id) === 'next' || info.markers.get(e.spec.id) === 'tale')) this.pushLight(p.x + (e.big ? 16 : 8), p.y - 14, 22, 1, 0.95, 0.85, 0.7 / nightK, 0, 0)
     }
     const pp = wpos(world.player, this.p0)
     if (g.orb > 0) {

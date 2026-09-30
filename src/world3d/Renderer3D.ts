@@ -204,6 +204,7 @@ export class Renderer3D extends Renderer {
       this.scene.add(p)
     }
     this.particleLift = 22
+    this.markerLights = false
     this.bindZoom()
     this.applyLevel(this.level, true)
   }
@@ -742,7 +743,7 @@ export class Renderer3D extends Renderer {
       pick[j] = i
       dist[j] = d
     }
-    const K = this.map?.spec.interior ? 5 : g.night ? 6 : 3.2
+    const K = this.map?.spec.interior ? 3.6 : g.night ? 6 : 3.2
     for (let k = 0; k < N_LIGHTS; k++) {
       const pl = this.points[k]
       if (k >= pick.length) {

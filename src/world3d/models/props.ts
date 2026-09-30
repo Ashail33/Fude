@@ -116,10 +116,9 @@ const PROPS: Partial<Record<TileId, Build>> = {
     for (const s of [-1, 1]) m.add(G.box, P.stoneDark, T(at(o, s * 0.045, 0.67, 0.12), [0.04, 0.008, 0.01]))
   },
   stall(m, o) {
-    m.add(G.box, P.wood, T(at(o, 0, 0.22, 0.05), [0.8, 0.44, 0.4]))
-    m.add(G.box, P.woodLight, T(at(o, 0, 0.45, 0.05), [0.84, 0.03, 0.44]))
-    for (const s of [-1, 1]) m.add(G.box, P.woodDark, T(at(o, s * 0.38, 0.6, -0.12), [0.04, 1.1, 0.04]))
-    for (let i = 0; i < 4; i++) m.add(G.box, i % 2 ? P.paper : P.vermilion, T(at(o, -0.3 + i * 0.2, 1.1, 0.02), [0.2, 0.04, 0.5], [0.35, 0, 0]))
+    // a low counter (shop interiors put the merchant right behind it, so no awning)
+    m.add(G.box, P.wood, T(at(o, 0, 0.22, 0.05), [0.96, 0.44, 0.4]))
+    m.add(G.box, P.woodLight, T(at(o, 0, 0.45, 0.05), [1.0, 0.03, 0.44]))
     for (let i = 0; i < 3; i++) m.add(G.sphere, [P.orange, P.fire, P.poison][i], T(at(o, -0.2 + i * 0.2, 0.5, 0.12), 0.05))
   },
   barrel(m, o) {

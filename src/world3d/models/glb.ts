@@ -13,7 +13,8 @@ import type { Model } from './chars'
 
 /** Per-character fit: height in tiles, extra yaw (radians) if the mesh faces the wrong way. */
 const FIT: Record<string, { h: number; yaw?: number; float?: boolean }> = {
-  mage: { h: 1.55 },
+  // the Tripo mesh faces +X; turn it to face +Z like the rest
+  mage: { h: 1.55, yaw: -Math.PI / 2 },
   fude: { h: 0.85, float: true },
   elder: { h: 1.4 },
   merchant: { h: 1.45 },
