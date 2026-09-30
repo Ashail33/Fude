@@ -33,11 +33,11 @@ export default function Grimoire() {
     <main className="grimoire">
       <header className="row grimoire-head">
         <h1>
-          📖 <T en="Grimoire" jp="まどうしょ" />
+          <T en="Grimoire" jp="まどうしょ" />
         </h1>
         <span className="spacer" />
         <Link to="/play/review" className={`btn btn-primary ${due ? '' : 'disabled'}`} aria-disabled={!due} onClick={(e) => !due && e.preventDefault()}>
-          🔁 <T en={`Review ${due}`} jp={`ふくしゅう ${due}`} />
+          <T en={`Review ${due}`} jp={`ふくしゅう ${due}`} />
         </Link>
       </header>
       <div className="tabs" role="tablist">
@@ -161,7 +161,7 @@ export default function Grimoire() {
             })}
           </div>
           <h3 className="section-title">
-            🔮 <T en="Elemental spells" jp="げんそのまほう" />
+            <T en="Elemental spells" jp="げんそのまほう" />
           </h3>
           <div className="row">
             {p.spells.length ? (
@@ -188,7 +188,9 @@ function KanaChart({ title, list }: { title: string; list: Kana[] }) {
   const p = usePlayer()
   return (
     <section className="card">
-      <h3 lang="ja">{title}</h3>
+      <span className="win-title" lang="ja">
+        {title}
+      </span>
       <div className="kana-chart">
         {KANA_ROWS.map((row) => (
           <div key={row} className="kana-row">
@@ -231,9 +233,9 @@ function Stats() {
   return (
     <div className="grid grid-2">
       <section className="card">
-        <h3>
+        <span className="win-title">
           <T en="Overview" jp="まとめ" />
-        </h3>
+        </span>
         <div className="stat-grid">
           <div>
             <strong>{wordsLearned}</strong>
@@ -266,9 +268,9 @@ function Stats() {
         </div>
       </section>
       <section className="card">
-        <h3>
+        <span className="win-title">
           <T en="Last 14 days" jp="2しゅうかん" />
-        </h3>
+        </span>
         <div className="xp-chart" role="img" aria-label="XP earned per day over the last 14 days">
           {days.map((d) => (
             <div key={d.key} className="xp-col" title={`${d.key}: ${d.data?.xp ?? 0} XP, ${Math.round((d.data?.ms ?? 0) / 60000)} min`}>

@@ -1,15 +1,18 @@
 /**
- * Pixel-art library (CONTRACT). Every sprite is original art authored in
- * code as palette-indexed pixel maps and rendered to cached canvases.
+ * Pixel-art library. Every sprite is original art authored in code as
+ * palette-indexed pixel maps (src/art/sprites/*), assembled by a pure
+ * rasteriser (raster.ts) and rendered once into cached canvases.
  *
- * STUB: draws placeholder blocks. The art implementation replaces the
- * internals but must keep these exports and ids.
+ * Sizes: characters and icons 16×16; enemies 32×32 except the dragon
+ * (64×64, the final boss). Use `spriteSize(id)` rather than assuming.
  */
 import { useEffect, useRef } from 'react'
+import { imgToCanvas } from './canvas'
+import { buildSprite, spriteDims, type Dir } from './sprites/build'
 
-export type Dir = 'up' | 'down' | 'left' | 'right'
+export type { Dir }
 
-/** Walking characters: 16×16 (or 16×24), 4 directions × 2 walk frames. */
+/** Walking characters: 16×16, 4 directions × 2 walk frames. */
 export const CHARACTER_SPRITES = [
   'mage', // the player; recoloured by outfit id
   'fude', // companion brush spirit (floating, 2-frame bob)
@@ -28,7 +31,7 @@ export const CHARACTER_SPRITES = [
   'fox',
 ] as const
 
-/** Battle enemies: 32×32, 2-frame idle. */
+/** Battle enemies: 32×32 (dragon 64×64), 2-frame idle. */
 export const ENEMY_SPRITES = [
   'slime',
   'ice-slime',
@@ -65,20 +68,23 @@ export interface SpriteOpts {
   flash?: boolean
 }
 
+/** Native pixel size of a sprite (16×16, 32×32, or 64×64 for the dragon). */
+export function spriteSize(id: SpriteId): { w: number; h: number } {
+  return spriteDims(id)
+}
+
 const cache = new Map<string, HTMLCanvasElement>()
 
 /** Native-resolution canvas for a sprite frame (cached). */
 export function spriteCanvas(id: SpriteId, opts: SpriteOpts = {}): HTMLCanvasElement {
-  const key = `${id}|${opts.dir ?? 'down'}|${opts.frame ?? 0}|${opts.outfit ?? ''}|${opts.flash ? 1 : 0}`
+  const isChar = (CHARACTER_SPRITES as readonly string[]).includes(id)
+  const dir = isChar ? (opts.dir ?? 'down') : 'down'
+  const frame = ((opts.frame ?? 0) % 2 + 2) % 2
+  const outfit = id === 'mage' ? (opts.outfit ?? '') : ''
+  const key = `${id}|${dir}|${frame}|${outfit}|${opts.flash ? 1 : 0}`
   let c = cache.get(key)
   if (!c) {
-    const size = (ENEMY_SPRITES as readonly string[]).includes(id) ? 32 : 16
-    c = document.createElement('canvas')
-    c.width = size
-    c.height = size
-    const ctx = c.getContext('2d')!
-    ctx.fillStyle = opts.flash ? '#fff' : '#' + ((id.length * 2654435761) >>> 8).toString(16).padStart(6, '0').slice(0, 6)
-    ctx.fillRect(2, 2, size - 4, size - 4)
+    c = imgToCanvas(buildSprite(id, { dir, frame, outfit: outfit || undefined, flash: opts.flash }))
     cache.set(key, c)
   }
   return c
@@ -104,8 +110,8 @@ export function PixelSprite({ id, scale = 3, dir = 'down', animate = false, outf
       if (!last || t - last > 280) {
         last = t
         const src = spriteCanvas(id, { dir, frame, outfit, flash })
-        el.width = src.width * scale
-        el.height = src.height * scale
+        if (el.width !== src.width * scale) el.width = src.width * scale
+        if (el.height !== src.height * scale) el.height = src.height * scale
         const ctx = el.getContext('2d')!
         ctx.imageSmoothingEnabled = false
         ctx.clearRect(0, 0, el.width, el.height)

@@ -1,0 +1,749 @@
+/* ─── Overworld shell ───────────────────────────────────────────── */
+.ow-root {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  overflow: hidden;
+  background: #05040c;
+  color: var(--text, #f8f3e6);
+  font-family: var(--font, 'DotGothic16', system-ui, sans-serif);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.ow-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  display: block;
+}
+
+.ow-root .win {
+  padding: 6px 10px;
+}
+
+/* ─── HUD ───────────────────────────────────────────────────────── */
+.ow-hud {
+  position: absolute;
+  top: max(8px, env(safe-area-inset-top));
+  left: 8px;
+  right: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.ow-hud > * {
+  pointer-events: auto;
+}
+
+.ow-stat {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.ow-lv {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ow-lv-num {
+  color: var(--gold, #f7c948);
+  letter-spacing: 0.04em;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.6);
+}
+
+.ow-xp {
+  width: 84px;
+  height: 7px;
+  background: #05081a;
+  border: 1px solid rgba(244, 236, 216, 0.7);
+  image-rendering: pixelated;
+}
+
+.ow-xp span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(180deg, #9bd65b 0 50%, #5cb24a 50% 100%);
+  transition: width 0.6s steps(12);
+}
+
+.ow-shards {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 1rem;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.6);
+}
+
+.ow-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.ow-menu-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: inherit;
+  font-size: 0.95rem;
+  color: inherit;
+  cursor: pointer;
+  min-height: 40px;
+}
+
+.ow-menu-btn:active {
+  transform: translateY(1px);
+}
+
+.ow-menu-btn .bi-line {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.ow-burger {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ow-burger i {
+  display: block;
+  width: 14px;
+  height: 2px;
+  background: currentColor;
+}
+
+/* ─── Area banner ───────────────────────────────────────────────── */
+.ow-banner {
+  position: absolute;
+  top: calc(max(8px, env(safe-area-inset-top)) + 58px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 22px 7px !important;
+  z-index: 6;
+  pointer-events: none;
+  animation: owBanner 2.8s steps(28) both;
+  white-space: nowrap;
+}
+
+.ow-banner::before,
+.ow-banner::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  background: var(--region);
+  transform: translateY(-50%) rotate(45deg);
+}
+
+.ow-banner::before {
+  left: 8px;
+}
+
+.ow-banner::after {
+  right: 8px;
+}
+
+.ow-banner-jp {
+  font-size: 1.35rem;
+  color: var(--paper, #f4ecd8);
+  letter-spacing: 0.12em;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.6);
+}
+
+.ow-banner-en {
+  font-size: 0.72rem;
+  color: var(--region);
+  letter-spacing: 0.08em;
+}
+
+@keyframes owBanner {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -24px);
+  }
+  12%,
+  82% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -12px);
+  }
+}
+
+/* ─── Companion toast ───────────────────────────────────────────── */
+.ow-toast {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: calc(max(12px, env(safe-area-inset-bottom)) + 150px);
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  z-index: 6;
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  animation: owToast 0.35s steps(6) both;
+  max-width: 460px;
+}
+
+@media (pointer: fine) {
+  .ow-toast {
+    bottom: 44px;
+  }
+}
+
+.ow-toast-face {
+  animation: owBob 1.2s steps(2) infinite;
+}
+
+.ow-toast-bubble {
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+@keyframes owToast {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+@keyframes owBob {
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+/* ─── Bilingual line ────────────────────────────────────────────── */
+.bi-line {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.bi-en {
+  color: var(--mist, #a9adc7);
+  font-size: 0.9em;
+  line-height: 1.35;
+}
+
+.bi-en.small {
+  font-size: 0.74em;
+}
+
+/* ─── Dialogue window ───────────────────────────────────────────── */
+.dq-layer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 10px 10px max(12px, env(safe-area-inset-bottom));
+  z-index: 20;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+@media (pointer: coarse) {
+  .dq-layer {
+    padding-right: 84px;
+  }
+}
+
+.dq-win {
+  pointer-events: auto;
+  width: min(720px, 100%);
+  padding: 16px 16px 14px !important;
+  animation: dqOpen 0.16s steps(4) both;
+}
+
+@keyframes dqOpen {
+  from {
+    transform: scaleY(0.2);
+    opacity: 0;
+  }
+}
+
+.dq-name {
+  font-size: 0.85rem;
+}
+
+.dq-name small {
+  color: var(--mist, #a9adc7);
+  font-size: 0.72rem;
+}
+
+.dq-msg {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  min-height: 72px;
+  cursor: pointer;
+  position: relative;
+}
+
+.dq-portrait {
+  flex: none;
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  background: rgba(5, 8, 26, 0.6);
+  border: 2px solid rgba(244, 236, 216, 0.5);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.dq-portrait canvas {
+  max-width: 48px;
+  max-height: 48px;
+}
+
+.dq-text {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 1.08rem;
+  line-height: 1.6;
+  flex: 1;
+  padding-right: 18px;
+}
+
+.tw-ghost {
+  visibility: hidden;
+}
+
+.dq-more {
+  position: absolute;
+  right: 2px;
+  bottom: -4px;
+  font-size: 0.8rem;
+  color: var(--gold, #f7c948);
+  animation: dqMore 0.7s steps(2) infinite;
+}
+
+@keyframes dqMore {
+  50% {
+    transform: translateY(3px);
+  }
+}
+
+.dq-en-toggle {
+  align-self: flex-start;
+  font: inherit;
+  font-size: 0.7rem;
+  color: var(--mist, #a9adc7);
+  background: transparent;
+  border: 1px solid rgba(244, 236, 216, 0.4);
+  border-radius: 3px;
+  padding: 1px 6px;
+  cursor: pointer;
+}
+
+.dq-activity {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dq-card {
+  background: rgba(5, 8, 26, 0.55);
+  border: 2px solid rgba(244, 236, 216, 0.35);
+  border-radius: 4px;
+  padding: 10px 12px;
+}
+
+.dq-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.dq-stage {
+  font-size: 0.72rem;
+  padding: 2px 8px;
+  border-radius: 3px;
+  background: #2b2f5e;
+  color: var(--paper, #f4ecd8);
+}
+
+.dq-stage .bi-line {
+  flex-direction: row;
+  gap: 6px;
+  align-items: baseline;
+}
+
+.stage-boss {
+  background: #a61e3a;
+}
+
+.stage-mastery {
+  background: #8a4fd1;
+}
+
+.stage-challenge {
+  background: #b35a1f;
+}
+
+.dq-stars {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.dq-card-title {
+  display: flex;
+  flex-direction: column;
+  margin-top: 6px;
+  font-size: 1.25rem;
+  color: var(--gold, #f7c948);
+  line-height: 1.3;
+}
+
+.dq-card-title small {
+  font-size: 0.8rem;
+  color: var(--paper, #f4ecd8);
+}
+
+.dq-card-desc {
+  margin: 6px 0 0;
+  font-size: 0.82rem;
+  color: var(--mist, #a9adc7);
+  line-height: 1.45;
+}
+
+.dq-card-region {
+  margin-top: 6px;
+  font-size: 0.7rem;
+  color: var(--stone, #6b6f8a);
+}
+
+.dq-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dq-q {
+  font-size: 1.02rem;
+}
+
+.dq-lock {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #ffb4a8;
+  font-size: 0.95rem;
+}
+
+.dq-kana {
+  flex-direction: column;
+  cursor: default;
+}
+
+.dq-kana-row {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.dq-kana-row .kana-input {
+  flex: 1;
+  min-width: 0;
+  font-size: 1.2rem;
+}
+
+.dq-btn {
+  font: inherit;
+  color: var(--ink, #1a1423);
+  background: var(--gold, #f7c948);
+  border: 2px solid var(--paper, #f4ecd8);
+  border-radius: 4px;
+  padding: 4px 12px;
+  cursor: pointer;
+}
+
+.dq-recall {
+  flex-direction: column;
+  align-items: stretch;
+  cursor: default;
+}
+
+.recall-bar {
+  height: 6px;
+  background: #05081a;
+  border: 1px solid rgba(244, 236, 216, 0.5);
+}
+
+.recall-bar span {
+  display: block;
+  height: 100%;
+  background: var(--lilac, #c7a3f0);
+}
+
+.dq-recall-word {
+  text-align: center;
+  font-family: var(--font-brush, serif);
+  font-size: 2.6rem;
+  line-height: 1.2;
+}
+
+.dq-recall-word.fading {
+  animation: dqGhost 1.2s ease-in-out infinite;
+}
+
+@keyframes dqGhost {
+  50% {
+    opacity: 0.35;
+    filter: blur(1px);
+    transform: translateX(1px);
+  }
+}
+
+.dq-recall .good {
+  color: var(--good, #8fe07a);
+  text-align: center;
+}
+
+.dq-recall .bad {
+  color: var(--bad, #ff6b5a);
+  text-align: center;
+}
+
+/* ─── Touch controls ────────────────────────────────────────────── */
+.ow-dpad {
+  position: absolute;
+  left: max(14px, env(safe-area-inset-left));
+  bottom: max(18px, env(safe-area-inset-bottom));
+  width: 132px;
+  height: 132px;
+  z-index: 8;
+  touch-action: none;
+}
+
+.ow-dpad span {
+  position: absolute;
+  background: rgba(16, 22, 52, 0.72);
+  border: 2px solid rgba(244, 236, 216, 0.75);
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+}
+
+.ow-dpad-up,
+.ow-dpad-down {
+  left: 44px;
+  width: 44px;
+  height: 46px;
+}
+
+.ow-dpad-left,
+.ow-dpad-right {
+  top: 44px;
+  width: 46px;
+  height: 44px;
+}
+
+.ow-dpad-up {
+  top: 0;
+  border-radius: 6px 6px 0 0;
+  border-bottom: 0 !important;
+}
+
+.ow-dpad-down {
+  bottom: 0;
+  border-radius: 0 0 6px 6px;
+  border-top: 0 !important;
+}
+
+.ow-dpad-left {
+  left: 0;
+  border-radius: 6px 0 0 6px;
+  border-right: 0 !important;
+}
+
+.ow-dpad-right {
+  right: 0;
+  border-radius: 0 6px 6px 0;
+  border-left: 0 !important;
+}
+
+.ow-dpad-c {
+  left: 44px;
+  top: 44px;
+  width: 44px;
+  height: 44px;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+.ow-dpad span::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  border: 7px solid transparent;
+  transform: translate(-50%, -50%);
+}
+
+.ow-dpad-up::after {
+  border-bottom-color: rgba(244, 236, 216, 0.85) !important;
+  margin-top: -4px;
+}
+
+.ow-dpad-down::after {
+  border-top-color: rgba(244, 236, 216, 0.85) !important;
+  margin-top: 4px;
+}
+
+.ow-dpad-left::after {
+  border-right-color: rgba(244, 236, 216, 0.85) !important;
+  margin-left: -4px;
+}
+
+.ow-dpad-right::after {
+  border-left-color: rgba(244, 236, 216, 0.85) !important;
+  margin-left: 4px;
+}
+
+.ow-dpad-c::after {
+  display: none;
+}
+
+.ow-dpad span.on {
+  background: rgba(247, 201, 72, 0.55);
+}
+
+.ow-ab {
+  position: absolute;
+  right: max(14px, env(safe-area-inset-right));
+  bottom: max(26px, env(safe-area-inset-bottom));
+  width: 136px;
+  height: 116px;
+  z-index: 8;
+}
+
+.ow-ab-modal {
+  z-index: 25;
+  width: 64px;
+  height: 64px;
+}
+
+.ow-btn {
+  position: absolute;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  font: inherit;
+  font-size: 1.3rem;
+  color: var(--paper, #f4ecd8);
+  background: radial-gradient(circle at 35% 30%, #3d4a8c, #1b2250 70%);
+  border: 3px solid rgba(244, 236, 216, 0.85);
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.5);
+  display: grid;
+  place-items: center;
+  line-height: 1;
+  touch-action: none;
+  cursor: pointer;
+}
+
+.ow-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.5);
+}
+
+.ow-btn small {
+  position: absolute;
+  bottom: 7px;
+  font-size: 0.5rem;
+  color: var(--gold, #f7c948);
+}
+
+.ow-btn-a {
+  right: 0;
+  top: 0;
+  background: radial-gradient(circle at 35% 30%, #ff7d5a, #a61e3a 70%);
+}
+
+.ow-ab-modal .ow-btn-a {
+  top: 2px;
+  right: 2px;
+}
+
+.ow-btn-b {
+  left: 0;
+  bottom: 0;
+}
+
+.ow-btn-b.on {
+  border-color: var(--gold, #f7c948);
+}
+
+.ow-keys-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 14px;
+  font-size: 0.72rem;
+  color: rgba(244, 236, 216, 0.75);
+  background: rgba(10, 12, 32, 0.55);
+  padding: 4px 12px;
+  border-radius: 4px;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 4;
+}
+
+/* ─── Full-screen overlays ──────────────────────────────────────── */
+.ow-battle,
+.ow-scene,
+.ow-menu {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+}
+
+.ow-menu {
+  z-index: 32;
+}
+
+@media (max-width: 420px) {
+  .ow-stat {
+    gap: 8px;
+    font-size: 0.85rem;
+  }
+  .ow-xp {
+    width: 64px;
+  }
+  .dq-text {
+    font-size: 1rem;
+  }
+}

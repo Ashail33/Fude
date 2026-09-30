@@ -15,8 +15,10 @@ export const PAL = {
   winBorder: '#f4ecd8',
   // neutrals
   stone: '#6b6f8a',
+  stoneDark: '#474a68',
   mist: '#a9adc7',
   paper: '#f4ecd8',
+  paperShade: '#d9cbab',
   white: '#ffffff',
   // skin & wood
   skin: '#f6c9a0',
@@ -40,6 +42,9 @@ export const PAL = {
   orange: '#f28a2e',
   gold: '#f7c948',
   sand: '#e6c98a',
+  // tatami straw
+  tatami: '#cfc47e',
+  tatamiDark: '#a39a54',
   // pinks / purples
   sakura: '#f7a8c4',
   sakuraDark: '#d96a9a',

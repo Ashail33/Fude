@@ -4,9 +4,9 @@ import { T } from './components/ui'
 import { dueItems, ensureQuests } from './engine/quests'
 import { level, usePlayer } from './engine/store'
 import { levelForXp, xpForLevel } from './engine/rewards'
-import Home from './screens/Home'
-import Onboarding from './screens/Onboarding'
+import Title from './screens/Title'
 
+const Home = lazy(() => import('./screens/Home'))
 const RegionScreen = lazy(() => import('./screens/RegionScreen'))
 const Play = lazy(() => import('./screens/Play'))
 const Grimoire = lazy(() => import('./screens/Grimoire'))
@@ -33,7 +33,7 @@ function TopBar() {
         <span className="jp" lang="ja">
           言葉の魔法
         </span>
-        <span className="hide-xs">Kotoba no Mahō</span>
+        <span className="hide-xs">Kotoba no Maho</span>
       </Link>
       <div className="topbar-stats">
         <span className="chip" title={`${p.xp - cur} / ${nxt - cur} XP to next level`}>
@@ -62,6 +62,10 @@ function BottomNav() {
         <span className="ico">🗺️</span>
         <T en="World" jp="せかい" />
       </NavLink>
+      <NavLink to="/journal">
+        <span className="ico">📜</span>
+        <T en="Journal" jp="ぼうけんのしょ" />
+      </NavLink>
       <NavLink to="/grimoire">
         <span className="ico">
           📖{due > 0 && <span className="nav-badge">{due}</span>}
@@ -84,10 +88,25 @@ function BottomNav() {
   )
 }
 
+/** Show the title screen once per browser session, when the app opens on the world. */
+const TITLE_ON_LAUNCH = (() => {
+  try {
+    if (sessionStorage.getItem('fude.titleShown')) return false
+    sessionStorage.setItem('fude.titleShown', '1')
+    return /^#?\/?$/.test(location.hash)
+  } catch {
+    return false
+  }
+})()
+let titleShown = false
+
 export default function App() {
   const p = usePlayer()
   const loc = useLocation()
-  const inGame = /^\/(play|world|battle-test)/.test(loc.pathname)
+  const showTitle = TITLE_ON_LAUNCH && !titleShown
+  if (loc.pathname === '/title') titleShown = true
+  // Full-screen game views hide the web-app chrome.
+  const fullscreen = loc.pathname === '/' || /^\/(play|world|battle-test|title)/.test(loc.pathname)
 
   useEffect(() => {
     if (p.onboarded) ensureQuests(p)
@@ -97,26 +116,29 @@ export default function App() {
     window.scrollTo(0, 0)
   }, [loc.pathname])
 
-  if (!p.onboarded && !inGame) return <Onboarding />
+  const dev = /^\/(play|battle-test)/.test(loc.pathname)
+  if (!p.onboarded && !dev && loc.pathname !== '/settings') return <Title />
 
   return (
-    <div className={`app ${inGame ? 'in-game' : ''}`}>
-      {!inGame && <TopBar />}
+    <div className={`app ${fullscreen ? 'in-game' : ''}`}>
+      {!fullscreen && <TopBar />}
       <Suspense fallback={<div className="loading">✨</div>}>
         <Routes>
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={showTitle && loc.pathname === '/' ? <Navigate to="/title" replace /> : <Overworld />} />
+          <Route path="/title" element={<Title />} />
+          <Route path="/journal" element={<Home />} />
           <Route path="/region/:id" element={<RegionScreen />} />
           <Route path="/play/*" element={<Play key={loc.pathname} />} />
           <Route path="/grimoire" element={<Grimoire />} />
           <Route path="/wardrobe" element={<Wardrobe />} />
           <Route path="/settings" element={<SettingsScreen />} />
           <Route path="/tavern" element={<Tavern />} />
-          <Route path="/world" element={<Overworld />} />
+          <Route path="/world" element={<Navigate to="/" replace />} />
           <Route path="/battle-test/:region" element={<BattleTest />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>
-      {!inGame && <BottomNav />}
+      {!fullscreen && <BottomNav />}
     </div>
   )
 }

@@ -78,12 +78,63 @@ export function HpBar({ value, max, color, label, flip }: { value: number; max: 
   )
 }
 
+/** Rows of a pixel bitmap ('#' = filled) → crisp SVG rects. */
+function pixelRects(rows: string[], ch = '#') {
+  const out: { x: number; y: number; w: number }[] = []
+  rows.forEach((r, y) => {
+    let x = 0
+    while (x < r.length) {
+      if (r[x] !== ch) {
+        x++
+        continue
+      }
+      let w = 1
+      while (r[x + w] === ch) w++
+      out.push({ x, y, w })
+      x += w
+    }
+  })
+  return out
+}
+
+const STAR_ROWS = ['....#....', '...###...', '#########', '.#######.', '..#####..', '..#####..', '.###.###.', '.##...##.', '#.......#']
+const STAR_SHINE = ['.........', '....#....', '...#.....', '.........', '.........', '.........', '.........', '.........', '.........']
+const HEART_ROWS = ['.##.##.', '#######', '#######', '.#####.', '..###..', '...#...']
+const HEART_SHINE = ['.......', '.#.....', '.......', '.......', '.......', '.......']
+
+/** A crisp pixel star (uses currentColor). */
+export function PixelStar({ on = true, size = 18 }: { on?: boolean; size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 10 10" aria-hidden>
+      {pixelRects(STAR_ROWS).map((r, i) => (
+        <rect key={`s${i}`} x={r.x + 1} y={r.y + 1} width={r.w} height={1} fill="#1a1423" />
+      ))}
+      {pixelRects(STAR_ROWS).map((r, i) => (
+        <rect key={i} x={r.x} y={r.y} width={r.w} height={1} fill="currentColor" />
+      ))}
+      {on && pixelRects(STAR_SHINE).map((r, i) => <rect key={`h${i}`} x={r.x} y={r.y} width={r.w} height={1} fill="#fff8d6" />)}
+    </svg>
+  )
+}
+
+/** A crisp pixel heart. */
+export function PixelHeart({ on = true, size = 18 }: { on?: boolean; size?: number }) {
+  return (
+    <svg width={size} height={(size * 6) / 7} viewBox="0 0 7 6" aria-hidden>
+      {pixelRects(HEART_ROWS).map((r, i) => (
+        <rect key={i} x={r.x} y={r.y} width={r.w} height={1} fill={on ? '#ff4d5e' : '#2a2f5a'} />
+      ))}
+      {on && pixelRects(HEART_SHINE).map((r, i) => <rect key={`h${i}`} x={r.x} y={r.y} width={r.w} height={1} fill="#ffd0d6" />)}
+    </svg>
+  )
+}
+
 export function Hearts({ value, max }: { value: number; max: number }) {
   return (
     <span className="hearts" aria-label={`${value} of ${max} hearts`}>
       {Array.from({ length: max }, (_, i) => (
         <span key={i} className={i < value ? 'heart on' : 'heart'}>
-          {i < value ? '❤️' : '🖤'}
+          <PixelHeart on={i < value} />
         </span>
       ))}
     </span>
@@ -95,7 +146,7 @@ export function Stars({ n, max = 3 }: { n: number; max?: number }) {
     <span className="stars" aria-label={`${n} of ${max} stars`}>
       {Array.from({ length: max }, (_, i) => (
         <span key={i} className={i < n ? 'star on' : 'star'}>
-          ★
+          <PixelStar on={i < n} />
         </span>
       ))}
     </span>

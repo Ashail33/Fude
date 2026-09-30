@@ -1,0 +1,370 @@
+/* ─── Backdrop dioramas ─────────────────────────────── */
+
+.backdrop {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.backdrop-stars {
+  position: absolute;
+  inset: 0 0 30% 0;
+  background-image: var(--stars-a), var(--stars-b);
+  background-size: 320px 320px, 460px 460px;
+  animation: twinkle 3s steps(3) infinite;
+  opacity: 0.8;
+}
+
+.backdrop-ground {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: max(100%, 640px);
+  height: auto;
+}
+
+.cs-fade-in {
+  animation: cs-fade 0.6s steps(6);
+}
+
+@keyframes cs-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+/* ─── Cutscene overlay ──────────────────────────────── */
+
+.cutscene {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.cs-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 7vh;
+  background: #000;
+  z-index: 5;
+  animation: cs-bar 0.5s steps(5);
+}
+
+.cs-bar-top {
+  top: 0;
+}
+
+.cs-bar-bottom {
+  bottom: 0;
+}
+
+@keyframes cs-bar {
+  from {
+    height: 0;
+  }
+}
+
+.cs-stage {
+  position: relative;
+  width: 100%;
+  flex: 1;
+  margin-top: 7vh;
+  overflow: hidden;
+}
+
+.cs-shake {
+  animation: shake 0.4s steps(6);
+}
+
+.cs-actors {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: min(100%, 960px);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.cs-actor {
+  position: absolute;
+  bottom: clamp(26px, 9%, 90px);
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.cs-actor canvas {
+  display: block;
+  filter: drop-shadow(0 4px 0 rgba(0, 0, 0, 0.35));
+}
+
+.cs-actor.talking canvas {
+  animation: cs-talk 0.5s steps(2) infinite;
+}
+
+@keyframes cs-talk {
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+.cs-enter-left {
+  animation: cs-in-left 0.6s steps(6);
+}
+
+.cs-enter-right {
+  animation: cs-in-right 0.6s steps(6);
+}
+
+@keyframes cs-in-left {
+  from {
+    left: -10%;
+  }
+}
+
+@keyframes cs-in-right {
+  from {
+    left: 110%;
+  }
+}
+
+.cs-emote {
+  position: absolute;
+  bottom: 100%;
+  margin-bottom: 4px;
+  min-width: 32px;
+  padding: 0 6px;
+  text-align: center;
+  font-size: 1.2rem;
+  line-height: 1.5;
+  background: var(--paper);
+  color: var(--ink);
+  border: 2px solid var(--ink);
+  border-radius: 4px;
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+  animation: cs-emote 1.4s steps(1) forwards;
+}
+
+.cs-emote::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  margin-left: -4px;
+  border: 4px solid transparent;
+  border-top-color: var(--ink);
+}
+
+@keyframes cs-emote {
+  0% {
+    transform: translateY(6px) scale(0.6);
+  }
+  10% {
+    transform: translateY(-4px) scale(1.1);
+  }
+  20%,
+  85% {
+    transform: none;
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.cs-flash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  animation: cs-flash 0.7s steps(5) forwards;
+}
+
+@keyframes cs-flash {
+  from {
+    opacity: 0.95;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* ─── Message window ────────────────────────────────── */
+
+.cs-window {
+  position: relative;
+  z-index: 6;
+  width: min(900px, calc(100% - 24px));
+  min-height: 150px;
+  margin: -18px 0 calc(7vh + 12px);
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 16px;
+  align-items: center;
+  padding: 22px 22px 22px 18px;
+  animation: cs-window 0.18s steps(3);
+}
+
+.cs-window.narration {
+  grid-template-columns: 1fr;
+  text-align: center;
+  padding: 22px 28px;
+}
+
+@keyframes cs-window {
+  from {
+    transform: scaleY(0.2);
+  }
+}
+
+.cs-name {
+  position: absolute;
+  top: -0.95em;
+  left: 18px;
+  padding: 0 10px;
+  font-size: 1rem;
+  line-height: 1.6;
+  background: var(--win-bg2);
+  border: 3px solid var(--win-border);
+  border-radius: 4px;
+  letter-spacing: 0.08em;
+  text-shadow: 2px 2px 0 var(--ink);
+}
+
+.cs-portrait {
+  width: 84px;
+  height: 84px;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at 50% 60%, #2b3470 0%, #0b1030 75%);
+  border: 3px solid var(--win-border);
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 2px var(--win-inset);
+  overflow: hidden;
+}
+
+.cs-text {
+  min-width: 0;
+}
+
+.cs-primary {
+  margin: 0;
+  font-size: 1.35rem;
+  line-height: 1.6;
+  color: #fff;
+  word-break: normal;
+  overflow-wrap: anywhere;
+}
+
+.cs-primary.en {
+  font-size: 1.15rem;
+}
+
+.cs-ghost {
+  visibility: hidden;
+}
+
+.cs-secondary {
+  margin: 8px 0 0;
+  font-size: 1rem;
+  color: var(--muted);
+  animation: cs-fade 0.3s steps(3);
+}
+
+.cs-secondary.dim {
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+.cs-en-btn {
+  margin-top: 8px;
+  padding: 0 8px;
+  font-size: 0.8rem;
+  background: transparent;
+  border: 2px solid var(--line);
+  border-radius: 3px;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.cs-more {
+  position: absolute;
+  right: 16px;
+  bottom: 6px;
+  color: var(--gold);
+  font-size: 0.9rem;
+  animation: cs-bounce 0.7s steps(2) infinite;
+}
+
+@keyframes cs-bounce {
+  50% {
+    transform: translateY(4px);
+  }
+}
+
+.cs-skip {
+  position: absolute;
+  z-index: 7;
+  top: calc(7vh + 10px);
+  right: 12px;
+  overflow: hidden;
+  padding: 4px 12px;
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  background: rgba(5, 8, 26, 0.75);
+  color: var(--paper);
+  border: 2px solid var(--win-border);
+  border-radius: 4px;
+  cursor: pointer;
+  touch-action: none;
+}
+
+.cs-skip-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--gold);
+  opacity: 0.55;
+}
+
+.cs-skip-label {
+  position: relative;
+}
+
+@media (max-width: 600px) {
+  .cs-window {
+    grid-template-columns: 56px 1fr;
+    gap: 12px;
+    align-items: start;
+    min-height: 170px;
+    padding: 24px 14px 22px 12px;
+    margin-bottom: calc(7vh + 8px);
+  }
+  .cs-portrait {
+    width: 56px;
+    height: 56px;
+    margin-top: 4px;
+  }
+  .cs-portrait canvas {
+    transform: scale(0.75);
+  }
+  .cs-primary {
+    font-size: 1.15rem;
+  }
+  .cs-primary.en {
+    font-size: 1.02rem;
+  }
+  .cs-secondary {
+    font-size: 0.92rem;
+  }
+}

@@ -1,8 +1,11 @@
 import { Component, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Stars, T, useBurst } from '../components/ui'
+import { StatBar } from '../components/Journal'
+import { PixelStar, T, useBurst } from '../components/ui'
 import { ACTIVITIES, ACTIVITY_BY_ID, REGIONS } from '../data/regions'
 import { dueItems, completeQuest, featuredToday, FEATURED_MULTIPLIER, questActivity } from '../engine/quests'
+import { playJingle } from '../engine/music'
+import { levelForXp, xpForLevel } from '../engine/rewards'
 import { sfx } from '../engine/sfx'
 import { activityUnlocked, getState, recordResult, setState, usePlayer, type Outcome } from '../engine/store'
 import { gameComponent } from '../games/registry'
@@ -64,7 +67,8 @@ export default function Play() {
   const startedAt = useRef(Date.now())
   const finished = useRef(false)
 
-  const exitTo = activity && activity.region > 0 ? `/region/${activity.region}` : '/'
+  // Back to the overworld, where the player is standing next to the trial.
+  const exitTo = '/'
   const onExit = useCallback(() => nav(exitTo), [nav, exitTo])
 
   const onFinish = useCallback(
@@ -127,6 +131,24 @@ export default function Play() {
   )
 }
 
+function useCountUp(target: number, delayMs: number, durMs = 900): number {
+  const [v, setV] = useState(0)
+  useEffect(() => {
+    let raf = 0
+    const t0 = performance.now() + delayMs
+    const tick = (t: number) => {
+      const f = Math.max(0, Math.min(1, (t - t0) / durMs))
+      setV(Math.round(target * f))
+      if (f < 1) raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [target, delayMs, durMs])
+  return v
+}
+
+const STAR_GAP_MS = 380
+
 function Results({
   activity,
   outcome,
@@ -149,22 +171,59 @@ function Results({
   const passed = outcome.stars > 0
   const nextAct = ACTIVITIES.find((a) => a.region === activity.region && activityUnlocked(p, a) && !(p.progress[a.id]?.stars ?? 0))
   const correct = result.reviews.filter((r) => r.correct).length
+  const isBoss = activity.stage === 'boss' || activity.game.startsWith('boss')
+  const gained = outcome.xp + questXp
+  const starsDone = 300 + outcome.stars * STAR_GAP_MS
+
+  // XP bar for the current level: fills from where this run started.
+  const [xpBar] = useState(() => {
+    const now = getState().xp
+    const lvl = levelForXp(now)
+    const cur = xpForLevel(lvl)
+    const span = xpForLevel(lvl + 1) - cur
+    const from = outcome.levelAfter > outcome.levelBefore ? 0 : Math.max(0, now - gained - cur)
+    return { lvl, span, from, to: now - cur }
+  })
+  const [xpFill, setXpFill] = useState(xpBar.from)
+  const xpShown = useCountUp(gained, starsDone)
+  const shardsShown = useCountUp(outcome.shards, starsDone + 200)
 
   useEffect(() => {
-    if (passed) {
-      fire(50, 30, 24)
-      const t = setTimeout(() => fire(30, 50, 16), 400)
-      return () => clearTimeout(t)
-    }
-  }, [passed, fire])
+    if (passed) playJingle('victory')
+    const timers: ReturnType<typeof setTimeout>[] = []
+    for (let i = 0; i < outcome.stars; i++)
+      timers.push(
+        setTimeout(() => {
+          sfx.correct()
+          fire(50 + (i - 1) * 14, 22, 8)
+        }, 300 + i * STAR_GAP_MS),
+      )
+    timers.push(setTimeout(() => setXpFill(xpBar.to), starsDone))
+    if (passed) timers.push(setTimeout(() => fire(50, 40, 22), starsDone + 400))
+    return () => timers.forEach(clearTimeout)
+  }, [passed, fire, outcome.stars, starsDone, xpBar.to])
 
   return (
-    <div className="results card pop">
+    <div className={`results card pop ${passed ? 'won' : 'lost'}`}>
       {burst}
-      <div className="results-emoji">{passed ? (activity.stage === 'boss' || activity.game.startsWith('boss') ? '🏆' : '✨') : '💫'}</div>
-      <h1>{passed ? <T en="Victory!" jp="しょうり！" /> : <T en="Not yet…" jp="もういちど！" />}</h1>
-      <p className="muted">{activity.title}</p>
-      <Stars n={outcome.stars} />
+      <div className="results-banner" lang="ja">
+        {passed ? (isBoss ? 'だいしょうり！' : 'しょうり！') : 'ざんねん…'}
+      </div>
+      <div className="results-emoji">{passed ? (isBoss ? '🏆' : '✨') : '💫'}</div>
+      <h1>{passed ? <T en="Victory!" jp="クリア！" /> : <T en="Not yet…" jp="もういちど！" />}</h1>
+      <p className="muted">
+        {activity.title} <span lang="ja">{activity.jp}</span>
+      </p>
+      <div className="results-stars" aria-label={`${outcome.stars} of 3 stars`}>
+        {[0, 1, 2].map((i) => (
+          <span key={i} className={`results-star ${i < outcome.stars ? 'on' : ''}`} style={{ animationDelay: `${300 + i * STAR_GAP_MS}ms` }}>
+            <PixelStar on={i < outcome.stars} size={52} />
+          </span>
+        ))}
+      </div>
+      <div className="results-xp">
+        <StatBar label={`Lv ${xpBar.lvl}`} value={xpFill} max={xpBar.span} kind="xp" />
+      </div>
       <div className="results-stats">
         <div>
           <strong>{acc}%</strong>
@@ -173,11 +232,11 @@ function Results({
           </span>
         </div>
         <div>
-          <strong>+{outcome.xp + questXp}</strong>
-          <span className="muted small">XP</span>
+          <strong>+{xpShown}</strong>
+          <span className="muted small">EXP</span>
         </div>
         <div>
-          <strong>+{outcome.shards}</strong>
+          <strong>+{shardsShown}</strong>
           <span className="muted small">💠</span>
         </div>
         {result.reviews.length > 0 && (
@@ -233,19 +292,19 @@ function Results({
       </div>
       <div className="row results-actions">
         <button type="button" className="btn" onClick={onRetry}>
-          ↻ <T en="Again" jp="もういちど" />
+          <T en="Again" jp="もういちど" />
         </button>
         {outcome.unlockedRegion ? (
-          <button type="button" className="btn btn-primary" onClick={() => nav(`/region/${outcome.unlockedRegion}`)}>
-            <T en="Journey onward" jp="すすむ" /> →
+          <button type="button" className="btn btn-primary" onClick={() => nav(`/region/${outcome.unlockedRegion}`)} autoFocus>
+            <T en="Journey onward" jp="すすむ" />
           </button>
         ) : nextAct && nextAct.id !== activity.id ? (
-          <button type="button" className="btn btn-primary" onClick={() => nav(`/play/${nextAct.id}`)}>
-            <T en="Next:" jp="つぎ：" /> {nextAct.title} →
+          <button type="button" className="btn btn-primary" onClick={() => nav(`/play/${nextAct.id}`)} autoFocus>
+            <T en="Next:" jp="つぎ：" /> {nextAct.title}
           </button>
         ) : (
-          <button type="button" className="btn btn-primary" onClick={onBack}>
-            <T en="Continue" jp="つづける" /> →
+          <button type="button" className="btn btn-primary" onClick={onBack} autoFocus>
+            <T en="Continue" jp="つづける" />
           </button>
         )}
       </div>

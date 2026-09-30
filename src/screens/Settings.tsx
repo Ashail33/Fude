@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { T } from '../components/ui'
+import { getMusicVolume, setMusicVolume } from '../engine/music'
 import { canListen, canSpeak, hasJapaneseVoice, speak } from '../engine/speech'
 import { exportSave, immersionOf, importSave, resetProgress, setState, updateSettings, usePlayer, type Settings as S } from '../engine/store'
 
@@ -16,6 +17,7 @@ export default function Settings() {
   const s = p.settings
   const [msg, setMsg] = useState('')
   const [showKey, setShowKey] = useState(false)
+  const [musicVol, setMusicVol] = useState(() => getMusicVolume())
   const fileRef = useRef<HTMLInputElement>(null)
 
   const download = () => {
@@ -30,13 +32,13 @@ export default function Settings() {
   return (
     <main className="settings">
       <h1>
-        ⚙️ <T en="Settings" jp="せってい" />
+        <T en="Settings" jp="せってい" />
       </h1>
 
       <section className="card settings-section">
-        <h2>
+        <span className="win-title">
           <T en="Mage" jp="まどうし" />
-        </h2>
+        </span>
         <label className="field">
           <span>Name</span>
           <input type="text" value={p.name} maxLength={24} onChange={(e) => setState((st) => ({ ...st, name: e.target.value }))} />
@@ -44,9 +46,9 @@ export default function Settings() {
       </section>
 
       <section className="card settings-section">
-        <h2>
+        <span className="win-title">
           <T en="Language immersion" jp="ことばのレベル" />
-        </h2>
+        </span>
         <p className="muted small">
           The game moves from English → mixed → mostly Japanese → fully Japanese. Currently: level {immersionOf(p)}.
         </p>
@@ -66,12 +68,30 @@ export default function Settings() {
       </section>
 
       <section className="card settings-section">
-        <h2>
+        <span className="win-title">
           <T en="Sound & voice" jp="おと" />
-        </h2>
+        </span>
         <label className="toggle">
           <input type="checkbox" checked={s.sound} onChange={(e) => updateSettings({ sound: e.target.checked })} />
-          <span>Sound effects</span>
+          <span>Sound effects &amp; music</span>
+        </label>
+        <label className="field">
+          <span>
+            <T en="Music volume" jp="おんがく" />: {Math.round(musicVol * 100)}%
+          </span>
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.05}
+            value={musicVol}
+            onChange={(e) => {
+              const v = Number(e.target.value)
+              setMusicVol(v)
+              setMusicVolume(v)
+            }}
+            aria-label="Music volume"
+          />
         </label>
         <label className="toggle">
           <input type="checkbox" checked={s.voice} onChange={(e) => updateSettings({ voice: e.target.checked })} />
@@ -83,7 +103,7 @@ export default function Settings() {
         </label>
         <div className="row">
           <button type="button" className="btn btn-sm" onClick={() => void speak('こんにちは。ことばのまほうへ、ようこそ。', { force: true })}>
-            🔊 Test voice
+            Test voice 🔊
           </button>
           <span className="muted small">
             {canSpeak() ? (hasJapaneseVoice() ? 'Japanese voice found ✔' : 'No Japanese voice installed; your browser may use a default voice.') : 'Text-to-speech not supported in this browser.'}
@@ -94,9 +114,9 @@ export default function Settings() {
       </section>
 
       <section className="card settings-section">
-        <h2>
-          🤖 <T en="Echo-Soul AI (optional)" jp="エコーソウル" />
-        </h2>
+        <span className="win-title">
+          <T en="Echo-Soul AI (optional)" jp="エコーソウル" />
+        </span>
         <p className="muted small">
           Add an Anthropic API key to let Tavern NPCs hold free conversations with you in Japanese. The key is stored only in this browser and sent only to api.anthropic.com. Without a key, NPCs use a simpler offline brain.
         </p>
@@ -127,9 +147,9 @@ export default function Settings() {
       </section>
 
       <section className="card settings-section">
-        <h2>
+        <span className="win-title">
           <T en="Save data" jp="セーブ" />
-        </h2>
+        </span>
         <p className="muted small">Progress is saved automatically in this browser. Export it to move between devices.</p>
         <div className="row">
           <button type="button" className="btn btn-sm" onClick={download}>

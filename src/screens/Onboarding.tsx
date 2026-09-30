@@ -1,110 +1,107 @@
+/**
+ * New game: the intro cutscene (once), then Fude asks your name and how
+ * much Japanese the world should speak — in pixel windows.
+ */
 import { useState } from 'react'
-import { Avatar } from '../components/Avatar'
+import { PixelSprite } from '../art'
+import { CommandMenu } from '../components/CommandMenu'
 import { sfx } from '../engine/sfx'
 import { speak } from '../engine/speech'
-import { setState, type ImmersionLevel } from '../engine/store'
+import { setState, usePlayer, type ImmersionLevel } from '../engine/store'
+import { Cutscene } from '../story/Cutscene'
+import { SceneBackdrop } from '../story/Backdrop'
 
-const STORY = [
-  {
-    jp: 'ことばは、まほうです。',
-    en: 'In the land of Kotoba, words are magic.',
-    art: '📜',
-  },
-  {
-    jp: '火と言えば、火がもえる。',
-    en: 'Speak the word for fire, and fire burns. Speak the word for water, and rivers flow.',
-    art: '🔥💧🌳',
-  },
-  {
-    jp: 'でも、ことばがきえています…',
-    en: 'But the old words are fading. Bridges grow transparent, forests fall silent, and demons made of scrambled letters roam the roads.',
-    art: '👹',
-  },
-  {
-    jp: 'あなたは、あたらしいまどうしです。',
-    en: 'You are a new mage. Learn the words, master their magic, and restore the world, one spell at a time.',
-    art: '🧙',
-  },
+type Imm = 'auto' | ImmersionLevel
+
+const LEVELS: [Imm, string, string, string][] = [
+  ['auto', 'おまかせ', 'Grow with me', 'Starts in English and shifts to Japanese as you level up (recommended)'],
+  [0, 'えいご', 'English', 'Menus in English'],
+  [1, 'まぜる', 'Mixed', 'Japanese with English beneath'],
+  [3, 'にほんご', 'Japanese', 'Full immersion'],
 ]
 
-export default function Onboarding() {
-  const [page, setPage] = useState(0)
-  const [name, setName] = useState('')
-  const [lvl, setLvl] = useState<'auto' | ImmersionLevel>('auto')
-  const story = page < STORY.length ? STORY[page] : null
+export default function Onboarding({ onDone }: { onDone?: () => void } = {}) {
+  const p = usePlayer()
+  const [phase, setPhase] = useState<'intro' | 'name' | 'lang'>(p.seenScenes.includes('intro') ? 'name' : 'intro')
+  const [name, setName] = useState(p.name)
+  const [lvl, setLvl] = useState<Imm>('auto')
+  const [hl, setHl] = useState<Imm>('auto')
 
-  const finish = () => {
+  if (phase === 'intro') return <Cutscene id="intro" onDone={() => setPhase('name')} />
+
+  const finish = (imm: Imm) => {
     sfx.win()
-    setState((s) => ({ ...s, name: name.trim() || 'Mage', onboarded: true, settings: { ...s.settings, immersion: lvl } }))
+    setState((s) => ({ ...s, name: name.trim() || 'Mage', onboarded: true, settings: { ...s.settings, immersion: imm } }))
+    onDone?.()
   }
+
+  const shownName = name.trim() || 'Mage'
+  const desc = LEVELS.find((l) => l[0] === hl)
 
   return (
     <div className="onboard">
-      <div className="onboard-card card pop" key={page}>
-        {story ? (
-          <>
-            <div className="onboard-art float">{story.art}</div>
-            <p className="onboard-jp" lang="ja">
-              {story.jp}
-            </p>
-            <p className="onboard-en">{story.en}</p>
-            <div className="row onboard-actions">
-              <button type="button" className="btn-icon" aria-label="Listen" onClick={() => void speak(story.jp, { force: true })}>
-                🔊
-              </button>
-              <button
-                type="button"
-                className="btn btn-primary btn-lg"
-                autoFocus
-                onClick={() => {
-                  sfx.click()
-                  setPage(page + 1)
-                }}
-              >
-                {page === 0 ? 'Begin the journey' : 'Continue'} →
-              </button>
-            </div>
-            <div className="onboard-dots">
-              {STORY.map((_, i) => (
-                <span key={i} className={i === page ? 'on' : ''} />
-              ))}
-            </div>
-          </>
-        ) : (
+      <SceneBackdrop bg="night-hill" className="onboard-bg" />
+      <div className="onboard-cast" aria-hidden>
+        <PixelSprite id="mage" outfit="apprentice" dir="right" scale={4} animate />
+        <PixelSprite id="fude" dir="left" scale={4} animate />
+      </div>
+
+      <div className="onboard-windows">
+        {phase === 'name' ? (
           <form
+            key="name"
+            className="card onboard-card pop"
             onSubmit={(e) => {
               e.preventDefault()
-              finish()
+              sfx.click()
+              setPhase('lang')
             }}
           >
-            <Avatar outfit="apprentice" size={120} className="float" />
-            <h2>
-              <span lang="ja">おなまえは？</span>
-              <br />
-              <small className="muted">What is your name, young mage?</small>
-            </h2>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" maxLength={24} autoFocus aria-label="Your name" />
-            <h3 className="onboard-sub">How much Japanese should the world speak?</h3>
-            <div className="onboard-levels">
-              {(
-                [
-                  ['auto', 'Grow with me', 'Starts in English and shifts to Japanese as you level up (recommended)'],
-                  [0, 'English', 'Menus in English'],
-                  [1, 'Mixed', 'Japanese with English beneath'],
-                  [3, 'Japanese', 'Full immersion'],
-                ] as const
-              ).map(([v, label, desc]) => (
-                <label key={String(v)} className={`onboard-level ${lvl === v ? 'on' : ''}`}>
-                  <input type="radio" name="imm" checked={lvl === v} onChange={() => setLvl(v)} />
-                  <strong>{label}</strong>
-                  <span className="muted">{desc}</span>
-                </label>
-              ))}
+            <span className="win-title">フデ</span>
+            <p className="onboard-line">
+              <span lang="ja">あなたの なまえは？</span>
+              <small>What’s your name, young mage?</small>
+            </p>
+            <label className="onboard-name">
+              <span className="onboard-cursor">▶</span>
+              <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" maxLength={12} autoFocus aria-label="Your name" enterKeyHint="done" />
+            </label>
+            <div className="row onboard-actions">
+              <button type="submit" className="btn btn-primary">
+                <span lang="ja">けってい</span> OK
+              </button>
             </div>
-            <button type="submit" className="btn btn-primary btn-lg">
-              <span lang="ja">しゅっぱつ！</span> Set out
-            </button>
           </form>
+        ) : (
+          <div key="lang" className="card onboard-card pop">
+            <span className="win-title">フデ</span>
+            <p className="onboard-line">
+              <span lang="ja">{shownName}さん！ よろしく！</span>
+              <small>Nice to meet you, {shownName}! How much Japanese should the world speak?</small>
+            </p>
+            <CommandMenu
+              items={LEVELS.map(([v, jp, en]) => ({
+                id: String(v),
+                label: (
+                  <span className="bi">
+                    <span lang="ja">{jp}</span>
+                    <small>{en}</small>
+                  </span>
+                ),
+                hint: lvl === v ? '✔' : undefined,
+              }))}
+              onHighlight={(id) => setHl(id === 'auto' ? 'auto' : (Number(id) as ImmersionLevel))}
+              onSelect={(id) => {
+                const v: Imm = id === 'auto' ? 'auto' : (Number(id) as ImmersionLevel)
+                setLvl(v)
+                void speak('しゅっぱつ！')
+                finish(v)
+              }}
+              onCancel={() => setPhase('name')}
+              label="Language level"
+            />
+            {desc && <p className="muted small onboard-desc">{desc[3]}</p>}
+          </div>
         )}
       </div>
     </div>

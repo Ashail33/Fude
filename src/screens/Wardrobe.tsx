@@ -1,4 +1,5 @@
-import { Avatar } from '../components/Avatar'
+import { useEffect, useState } from 'react'
+import { PixelSprite, type Dir } from '../art'
 import { T, useBurst } from '../components/ui'
 import { EFFECTS, OUTFITS, titleFor, TITLES, xpForLevel } from '../engine/rewards'
 import { sfx } from '../engine/sfx'
@@ -25,14 +26,57 @@ export default function Wardrobe() {
   const lvl = level(p)
   const [title, titleJp] = titleFor(lvl)
   const [burst, fire] = useBurst()
+  const [dir, setDir] = useState<Dir>('down')
+  const [spin, setSpin] = useState(true)
+
+  // Turn the mannequin slowly so every side of the outfit shows.
+  useEffect(() => {
+    if (!spin) return
+    const order: Dir[] = ['down', 'left', 'up', 'right']
+    const id = setInterval(() => setDir((d) => order[(order.indexOf(d) + 1) % 4]), 1400)
+    return () => clearInterval(id)
+  }, [spin])
 
   return (
     <main className="wardrobe">
+      <h1>
+        <T en="Wardrobe" jp="きがえ" />
+      </h1>
       <section className="card wardrobe-hero">
+        <span className="win-title">
+          <T en="Mage" jp="まどうし" />
+        </span>
         {burst}
-        <Avatar outfit={p.outfit} size={160} className="float" />
         <div>
-          <h1>{p.name}</h1>
+          <div className="wardrobe-stage">
+            <PixelSprite id="mage" outfit={p.outfit} dir={dir} scale={6} animate />
+          </div>
+          <div className="wardrobe-dirs" role="group" aria-label="Turn">
+            {(
+              [
+                ['left', '◀'],
+                ['down', '▼'],
+                ['up', '▲'],
+                ['right', '▶'],
+              ] as const
+            ).map(([d, ch]) => (
+              <button
+                key={d}
+                type="button"
+                className="btn-icon"
+                aria-label={`Face ${d}`}
+                onClick={() => {
+                  setSpin(false)
+                  setDir(d)
+                }}
+              >
+                {ch}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <h2 className="wardrobe-name">{p.name}</h2>
           <p className="glow-text">
             <T en={title} jp={titleJp} /> · Lv {lvl}
           </p>
@@ -46,7 +90,7 @@ export default function Wardrobe() {
       </section>
 
       <h2 className="section-title">
-        👘 <T en="Outfits" jp="いしょう" />
+        <T en="Outfits" jp="いしょう" />
       </h2>
       <div className="outfit-grid">
         {OUTFITS.map((o) => {
@@ -63,7 +107,13 @@ export default function Wardrobe() {
                 setState((s) => ({ ...s, outfit: o.id }))
               }}
             >
-              <Avatar outfit={o.id} size={72} className={open ? '' : 'silhouette'} />
+              <span className={open ? '' : 'silhouette'}>
+                <PixelSprite id="mage" outfit={o.id} scale={4} />
+              </span>
+              <span className="outfit-swatch" aria-hidden>
+                <span style={{ background: open ? o.robe : '#3a3f6e' }} />
+                <span style={{ background: open ? o.trim : '#3a3f6e' }} />
+              </span>
               <strong>{o.name}</strong>
               <span className="muted small" lang="ja">
                 {o.jp}
@@ -75,7 +125,7 @@ export default function Wardrobe() {
       </div>
 
       <h2 className="section-title">
-        ✨ <T en="Spell effects" jp="まほうのエフェクト" />
+        <T en="Spell effects" jp="まほうのエフェクト" />
       </h2>
       <div className="outfit-grid">
         {EFFECTS.map((e) => {
@@ -101,7 +151,7 @@ export default function Wardrobe() {
       </div>
 
       <h2 className="section-title">
-        🎖️ <T en="Titles" jp="しょうごう" />
+        <T en="Titles" jp="しょうごう" />
       </h2>
       <div className="row">
         {TITLES.map(([l, en, jp]) => (
