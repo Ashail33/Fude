@@ -32,6 +32,8 @@ const FOV = 30
 const PITCH = (40 * Math.PI) / 180
 /** >1 shows more of the map than the 2D view at the same scale. */
 const ZOOM = 0.85
+const ZOOM_MIN = 0.5
+const ZOOM_MAX = 1.9
 const N_LIGHTS = 8
 const REDUCED = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches
 
@@ -201,6 +203,7 @@ export class Renderer3D extends Renderer {
       this.scene.add(p)
     }
     this.particleLift = 22
+    this.bindZoom()
     this.applyLevel(this.level, true)
   }
 
@@ -230,6 +233,7 @@ export class Renderer3D extends Renderer {
 
   override dispose() {
     super.dispose()
+    this.zoomOff?.()
     this.unsubQ()
     this.dio?.dispose()
     this.post?.dispose()
@@ -253,15 +257,23 @@ export class Renderer3D extends Renderer {
     this.glCanvas.style.width = `${this.cssW}px`
     this.glCanvas.style.height = `${this.cssH}px`
     this.post?.setSize(this.cssW, this.cssH, pr)
+    this.camera.aspect = this.cssW / Math.max(1, this.cssH)
+    this.frame3D()
+    this.snapNext = true
+  }
+
+  /** Camera distance, ground footprint and fog for the current size and zoom. */
+  private frame3D() {
     const cam = this.camera
-    cam.aspect = this.cssW / Math.max(1, this.cssH)
     // show about as many tiles across as the 2D view (at least 10), fewer inside small rooms
     const inside = this.map?.spec.interior ? 0.82 : 1
-    const viewTiles = Math.min(cam.aspect < 0.8 ? 10 : 30, Math.max(10, (this.viewW / 16) * ZOOM)) * inside
+    const viewTiles = Math.min(cam.aspect < 0.8 ? 10 : 30, Math.max(10, (this.viewW / 16) * ZOOM)) * inside * this.zoom
     this.dist = viewTiles / 2 / (Math.tan(((FOV / 2) * Math.PI) / 180) * cam.aspect)
     cam.far = this.dist * 4
     cam.updateProjectionMatrix()
     // ground footprint relative to the target
+    const tx = this.tgt.x
+    const tz = this.tgt.z
     this.placeCamera(0, 0)
     const hit = (x: number, y: number) => {
       this.ndc.set(x, y)
@@ -272,8 +284,94 @@ export class Renderer3D extends Renderer {
     const top = hit(0, 1)
     const bot = hit(0, -1)
     this.foot = { zTop: top.z, zBot: bot.z, halfTop: Math.abs(hit(1, 1).x), halfMid: Math.abs(hit(1, 0).x) }
-    this.scene.fog = new THREE.Fog(this.fogColor(), this.dist * 0.95, this.dist * 2.4)
-    this.snapNext = true
+    this.placeCamera(tx, tz)
+    const far = this.map?.spec.interior ? 3 : 2.4
+    if (this.scene.fog instanceof THREE.Fog) {
+      this.scene.fog.near = this.dist * 0.95
+      this.scene.fog.far = this.dist * far
+    } else this.scene.fog = new THREE.Fog(this.fogColor(), this.dist * 0.95, this.dist * far)
+  }
+
+  // ─── zoom (wheel / pinch / + −) ────────────────────────────────
+  /** Current and target zoom (1 = default; <1 closer, >1 further). */
+  zoom = 1
+  private zoomTo = 1
+  private pinch: { d: number; z: number } | null = null
+  private zoomOff: (() => void) | null = null
+
+  setZoom(z: number) {
+    this.zoomTo = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, z))
+    try {
+      localStorage.setItem('fude.zoom', this.zoomTo.toFixed(3))
+    } catch {
+      /* private mode */
+    }
+  }
+
+  private bindZoom() {
+    try {
+      const z = Number(localStorage.getItem('fude.zoom'))
+      if (z >= ZOOM_MIN && z <= ZOOM_MAX) this.zoom = this.zoomTo = z
+    } catch {
+      /* ignore */
+    }
+    const el = this.stage
+    if (!el) return
+    const wheel = (e: WheelEvent) => {
+      e.preventDefault()
+      // trackpad pinch arrives as ctrl+wheel with small deltas
+      const k = e.ctrlKey ? 0.01 : 0.0015
+      this.setZoom(this.zoomTo * Math.exp(e.deltaY * k))
+    }
+    const dist = (t: TouchList) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY)
+    const tstart = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        this.pinch = { d: dist(e.touches), z: this.zoomTo }
+        this.pinchStarted = true
+      }
+    }
+    const tmove = (e: TouchEvent) => {
+      if (!this.pinch || e.touches.length !== 2) return
+      e.preventDefault()
+      this.setZoom(this.pinch.z * (this.pinch.d / Math.max(1, dist(e.touches))))
+    }
+    const tend = (e: TouchEvent) => {
+      if (e.touches.length < 2) this.pinch = null
+    }
+    const key = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return
+      if (e.key === '+' || e.key === '=') this.setZoom(this.zoomTo / 1.2)
+      else if (e.key === '-' || e.key === '_') this.setZoom(this.zoomTo * 1.2)
+    }
+    el.addEventListener('wheel', wheel, { passive: false })
+    el.addEventListener('touchstart', tstart, { passive: true })
+    el.addEventListener('touchmove', tmove, { passive: false })
+    el.addEventListener('touchend', tend)
+    el.addEventListener('touchcancel', tend)
+    window.addEventListener('keydown', key)
+    this.zoomOff = () => {
+      el.removeEventListener('wheel', wheel)
+      el.removeEventListener('touchstart', tstart)
+      el.removeEventListener('touchmove', tmove)
+      el.removeEventListener('touchend', tend)
+      el.removeEventListener('touchcancel', tend)
+      window.removeEventListener('keydown', key)
+    }
+  }
+
+  /** A pinch began: cancel the tap-to-walk its first finger started. */
+  private pinchStarted = false
+
+  /** Ease toward the target zoom; returns true while it changes. */
+  private stepZoom(dt: number): boolean {
+    const d = this.zoomTo - this.zoom
+    if (Math.abs(d) < 0.0005) {
+      if (this.zoom === this.zoomTo) return false
+      this.zoom = this.zoomTo
+    } else this.zoom += d * Math.min(1, dt * 12)
+    this.frame3D()
+    return true
   }
 
   private fogColor(): THREE.Color {
@@ -693,6 +791,12 @@ export class Renderer3D extends Renderer {
     }
     this.uTime.value = now / 1000
     this.frameDt = dt
+    this.stepZoom(dt)
+    if (this.pinchStarted) {
+      this.pinchStarted = false
+      world.path = []
+      this.tap = null
+    }
     this.updateCamera3D(world, dt)
 
     if (!this.chestSeen) this.chestSeen = new Set(info.opened)
