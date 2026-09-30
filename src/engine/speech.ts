@@ -1,20 +1,33 @@
 import { toHiragana, toKatakana } from 'wanakana'
+import { pickJaVoice, ttsParams } from './audio/voices'
 import { getState } from './store'
 
-/** Text-to-speech in Japanese via the Web Speech API. */
+/**
+ * Text-to-speech in Japanese via the Web Speech API. Pass a `speaker`
+ * (sprite / story speaker id) and each character gets their own pitch,
+ * rate and — when the system has several Japanese voices — a deeper or
+ * higher voice (see ./audio/voices.ts).
+ */
 let jaVoice: SpeechSynthesisVoice | null | undefined
+let allVoices: SpeechSynthesisVoice[] = []
+
+function voiceList(): SpeechSynthesisVoice[] {
+  if (typeof speechSynthesis === 'undefined') return []
+  if (!allVoices.length) allVoices = speechSynthesis.getVoices()
+  return allVoices
+}
 
 function pickVoice(): SpeechSynthesisVoice | null {
   if (typeof speechSynthesis === 'undefined') return null
   if (jaVoice !== undefined && jaVoice !== null) return jaVoice
-  const voices = speechSynthesis.getVoices()
-  jaVoice = voices.find((v) => v.lang === 'ja-JP' && /google|kyoko|otoya|haruka|nanami/i.test(v.name)) ?? voices.find((v) => v.lang.startsWith('ja')) ?? null
+  jaVoice = pickJaVoice(voiceList())
   return jaVoice
 }
 
 if (typeof speechSynthesis !== 'undefined') {
   speechSynthesis.addEventListener?.('voiceschanged', () => {
     jaVoice = undefined
+    allVoices = []
     pickVoice()
   })
 }
@@ -27,8 +40,12 @@ export function hasJapaneseVoice(): boolean {
   return !!pickVoice()
 }
 
-/** Speak Japanese text. Resolves when finished (or immediately if unsupported/disabled). */
-export function speak(text: string, opts: { rate?: number; force?: boolean } = {}): Promise<void> {
+/**
+ * Speak Japanese text. Resolves when finished (or immediately if
+ * unsupported/disabled). `speaker` (sprite / speaker id) picks that
+ * character's voice; an explicit `rate` still wins.
+ */
+export function speak(text: string, opts: { rate?: number; force?: boolean; speaker?: string } = {}): Promise<void> {
   const { settings } = getState()
   if (!canSpeak() || (!settings.voice && !opts.force)) return Promise.resolve()
   return new Promise((resolve) => {
@@ -36,7 +53,13 @@ export function speak(text: string, opts: { rate?: number; force?: boolean } = {
     const u = new SpeechSynthesisUtterance(text)
     u.lang = 'ja-JP'
     u.rate = opts.rate ?? settings.speechRate
-    const v = pickVoice()
+    let v = pickVoice()
+    if (opts.speaker) {
+      const t = ttsParams(opts.speaker, voiceList(), settings.speechRate)
+      if (t.voice) v = t.voice
+      u.pitch = t.pitch
+      if (opts.rate === undefined) u.rate = t.rate
+    }
     if (v) u.voice = v
     u.onend = () => resolve()
     u.onerror = () => resolve()

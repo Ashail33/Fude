@@ -11,6 +11,7 @@ import { preloadRegionHd } from '../battle/hd'
 import { playMusic } from '../engine/music'
 import { sfx } from '../engine/sfx'
 import { speak } from '../engine/speech'
+import { voices } from '../engine/voice'
 import { getState, immersionOf, markScene, usePlayer } from '../engine/store'
 import { SceneBackdrop } from './Backdrop'
 import { KenBurns, VnBusts, type Bust } from '../ui/Hd'
@@ -69,10 +70,6 @@ function sceneAssets(scene: Scene): string[] {
   return [...ids]
 }
 
-function blip() {
-  ;(sfx as unknown as Record<string, (() => void) | undefined>).blip?.()
-}
-
 export function Cutscene({ id, onDone }: CutsceneProps) {
   const scene = SCENES[id]
   const p = usePlayer()
@@ -116,12 +113,20 @@ export function Cutscene({ id, onDone }: CutsceneProps) {
   const isPause = !!step?.pause && !step.jp && !step.en
 
   // Typewriter.
+  const voiceId = step?.who ? SPEAKERS[step.who].sprite : undefined
+  const cried = useRef(new Set<string>())
   useEffect(() => {
     setShown(0)
     setShowEn(false)
     if (!step) return
-    if (step.jp) void speak(speechText(step, getState().name))
+    if (step.jp) void speak(speechText(step, getState().name), { speaker: step.who ? SPEAKERS[step.who].sprite : undefined })
     if (step.shake || step.flash) sfx.hit()
+    // Signature sounds: when an actor walks on, or first speaks in the scene.
+    const who = step.enter ?? step.who
+    if (who && !cried.current.has(who)) {
+      cried.current.add(who)
+      voices.cry(SPEAKERS[who].sprite)
+    }
   }, [i, step])
 
   useEffect(() => {
@@ -130,10 +135,10 @@ export function Cutscene({ id, onDone }: CutsceneProps) {
     const t = setTimeout(() => {
       setShown((n) => n + 1)
       const ch = primary[shown]
-      if (ch && ch.trim() && shown % 2 === 0) blip()
+      if (ch) voices.talk(voiceId, ch, shown)
     }, perChar)
     return () => clearTimeout(t)
-  }, [typing, shown, primary, step, isPause])
+  }, [typing, shown, primary, step, isPause, voiceId])
 
   const next = useCallback(() => {
     if (!scene) return

@@ -30,7 +30,14 @@ function build(): AudioContext | null {
   ctx = new AC({ latencyHint: 'interactive' })
   master = ctx.createGain()
   master.gain.value = 0.9
-  master.connect(ctx.destination)
+  // Glue + safety: tames stacked spells over loud music without pumping.
+  const comp = ctx.createDynamicsCompressor()
+  comp.threshold.value = -16
+  comp.knee.value = 14
+  comp.ratio.value = 3
+  comp.attack.value = 0.008
+  comp.release.value = 0.22
+  master.connect(comp).connect(ctx.destination)
   musicBus = ctx.createGain()
   musicBus.connect(master)
   sfxBus = ctx.createGain()

@@ -12,8 +12,10 @@ import { activitiesFor, bossOf, REGIONS, STAGE_LABEL } from '../data/regions'
 import { VOCAB, WORD_BY_ID } from '../data/vocab'
 import { item } from '../engine/items'
 import { distractors, shuffle } from '../engine/random'
+import { isQuestion } from '../engine/audio/voices'
 import { sfx } from '../engine/sfx'
 import { speak } from '../engine/speech'
+import { voices } from '../engine/voice'
 import { activityUnlocked, immersionOf, recordReviews, regionUnlocked, usePlayer } from '../engine/store'
 import type { Activity } from '../games/types'
 import { VnBusts, type Bust } from '../ui/Hd'
@@ -43,10 +45,12 @@ export function Bi({ line, className }: { line: Line; className?: string }) {
   )
 }
 
-function Typewriter({ text, onDone, skip }: { text: string; onDone: () => void; skip: number }) {
+/** Typewriter text; `voice` (sprite / speaker id) gives the blips that character's voice. */
+function Typewriter({ text, onDone, skip, voice }: { text: string; onDone: () => void; skip: number; voice?: string }) {
   const [n, setN] = useState(0)
   const done = useRef(false)
   const chars = useMemo(() => [...text], [text])
+  const question = useMemo(() => isQuestion(text), [text])
   useEffect(() => {
     if (n >= chars.length) {
       if (!done.current) {
@@ -57,10 +61,11 @@ function Typewriter({ text, onDone, skip }: { text: string; onDone: () => void; 
     }
     const id = setTimeout(() => {
       setN((v) => v + 1)
-      if (n % 2 === 0 && chars[n] !== ' ') uiSound.blip(0)
+      // Lift the last few blips of a question.
+      voices.talk(voice, chars[n], n, question && n >= chars.length - 4)
     }, 34)
     return () => clearTimeout(id)
-  }, [n, chars, onDone])
+  }, [n, chars, onDone, voice, question])
   useEffect(() => {
     if (skip > 0) setN(chars.length)
   }, [skip, chars.length])
@@ -87,7 +92,7 @@ function SayStep({ step, onNext, bust, onTalking }: { step: Extract<Step, { kind
     return () => onTalking?.(false)
   }, [typed, onTalking])
   useEffect(() => {
-    if (step.voice !== false) void speak(step.line.jp)
+    if (step.voice !== false) void speak(step.line.jp, { speaker: step.portrait })
   }, [step])
   const advance = () => {
     if (!typedRef.current) {
@@ -119,7 +124,7 @@ function SayStep({ step, onNext, bust, onTalking }: { step: Extract<Step, { kind
         </div>
       )}
       <div className="dq-text">
-        <Typewriter text={step.line.jp} onDone={() => setTyped(true)} skip={skip} />
+        <Typewriter text={step.line.jp} onDone={() => setTyped(true)} skip={skip} voice={step.portrait} />
         {typed && (lvl <= 1 || (lvl === 2 && showEn)) && step.line.en && <span className={`bi-en ${lvl >= 1 ? 'small' : ''}`}>{step.line.en}</span>}
         {typed && lvl === 2 && !showEn && step.line.en && (
           <button
@@ -340,6 +345,15 @@ export function Dialog({ steps, speaker, onClose, onStart }: { steps: Step[]; sp
   useEffect(() => {
     if (!step) onClose()
   }, [step, onClose])
+
+  // Signature sound (meow, bark, Fude's chime…) the first time each character speaks in this conversation.
+  const cried = useRef(new Set<string>())
+  const stepPortrait = portraitOf(step)
+  useEffect(() => {
+    if (!stepPortrait || cried.current.has(stepPortrait)) return
+    cried.current.add(stepPortrait)
+    voices.cry(stepPortrait)
+  }, [stepPortrait, i])
   if (!step) return null
   const next = (more?: Step[] | void) => {
     if (more && more.length) {

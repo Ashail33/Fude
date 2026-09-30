@@ -5,6 +5,7 @@ import { item } from '../engine/items'
 import { sample, shuffle } from '../engine/random'
 import { sfx } from '../engine/sfx'
 import { canListen, listen, speak } from '../engine/speech'
+import { voices } from '../engine/voice'
 import type { Review } from '../engine/srs'
 import type { GameProps } from './types'
 import { checkIncantation, checkSpoken, ELEMENT_WORD, type CastResult } from './incantation'
@@ -308,7 +309,10 @@ export default function SpellCombat({ activity, params, onFinish, onExit }: Game
           ]}
           onStart={() => {
             setStarted(true)
-            if (enemies[0]) void speak(enemies[0].taunt[0])
+            if (enemies[0]) {
+              voices.cry(spriteOf(enemies[0].id))
+              void speak(enemies[0].taunt[0], { speaker: spriteOf(enemies[0].id) })
+            }
           }}
         />
       </GameFrame>

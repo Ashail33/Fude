@@ -17,6 +17,7 @@ import { item } from '../engine/items'
 import { playJingle, playMusic } from '../engine/music'
 import { sfx } from '../engine/sfx'
 import { canSpeak, speak } from '../engine/speech'
+import { voices } from '../engine/voice'
 import { addItem, getState, grantRewards, immersionOf, level, recordReviews, usePlayer, type ImmersionLevel } from '../engine/store'
 import Backdrop from './Backdrop'
 import { battleBackdropId, enemyHdId, FLOATING } from './hd'
@@ -427,6 +428,8 @@ export default function Battle({ region, enemies, onEnd }: BattleProps) {
         case 'enemyDie': {
           const c = enemyCenter(ev.target)
           bsfx.enemyDie()
+          // A last, higher-pitched yelp from the monster.
+          voices.cry(view.enemies[ev.target]?.def.id, { pitch: 1.3 })
           setEnemyFx(ev.target, 'dying')
           addFx(sparks(c.x, c.y, '#f7c948', 12, 110), 1000)
           if (hdEnemy[ev.target]) {
@@ -445,6 +448,8 @@ export default function Battle({ region, enemies, onEnd }: BattleProps) {
         case 'enemyAct': {
           const i = ev.enemy
           setEnemyFx(i, ev.skill ? 'lunge big' : 'lunge')
+          // Special moves come with the monster's cry.
+          if (ev.skill) voices.cry(view.enemies[i]?.def.id)
           await sleep(220)
           if (ev.blocked) {
             const s = statusCenter()
@@ -585,6 +590,8 @@ export default function Battle({ region, enemies, onEnd }: BattleProps) {
       await sleep(650)
       if (cancelled) return
       setEfx((cur) => cur.map(() => ''))
+      // Each kind of monster announces itself (bosses a little deeper).
+      ;[...new Set(initial.enemies.map((e) => e.def.id))].slice(0, 2).forEach((id, k) => setTimeout(() => !cancelled && voices.cry(id, { pitch: isBoss ? 0.85 : 1 }), k * 320))
       await sleep(250)
       const es = initial.enemies
       await say(

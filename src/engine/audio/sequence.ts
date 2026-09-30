@@ -8,13 +8,21 @@
  *   `~:1`      tie: lengthen the previous note by 1 beat
  *   `1/3`      durations may be decimals (`.5`) or fractions (`1/3`)
  *   `k s h o t` drum hits on noise channels (kick, snare, hat, open hat, tom); `k+h` = both
+ *   `T b x w c` more drums: taiko, tsuzumi "pon", crash, wood block (hyōshigi), clap
+ *   `D4+F4+A4` a chord (pads): several notes struck together
  *   `|`        bar line (ignored by the player; used by tests to check bar lengths)
  *   `( … )x4`  repeat a group
  */
 
 import { chordTones, midiToName, noteToMidi } from './notes'
 
-export type Inst = 'pulse12' | 'pulse25' | 'pulse50' | 'tri' | 'noise' | 'koto' | 'bell'
+/**
+ * Instruments. Chip voices (`pulse*`, `tri`, `noise`) plus richer ones:
+ * `koto` pluck, `bell`, `pad` (detuned saw chords), `flute` (breathy
+ * shakuhachi-like lead with delayed vibrato), `bass` (plucky filtered saw),
+ * `harp` (soft sine/triangle pluck for arpeggios).
+ */
+export type Inst = 'pulse12' | 'pulse25' | 'pulse50' | 'tri' | 'noise' | 'koto' | 'bell' | 'pad' | 'flute' | 'bass' | 'harp'
 
 export interface ChannelDef {
   inst: Inst
@@ -29,6 +37,13 @@ export interface ChannelDef {
   vib?: number
   /** Classic chiptune echo: re-play each note `beats` later at `vol` × volume. */
   echo?: { beats: number; vol: number }
+  /** Chorus layer: a second oscillator detuned by this many cents (chip voices). */
+  detune?: number
+  /** Reverb / stereo-delay send levels 0..1 (master effects; default per instrument). */
+  rev?: number
+  dly?: number
+  /** Played once before the loop starts (same notation; all intros of a track should be equally long). */
+  intro?: string
 }
 
 export interface TrackDef {
@@ -45,6 +60,8 @@ export interface NoteEvent {
   dur: number
   /** MIDI note (melodic channels). */
   midi?: number
+  /** Further notes struck with `midi` (chords). */
+  chord?: number[]
   /** Drum hits (noise channels), e.g. ['k','h']. */
   drums?: string[]
   /** Velocity 0..1. */
@@ -54,6 +71,8 @@ export interface NoteEvent {
 export interface CompiledChannel extends ChannelDef {
   events: NoteEvent[]
   length: number
+  /** Events of the one-off intro (beats from the start of the intro). */
+  introEvents: NoteEvent[]
 }
 
 export interface CompiledTrack {
@@ -61,10 +80,12 @@ export interface CompiledTrack {
   loop: boolean
   /** Loop length in beats (= every channel's length). */
   beats: number
+  /** Length of the one-off intro in beats (0 = none); the loop starts after it. */
+  introBeats: number
   channels: CompiledChannel[]
 }
 
-const DRUMS = new Set(['k', 's', 'h', 'o', 't'])
+const DRUMS = new Set(['k', 's', 'h', 'o', 't', 'T', 'b', 'x', 'w', 'c'])
 
 /** Expand `( … )xN` groups (innermost first). */
 export function expandRepeats(seq: string): string {
@@ -108,6 +129,9 @@ export function parseSeq(seq: string): { events: NoteEvent[]; length: number } {
       const parts = head.split('+')
       if (parts.every((p) => DRUMS.has(p))) {
         last = { beat, dur, drums: parts, vel: 1 }
+      } else if (parts.length > 1) {
+        const [m, ...rest] = parts.map(noteToMidi)
+        last = { beat, dur, midi: m, chord: rest, vel: 1 }
       } else {
         last = { beat, dur, midi: noteToMidi(head), vel: 1 }
       }
@@ -161,10 +185,95 @@ export function fromChords(prog: string, octave: number, pattern: string, beatsP
   return bars.join(' | ')
 }
 
+/**
+ * Pad chords from a progression (one chord per bar, `C,G` splits a bar),
+ * voice-led: each chord takes the inversion closest to the previous one so
+ * the pad glides instead of jumping. `rhythm` = durations within one chord
+ * span (`r:1` rests), e.g. `4`, `2 2`, `1.5 .5 2`.
+ */
+export function padChords(prog: string, octave: number, rhythm = '4', beatsPerBar = 4): string {
+  const pat = rhythm.trim().split(/\s+/)
+  let prev: number[] | null = null
+  const bars: string[] = []
+  for (const bar of prog.trim().split(/\s+/)) {
+    if (bar === '|') continue
+    const chords = bar.split(',')
+    const span = beatsPerBar / chords.length
+    const out: string[] = []
+    for (const sym of chords) {
+      // Candidate voicings: three consecutive chord tones starting at each of the first tones.
+      const tones = chordTones(sym, octave - 1, 12)
+      let best: number[] = tones.slice(3, 6)
+      let bestCost = Infinity
+      for (let k = 0; k + 3 <= tones.length; k++) {
+        const v = tones.slice(k, k + 3)
+        if (v[0] < 12 * (octave + 1) - 7 || v[2] > 12 * (octave + 2) + 7) continue
+        const ref = prev ?? chordTones(sym, octave, 3)
+        const cost = v.reduce((a, m, i) => a + Math.abs(m - ref[i]), 0)
+        if (cost < bestCost) {
+          bestCost = cost
+          best = v
+        }
+      }
+      prev = best
+      const name = best.map(midiToName).join('+')
+      let t = 0
+      for (const tok of pat) {
+        if (t >= span - 1e-9) break
+        const rest = tok.startsWith('r')
+        const len = Math.min(parseDur(rest ? tok.split(':')[1] : tok), span - t)
+        out.push(`${rest ? 'r' : name}:${+len.toFixed(4)}`)
+        t += len
+      }
+      if (t < span - 1e-9) out.push(`r:${+(span - t).toFixed(4)}`)
+    }
+    bars.push(out.join(' '))
+  }
+  return bars.join(' | ')
+}
+
+/** Shift every note (and chord note) of a sequence by `semis` semitones; drums untouched. */
+export function transpose(seq: string, semis: number): string {
+  return seq.replace(/(^|[\s+(])([A-G][#b]{0,2}-?\d)(?=[:\s+)|]|$)/g, (_m, pre: string, n: string) => pre + midiToName(noteToMidi(n) + semis))
+}
+
+/** Bars `from`..`to` (1-based, inclusive) of a one-chord-per-bar progression. */
+export function progBars(prog: string, from: number, to: number): string {
+  return prog.trim().split(/\s+/).slice(from - 1, to).join(' ')
+}
+
+/** `n` bars of rest. */
+export function rests(n: number, beatsPerBar = 4): string {
+  return Array(n).fill(`r:${beatsPerBar}`).join(' | ')
+}
+
+/**
+ * Deterministic "humanising" noise in [-1, 1] for an event (so offline
+ * renders stay repeatable): hash of the absolute beat and the channel.
+ */
+export function humanize(abs: number, channel: number, salt = 0): number {
+  let h = Math.imul(Math.round(abs * 96) + 0x9e37, 0x85ebca6b) ^ Math.imul(channel + 1 + salt * 31, 0xc2b2ae35)
+  h ^= h >>> 13
+  h = Math.imul(h, 0x27d4eb2d)
+  h ^= h >>> 15
+  return ((h >>> 0) / 0xffffffff) * 2 - 1
+}
+
+/** Metric accent: downbeats a touch louder, off-beat 16ths a touch softer. */
+export function accent(beat: number, beatsPerBar = 4): number {
+  const inBar = ((beat % beatsPerBar) + beatsPerBar) % beatsPerBar
+  if (inBar < 1e-6) return 1.08
+  const frac = inBar % 1
+  if (frac < 1e-6) return inBar === beatsPerBar / 2 ? 1.02 : 0.98
+  return Math.abs(frac - 0.5) < 1e-6 ? 0.9 : 0.84
+}
+
 export function compileTrack(def: TrackDef): CompiledTrack {
   const parsed = def.channels.map((c) => ({ c, ...parseSeq(c.seq) }))
   const beats = Math.max(...parsed.map((p) => p.length))
-  const channels = parsed.map(({ c, events, length }) => {
+  const intros = def.channels.map((c) => (c.intro ? parseSeq(c.intro) : { events: [], length: 0 }))
+  const introBeats = Math.max(0, ...intros.map((p) => p.length))
+  const channels = parsed.map(({ c, events, length }, ci) => {
     let evs = events
     if (c.echo) {
       const echoes = events.map((e) => {
@@ -174,9 +283,9 @@ export function compileTrack(def: TrackDef): CompiledTrack {
       })
       evs = [...events, ...echoes].sort((a, b) => a.beat - b.beat)
     }
-    return { ...c, events: evs, length }
+    return { ...c, events: evs, length, introEvents: intros[ci].events }
   })
-  return { bpm: def.bpm, loop: def.loop, beats, channels }
+  return { bpm: def.bpm, loop: def.loop, beats, introBeats, channels }
 }
 
 export function secondsPerBeat(bpm: number): number {
@@ -217,7 +326,30 @@ export function eventsInWindow(
   return out
 }
 
+/**
+ * Like eventsInWindow, for a track with a one-off intro of `introBeats`:
+ * intro events play once from beat 0, then the (looping) body follows.
+ * `abs` is again the absolute beat since the track started.
+ */
+export function eventsInWindowWithIntro(
+  intro: readonly NoteEvent[],
+  introBeats: number,
+  events: readonly NoteEvent[],
+  loopBeats: number,
+  from: number,
+  to: number,
+  loop: boolean,
+): { ev: NoteEvent; abs: number }[] {
+  const out: { ev: NoteEvent; abs: number }[] = []
+  if (to <= from) return out
+  if (from < introBeats) for (const ev of intro) if (ev.beat >= from && ev.beat < to && ev.beat < introBeats) out.push({ ev, abs: ev.beat })
+  const f = Math.max(from, introBeats) - introBeats
+  const t = to - introBeats
+  if (t > f) for (const x of eventsInWindow(events, loopBeats, f, t, loop)) out.push({ ev: x.ev, abs: x.abs + introBeats })
+  return out
+}
+
 /** Length of a non-looping track in seconds (plus release tail). */
 export function trackSeconds(t: CompiledTrack): number {
-  return t.beats * secondsPerBeat(t.bpm)
+  return (t.introBeats + t.beats) * secondsPerBeat(t.bpm)
 }

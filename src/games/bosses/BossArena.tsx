@@ -4,6 +4,7 @@ import { GameFrame, Hearts, Intro, T } from '../../components/ui'
 import { PixelSprite, spriteSize, type SpriteId } from '../../art'
 import { BOSS_HD, useHdLoaded } from '../../art/hd'
 import { LivingArt } from '../../anim/LivingArt'
+import { voices } from '../../engine/voice'
 import { TileStrip, type StripCell } from '../pixel'
 import { useHitFlash, useWide } from '../pixelHooks'
 import { useLatest, useNumberKeys, type Battle } from './battle'
@@ -60,6 +61,14 @@ export function BossArena({
   children: ReactNode
 }) {
   const b = battle
+  // The boss's signature cry: on its intro, when it changes form (deeper), and a last cry when beaten.
+  useEffect(() => {
+    if (b.status === 'intro' || b.status === 'fight' || b.status === 'lost') return
+    voices.cry(spriteId, { pitch: b.status === 'phase' ? 0.85 : b.status === 'won' ? 1.25 : 1 })
+  }, [b.status, spriteId])
+  useEffect(() => {
+    voices.cry(spriteId)
+  }, [spriteId])
   const flash = useHitFlash(b.anim.kind === 'hit' ? b.anim.n : 0, 180)
   const wide = useWide()
   const big = spriteSize(spriteId).w > 32
