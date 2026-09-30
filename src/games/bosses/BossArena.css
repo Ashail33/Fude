@@ -737,3 +737,29 @@
     animation: none !important;
   }
 }
+
+/* Illustrated boss art (when provided) */
+.ba-hd {
+  display: block;
+  width: min(62vw, 300px);
+  max-height: 34vh;
+  object-fit: contain;
+  filter: var(--ba-filter, none) drop-shadow(0 10px 18px rgba(0, 0, 0, 0.45));
+  animation: ba-hd-breathe 3.2s ease-in-out infinite;
+  transform-origin: 50% 90%;
+  user-select: none;
+}
+.ba-hd-big {
+  width: min(92vw, 560px);
+  max-height: 40vh;
+}
+.ba-hd-flash {
+  filter: brightness(0) invert(1) drop-shadow(0 0 12px #fff);
+}
+@keyframes ba-hd-breathe {
+  0%, 100% { transform: scale(1, 1); }
+  50% { transform: scale(1.015, 0.985) translateY(1px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ba-hd { animation: none; }
+}

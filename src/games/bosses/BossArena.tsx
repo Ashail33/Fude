@@ -2,6 +2,7 @@ import { useEffect, type CSSProperties, type ReactNode } from 'react'
 import type { Activity } from '../types'
 import { GameFrame, Hearts, Intro, T } from '../../components/ui'
 import { PixelSprite, spriteSize, type SpriteId } from '../../art'
+import { BOSS_HD, useHdLoaded } from '../../art/hd'
 import { TileStrip, type StripCell } from '../pixel'
 import { useHitFlash, useWide } from '../pixelHooks'
 import { useLatest, useNumberKeys, type Battle } from './battle'
@@ -62,9 +63,15 @@ export function BossArena({
   const wide = useWide()
   const big = spriteSize(spriteId).w > 32
   const scale = big ? (wide ? 3 : 2) : wide ? 5 : 4
+  // Illustrated boss art (Higgsfield) when available; pixel sprite otherwise.
+  const hd = useHdLoaded(BOSS_HD[activity.game])
   const art = (
     <>
-      <PixelSprite id={spriteId} scale={scale} animate flash={flash} className="ba-pixel" />
+      {hd ? (
+        <img src={hd} alt="" draggable={false} className={`ba-hd ${flash ? 'ba-hd-flash' : ''} ${big ? 'ba-hd-big' : ''}`} />
+      ) : (
+        <PixelSprite id={spriteId} scale={scale} animate flash={flash} className="ba-pixel" />
+      )}
       {sprite && <div className="ba-deco">{sprite}</div>}
     </>
   )
