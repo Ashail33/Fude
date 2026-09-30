@@ -21,9 +21,9 @@ import { DIRS, WALK_SPEED, npcState, springStep, walkFrame, type World } from '.
 import { Renderer, safeSprite, wpos, type RenderInfo } from '../world/render'
 import type { Entity, GameMap, Pt } from '../world/types'
 import { Atlas } from './atlas'
-import { ANCHOR, animateDyn, buildDiorama, CARD_N, VS, type Diorama } from './build'
+import { ANCHOR, animateDyn, buildDiorama, voxDepth, VS, type Diorama } from './build'
 import { Post } from './post'
-import { upscaleCanvas } from './upscale'
+import { voxelGeometry, voxelMaterial } from './voxel'
 
 const FOV = 30
 const PITCH = (40 * Math.PI) / 180
@@ -44,24 +44,11 @@ export function canRender3D(): boolean {
 
 interface Card {
   mesh: THREE.Mesh
-  mat: THREE.MeshLambertMaterial
+  /** Current / target yaw (turn toward the facing direction). */
+  yaw: number
   blob: THREE.Mesh | null
   seen: number
   ghost: boolean
-}
-
-/** Upscaled textures for sprite/tile canvases (both are cached by their producers). */
-const texCache = new WeakMap<HTMLCanvasElement, THREE.CanvasTexture>()
-function texFor(c: HTMLCanvasElement): THREE.CanvasTexture {
-  let t = texCache.get(c)
-  if (!t) {
-    t = new THREE.CanvasTexture(upscaleCanvas(c, 2))
-    t.colorSpace = THREE.SRGBColorSpace
-    t.magFilter = THREE.NearestFilter
-    t.minFilter = THREE.LinearMipmapLinearFilter
-    texCache.set(c, t)
-  }
-  return t
 }
 
 function blobTexture(): THREE.CanvasTexture {
@@ -99,7 +86,8 @@ export class Renderer3D extends Renderer {
   private points: THREE.PointLight[] = []
   private cards = new Map<object, Card>()
   private tileKeys = new WeakMap<Entity, object>()
-  private cardGeo: THREE.PlaneGeometry
+  private voxMat: THREE.MeshLambertMaterial
+  private ghostMat: THREE.MeshLambertMaterial
   private blobGeo: THREE.PlaneGeometry
   private blobMat: THREE.MeshBasicMaterial
   private frameNo = 0
@@ -114,6 +102,7 @@ export class Renderer3D extends Renderer {
   private ndc = new THREE.Vector2()
   private plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)
   private lastT = 0
+  private frameDt = 1 / 60
 
   constructor(canvas: HTMLCanvasElement) {
     super(canvas, false)
@@ -181,9 +170,8 @@ export class Renderer3D extends Renderer {
     this.skirt.receiveShadow = true
     this.scene.add(this.skirt)
 
-    this.cardGeo = new THREE.PlaneGeometry(1, 1).translate(0, 0.5, 0)
-    const n = this.cardGeo.getAttribute('normal') as THREE.BufferAttribute
-    for (let i = 0; i < n.count; i++) n.setXYZ(i, CARD_N[0], CARD_N[1], CARD_N[2])
+    this.voxMat = voxelMaterial(uTime)
+    this.ghostMat = new THREE.MeshLambertMaterial({ vertexColors: true, transparent: true, depthWrite: false, opacity: 0.4 })
     this.blobGeo = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2)
     this.blobMat = new THREE.MeshBasicMaterial({ map: blobTexture(), transparent: true, depthWrite: false, opacity: 0.55 })
 
@@ -231,7 +219,6 @@ export class Renderer3D extends Renderer {
     this.unsubQ()
     this.dio?.dispose()
     this.post?.dispose()
-    for (const c of this.cards.values()) c.mat.dispose()
     this.atlas.dispose()
     this.gl.dispose()
     this.glCanvas.remove()
@@ -295,12 +282,12 @@ export class Renderer3D extends Renderer {
     for (const c of this.cards.values()) this.dropCard(c)
     this.cards.clear()
     if (this.dio) {
-      this.scene.remove(this.dio.ground, this.dio.statics, this.dio.dynamic)
+      this.scene.remove(this.dio.ground, this.dio.statics, this.dio.dynamic, this.dio.voxels)
       this.dio.dispose()
     }
     const up = Math.max(0, Math.min(2, Math.floor(Math.log2(4096 / (Math.max(m.w, m.h) * 16)))))
-    this.dio = buildDiorama(m, this.atlas, this.cardMat, this.groundMat, up)
-    this.scene.add(this.dio.ground, this.dio.statics, this.dio.dynamic)
+    this.dio = buildDiorama(m, this.atlas, this.cardMat, this.groundMat, up, this.voxMat)
+    this.scene.add(this.dio.ground, this.dio.statics, this.dio.dynamic, this.dio.voxels)
     this.atlas.flush()
     this.applyGrade()
     this.resize3D()
@@ -390,7 +377,7 @@ export class Renderer3D extends Renderer {
     const sx = Math.round(tx / texel) * texel
     const sz = Math.round((tz - 2) / texel) * texel
     this.sun.target.position.set(sx, 0, sz)
-    this.sun.position.set(sx - 14, 30, sz - 12)
+    this.sun.position.set(sx - 12, 26, sz + 14)
     this.sun.target.updateMatrixWorld()
   }
 
@@ -434,8 +421,7 @@ export class Renderer3D extends Renderer {
   private card(key: object, blob: boolean): Card {
     let c = this.cards.get(key)
     if (!c) {
-      const mat = new THREE.MeshLambertMaterial({ alphaTest: 0.5, side: THREE.DoubleSide, map: this.atlas.tex })
-      const mesh = new THREE.Mesh(this.cardGeo, mat)
+      const mesh = new THREE.Mesh(undefined, this.voxMat)
       mesh.castShadow = true
       this.scene.add(mesh)
       let b: THREE.Mesh | null = null
@@ -444,43 +430,41 @@ export class Renderer3D extends Renderer {
         b.renderOrder = 1
         this.scene.add(b)
       }
-      c = { mesh, mat, blob: b, seen: 0, ghost: false }
+      c = { mesh, yaw: 0, blob: b, seen: 0, ghost: false }
       this.cards.set(key, c)
     }
     c.seen = this.frameNo
-    c.mesh.visible = true
     return c
   }
 
   private dropCard(c: Card) {
     this.scene.remove(c.mesh)
     if (c.blob) this.scene.remove(c.blob)
-    c.mat.dispose()
   }
 
-  /** Stand a canvas up with its bottom-centre at (x, y, z) in tiles. */
-  private setCard(c: Card, canvas: HTMLCanvasElement, x: number, y: number, z: number, blobW = 0.62) {
-    const t = texFor(canvas)
-    if (c.mat.map !== t) c.mat.map = t
-    c.mesh.scale.set(canvas.width / 16, (canvas.height / 16) * VS, 1)
+  /** Place the voxel model of a canvas with its bottom-centre at (x, y, z) in tiles. */
+  private setCard(c: Card, canvas: HTMLCanvasElement, x: number, y: number, z: number, blobW = 0.62, depth = 8, dir?: string) {
+    const g = voxelGeometry(canvas, depth)
+    if (c.mesh.geometry !== g) c.mesh.geometry = g
     c.mesh.position.set(x, y, z)
+    // side-facing figures turn three-quarters so their depth shows
+    const want = dir === 'left' ? -0.5 : dir === 'right' ? 0.5 : 0
+    c.yaw += (want - c.yaw) * Math.min(1, this.frameDt * 14)
+    c.mesh.rotation.y = c.yaw
     if (c.blob) {
-      c.blob.position.set(x, 0.015, z - 0.08)
+      c.blob.position.set(x, 0.015, z)
       const s = blobW * Math.max(0.35, 1 - y * 0.6)
-      c.blob.scale.set(s * (canvas.width / 16), 1, s * 0.55)
+      c.blob.scale.set(s * (canvas.width / 16), 1, s * 0.6)
     }
   }
 
-  private setGhost(c: Card, ghost: boolean, now: number, seed: number) {
+  private setGhost(c: Card, ghost: boolean, now: number) {
     if (ghost !== c.ghost) {
       c.ghost = ghost
-      c.mat.transparent = ghost
-      c.mat.depthWrite = !ghost
-      c.mat.alphaTest = ghost ? 0.05 : 0.5
-      c.mat.needsUpdate = true
+      c.mesh.material = ghost ? this.ghostMat : this.voxMat
       c.mesh.castShadow = !ghost
     }
-    c.mat.opacity = ghost ? 0.3 + 0.18 * Math.sin(now / 180 + seed) : 1
+    if (ghost) this.ghostMat.opacity = 0.3 + 0.18 * Math.sin(now / 180)
   }
 
   private player3D(world: World, now: number, info: RenderInfo) {
@@ -503,7 +487,7 @@ export class Renderer3D extends Renderer {
     st.lastFrame = moving ? frame : -1
     st.wasMoving = moving
     const cnv = this.frameCanvas(st, 'mage', dir, anim, frame, blink, info.outfit)
-    if (cnv) this.setCard(this.card(w, true), cnv, (p.x + 8) / 16, 0, p.y / 16 + ANCHOR)
+    if (cnv) this.setCard(this.card(w, true), cnv, (p.x + 8) / 16, 0, p.y / 16 + ANCHOR, 0.62, 8, dir)
   }
 
   private fude3D(world: World, now: number) {
@@ -515,7 +499,7 @@ export class Renderer3D extends Renderer {
     const { frame, blink } = animAt(moving ? 'run' : 'walk', now, { float: true, seed: 3 })
     const cnv = this.frameCanvas(st, 'fude', dir, 'walk', frame, blink, '')
     const hover = (5 + Math.sin(now / 1100) * 1.2) / 16
-    if (cnv) this.setCard(this.card(w, true), cnv, (s.x + 8) / 16, hover * VS, s.y / 16 + ANCHOR - 0.04, 0.5)
+    if (cnv) this.setCard(this.card(w, true), cnv, (s.x + 8) / 16, hover * VS, s.y / 16 + ANCHOR - 0.04, 0.5, 8, dir)
   }
 
   private entity3D(e: Entity, now: number, info: RenderInfo) {
@@ -533,14 +517,13 @@ export class Renderer3D extends Renderer {
         else if (t > 1100) this.chestAnim = null
       }
     }
-    const seed = e.x * 1.7 + e.y
     if (tile) {
       let key = this.tileKeys.get(e)
       if (!key) this.tileKeys.set(e, (key = {}))
       const c = this.card(key, false)
       const cnv = tileCanvas(tile, tileVariant(tile, e.x, e.y), tileFrame(tile, now, e.x, e.y), 0, tile)
-      this.setCard(c, cnv, p.x / 16 + 0.5, (hop / 16) * VS, p.y / 16 + ANCHOR)
-      this.setGhost(c, ghost, now, seed)
+      this.setCard(c, cnv, p.x / 16 + 0.5, (hop / 16) * VS, p.y / 16 + ANCHOR, 0.62, voxDepth(tile))
+      this.setGhost(c, ghost, now)
     }
     const sprite = e.spec.sprite as SpriteId | undefined
     if (!sprite) return
@@ -548,7 +531,7 @@ export class Renderer3D extends Renderer {
     if (e.big) {
       const cnv = safeSprite(sprite, { frame: Math.floor(now / 450) % 2 })
       const bob = Math.sin(now / 420) / 16
-      if (cnv) this.setCard(c, cnv, (p.x + 16) / 16, bob * VS, p.y / 16 + 0.95, 0.8)
+      if (cnv) this.setCard(c, cnv, (p.x + 16) / 16, bob * VS, p.y / 16 + 0.95, 0.8, 10)
       void spriteSize
     } else {
       const st = this.animOf(e, e.dir)
@@ -560,9 +543,9 @@ export class Renderer3D extends Renderer {
       if (moving) frame = walkFrame(npcState(e).steps - 1, e.t)
       else ({ frame, blink } = animAt('idle', now, { seed: sd, float: sprite === 'fude' }))
       const cnv = this.frameCanvas(st, sprite, dir, moving ? 'walk' : 'idle', frame, blink, '')
-      if (cnv) this.setCard(c, cnv, (p.x + 8) / 16, 0, p.y / 16 + ANCHOR + (tile ? 0.02 : 0))
+      if (cnv) this.setCard(c, cnv, (p.x + 8) / 16, 0, p.y / 16 + ANCHOR + (tile ? 0.02 : 0), 0.62, 8, dir)
     }
-    this.setGhost(c, ghost, now, seed)
+    this.setGhost(c, ghost, now)
   }
 
   // ─── lights ──────────────────────────────────────────────────────
@@ -634,12 +617,14 @@ export class Renderer3D extends Renderer {
     this.frameNo++
     const ms = this.lastT ? now - this.lastT : 16
     this.lastT = now
-    const nl = this.governor.push(ms)
+    // very slow frames still count (capped), so a struggling GPU steps down too
+    const nl = this.governor.push(Math.min(ms, 240))
     if (nl !== null) {
       console.info(`[3d] frame time high — quality level ${nl}`)
       this.applyLevel(nl)
     }
     this.uTime.value = now / 1000
+    this.frameDt = dt
     this.updateCamera3D(world, dt)
 
     if (!this.chestSeen) this.chestSeen = new Set(info.opened)

@@ -14,6 +14,7 @@ import type { GameMap } from '../world/types'
 import type { Atlas, UvRect } from './atlas'
 import { upscaleCanvas } from './upscale'
 import { PAL } from '../art/palette'
+import { VoxelBuilder, voxelGeometry } from './voxel'
 
 /** World units per 16 px of height (vertical art stands a little taller than the ground squash). */
 export const VS = 1.35
@@ -30,8 +31,6 @@ const SOLID = new Set<TileId>(['wall', 'wall-window', 'door', 'noren', 'stone-wa
 const ROOF = new Set<TileId>(['roof', 'roof-edge', 'roof-red', 'roof-red-edge', 'shop-awning'])
 /** Cards that sway in the wind (amount at the top edge, in tiles). */
 const SWAY: Partial<Record<TileId, number>> = { tree: 0.05, pine: 0.035, sakura: 0.06, bamboo: 0.08, bush: 0.03, torii: 0 }
-/** Props that stand wider/taller than one tile's art suggests. */
-const CARD_H: Partial<Record<TileId, number>> = { torii: 1.35, tree: 1.15, pine: 1.25, sakura: 1.15, bamboo: 1.2 }
 
 /** Cut-out grass blades stood up in tall-grass cells (two variants, cached). */
 const blades: HTMLCanvasElement[] = []
@@ -124,10 +123,35 @@ export interface Diorama {
   /** Animated cards and decals (UVs rewritten when their frame changes). */
   dynamic: THREE.Mesh
   dyn: DynQuad[]
+  /** Voxel props, chunked 8×8 tiles for culling. */
+  voxels: THREE.Group
+  /** Animated voxel props (geometry swapped per frame). */
+  dynVox: DynVox[]
   dispose(): void
 }
 
-export function buildDiorama(m: GameMap, atlas: Atlas, cardMat: THREE.Material, groundMat: THREE.MeshLambertMaterial, groundUp: number): Diorama {
+export interface DynVox {
+  mesh: THREE.Mesh
+  id: TileId
+  variant: number
+  nb: number
+  x: number
+  y: number
+  frame: number
+  depth: number
+}
+
+/** Voxel depth (thickest point, in pixels) per prop; default 5. */
+const DEPTH: Partial<Record<TileId, number>> = {
+  tree: 7, sakura: 7, pine: 7, bamboo: 4, bush: 7, rock: 7, boulder: 9, stump: 6, statue: 6, well: 8, lantern: 5,
+  sign: 2, fence: 2, torii: 3, stall: 6, barrel: 7, crate: 8, pot: 7, chest: 8, 'chest-open': 8, anvil: 6, tablet: 3,
+  altar: 6, throne: 6, campfire: 5, 'shrine-bell': 4,
+}
+export function voxDepth(id: TileId): number {
+  return DEPTH[id] ?? 5
+}
+
+export function buildDiorama(m: GameMap, atlas: Atlas, cardMat: THREE.Material, groundMat: THREE.MeshLambertMaterial, groundUp: number, voxMat: THREE.Material): Diorama {
   const W = m.w
   const H = m.h
   const inb = (x: number, y: number) => x >= 0 && y >= 0 && x < W && y < H
@@ -314,29 +338,33 @@ export function buildDiorama(m: GameMap, atlas: Atlas, cardMat: THREE.Material, 
   }
 
   // ── cards and decals ──
-  const card = (q: Quads, id: TileId, x: number, y: number, r: UvRect, hMul = 1) => {
-    const z = y + ANCHOR
-    const h = VS * hMul
-    const w = hMul > 1 ? 1 + (hMul - 1) * 0.6 : 1
-    const x0 = x + 0.5 - w / 2
-    return q.add([x0, 0, z], [x0 + w, 0, z], [x0 + w, h, z], [x0, h, z], r, CARD_N, SWAY[id] ?? 0)
-  }
-  const place = (id: TileId, x: number, y: number, nb: number, over: boolean) => {
+  const place = (id: TileId, x: number, y: number, nb: number) => {
     const frames = frameCount(id)
     const variant = tileVariant(id, x, y)
-    if (frames > 1) for (let f = 0; f < frames; f++) atlas.get(tileCanvas(id, variant, f, nb, id))
-    const r = atlas.get(tileCanvas(id, variant, 0, nb, id))
-    const hMul = CARD_H[id] ?? 1
     if (DECAL.has(id)) {
-      const v = dq.add([x, 0.02, y + 1], [x + 1, 0.02, y + 1], [x + 1, 0.02, y], [x, 0.02, y], r, UP)
+      for (let f = 0; f < frames; f++) atlas.get(tileCanvas(id, variant, f, nb, id))
+      const v = dq.add([x, 0.02, y + 1], [x + 1, 0.02, y + 1], [x + 1, 0.02, y], [x, 0.02, y], atlas.get(tileCanvas(id, variant, 0, nb, id)), UP)
       dyn.push({ v, id, variant, nb, x, y, frame: 0 })
       return
     }
+    const depth = voxDepth(id)
     if (frames > 1) {
-      const v = card(dq, id, x, y, r, hMul)
-      dyn.push({ v, id, variant, nb, x, y, frame: 0 })
-    } else card(st, id, x, y, r, over ? Math.max(hMul, 1.1) : hMul)
+      const mesh = new THREE.Mesh(voxelGeometry(tileCanvas(id, variant, 0, nb, id), depth), voxMat)
+      mesh.position.set(x + 0.5, 0, y + ANCHOR)
+      mesh.castShadow = true
+      mesh.receiveShadow = true
+      voxels.add(mesh)
+      dynVox.push({ mesh, id, variant, nb, x, y, frame: 0, depth })
+      return
+    }
+    const ck = Math.floor(x / 8) + Math.floor(y / 8) * 1000
+    let vb = chunks.get(ck)
+    if (!vb) chunks.set(ck, (vb = new VoxelBuilder()))
+    vb.add(tileCanvas(id, variant, 0, nb, id), x + 0.5, 0, y + ANCHOR, { depth, sway: SWAY[id] ?? 0 })
   }
+  const voxels = new THREE.Group()
+  const dynVox: DynVox[] = []
+  const chunks = new Map<number, VoxelBuilder>()
   for (let y = 0; y < H; y++)
     for (let x = 0; x < W; x++) {
       if (m.ground[y * W + x] !== 'tall-grass' || m.obj[y * W + x]) continue
@@ -352,11 +380,17 @@ export function buildDiorama(m: GameMap, atlas: Atlas, cardMat: THREE.Material, 
     for (let x = 0; x < W; x++) {
       const i = y * W + x
       const ob = m.obj[i]
-      if (ob && !FLAT.has(ob) && !SOLID.has(ob) && !ROOF.has(ob)) place(ob, x, y, objNb(x, y), false)
+      if (ob && !FLAT.has(ob) && !SOLID.has(ob) && !ROOF.has(ob)) place(ob, x, y, objNb(x, y))
       const ov = m.over[i]
-      if (ov) place(ov, x, y, computeNeighbours(vGet, x, y), true)
+      if (ov) place(ov, x, y, computeNeighbours(vGet, x, y))
     }
 
+  for (const vb of chunks.values()) {
+    const mesh = new THREE.Mesh(vb.geometry(), voxMat)
+    mesh.castShadow = true
+    mesh.receiveShadow = true
+    voxels.add(mesh)
+  }
   const statics = new THREE.Mesh(st.geometry(), cardMat)
   statics.castShadow = true
   statics.receiveShadow = true
@@ -369,7 +403,10 @@ export function buildDiorama(m: GameMap, atlas: Atlas, cardMat: THREE.Material, 
     statics,
     dynamic,
     dyn,
+    voxels,
+    dynVox,
     dispose() {
+      for (const c of voxels.children) if (!dynVox.some((d) => d.mesh === c)) (c as THREE.Mesh).geometry.dispose()
       gg.dispose()
       groundTex.dispose()
       statics.geometry.dispose()
@@ -378,8 +415,14 @@ export function buildDiorama(m: GameMap, atlas: Atlas, cardMat: THREE.Material, 
   }
 }
 
-/** Advance animated cards/decals; returns true when any UV changed. */
+/** Advance animated cards/decals/voxel props; returns true when any UV changed. */
 export function animateDyn(d: Diorama, atlas: Atlas, now: number): boolean {
+  for (const q of d.dynVox) {
+    const f = tileFrame(q.id, now, q.x, q.y)
+    if (f === q.frame) continue
+    q.frame = f
+    q.mesh.geometry = voxelGeometry(tileCanvas(q.id, q.variant, f, q.nb, q.id), q.depth)
+  }
   let changed = false
   for (const q of d.dyn) {
     const f = tileFrame(q.id, now, q.x, q.y)
