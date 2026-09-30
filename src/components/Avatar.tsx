@@ -10,7 +10,7 @@ export function Avatar({ outfit, size = 96, className, animate = true }: { outfi
   const scale = Math.max(1, Math.round(size / 16))
   return (
     <span className={`avatar ${className ?? ''}`} style={{ ['--trim' as string]: o.trim, width: 16 * scale, height: 16 * scale }}>
-      <PixelSprite id="mage" outfit={o.id} scale={scale} animate={animate} title={o.name} />
+      <PixelSprite id="mage" outfit={o.id} scale={scale} animate={animate} anim="idle" title={o.name} />
     </span>
   )
 }

@@ -1,6 +1,7 @@
 import { Component, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { StatBar } from '../components/Journal'
+import { useCountUp } from '../components/motion'
 import { PixelStar, T, useBurst } from '../components/ui'
 import { ACTIVITIES, ACTIVITY_BY_ID, REGIONS } from '../data/regions'
 import { dueItems, completeQuest, featuredToday, FEATURED_MULTIPLIER, questActivity } from '../engine/quests'
@@ -131,22 +132,6 @@ export default function Play() {
   )
 }
 
-function useCountUp(target: number, delayMs: number, durMs = 900): number {
-  const [v, setV] = useState(0)
-  useEffect(() => {
-    let raf = 0
-    const t0 = performance.now() + delayMs
-    const tick = (t: number) => {
-      const f = Math.max(0, Math.min(1, (t - t0) / durMs))
-      setV(Math.round(target * f))
-      if (f < 1) raf = requestAnimationFrame(tick)
-    }
-    raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(raf)
-  }, [target, delayMs, durMs])
-  return v
-}
-
 const STAR_GAP_MS = 380
 
 function Results({
@@ -204,7 +189,7 @@ function Results({
   }, [passed, fire, outcome.stars, starsDone, xpBar.to])
 
   return (
-    <div className={`results card pop ${passed ? 'won' : 'lost'}`}>
+    <div className={`results card ${passed ? 'won' : 'lost'}`}>
       {burst}
       <div className="results-banner" lang="ja">
         {passed ? (isBoss ? 'だいしょうり！' : 'しょうり！') : 'ざんねん…'}
@@ -231,11 +216,11 @@ function Results({
             <T en="accuracy" jp="せいかくさ" />
           </span>
         </div>
-        <div>
+        <div className={xpShown > 0 && xpShown < gained ? 'rolling' : ''}>
           <strong>+{xpShown}</strong>
           <span className="muted small">EXP</span>
         </div>
-        <div>
+        <div className={shardsShown > 0 && shardsShown < outcome.shards ? 'rolling' : ''}>
           <strong>+{shardsShown}</strong>
           <span className="muted small">💠</span>
         </div>

@@ -5,11 +5,6 @@
   line-height: 0;
 }
 
-.la > .la-img {
-  /* The canvas is laid over the img box: spacing belongs on the wrapper. */
-  margin: 0 !important;
-}
-
 .la-canvas {
   position: absolute;
   display: none;
@@ -17,12 +12,7 @@
   will-change: transform;
 }
 
-.la-on > .la > .la-img {
-  /* The canvas is laid over the img box: spacing belongs on the wrapper. */
-  margin: 0 !important;
-}
-
-.la-canvas {
+.la-on > .la-canvas {
   display: block;
 }
 
@@ -39,12 +29,7 @@
   overflow: hidden;
 }
 
-.la-scene > .la > .la-img {
-  /* The canvas is laid over the img box: spacing belongs on the wrapper. */
-  margin: 0 !important;
-}
-
-.la-canvas {
+.la-scene > .la-canvas {
   width: 100%;
   height: 100%;
 }

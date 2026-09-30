@@ -474,6 +474,20 @@
   bottom: auto;
 }
 
+/* Living art: idle motion and dimming come from the mesh renderer. */
+.cs-boss > .cs-boss-la {
+  height: 100%;
+  max-width: 100%;
+}
+
+.cs-boss .la-canvas {
+  filter: drop-shadow(0 12px 18px rgba(0, 0, 0, 0.45));
+}
+
+.cs-boss.listening:has(.la-on) {
+  filter: none;
+}
+
 @keyframes cs-boss-in {
   from {
     opacity: 0;

@@ -39,11 +39,11 @@ void main() {
     float n = 0.5 * vnoise(vUv * 7.0) + 0.3 * vnoise(vUv * 19.0) + 0.2 * vnoise(vUv * 47.0);
     // Burns away from the feet up, with a ragged noisy front.
     n = n * 0.62 + (1.0 - vUv.y) * 0.38;
-    float th = mix(-0.08, 1.02, uDissolve);
+    float th = mix(0.02, 1.02, uDissolve);
     float keep = smoothstep(th, th + 0.03, n);
-    float edge = 1.0 - smoothstep(0.0, 0.08, n - th);
+    float edge = (1.0 - smoothstep(0.0, 0.1, n - th)) * step(0.001, uDissolve);
     c *= keep;
-    c.rgb += uEdge * edge * c.a * 1.6;
+    c.rgb = mix(c.rgb, uEdge * c.a, edge * 0.85) + uEdge * edge * c.a * 0.6;
   }
   c.rgb = mix(c.rgb, vec3(c.a), uFlash);
   gl_FragColor = c * uAlpha;

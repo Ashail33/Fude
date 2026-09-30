@@ -71,13 +71,13 @@ function fitCanvas(r: MeshRenderer, c: HTMLCanvasElement, maxPx = 2_400_000) {
 }
 
 /** Create a renderer for a canvas + loaded image; null (→ static fallback) on any failure. */
-function makeRenderer(canvas: HTMLCanvasElement, img: HTMLImageElement): MeshRenderer | null {
+function makeRenderer(canvas: HTMLCanvasElement, img: HTMLImageElement, n = 24): MeshRenderer | null {
   try {
-    const r = new MeshRenderer(canvas, 24)
+    const r = new MeshRenderer(canvas, n)
     r.setImage(img)
     return r
   } catch (e) {
-    console.info('[anim] WebGL unavailable, using the static image', e)
+    console.info('[anim] WebGL unavailable, using the static image:', e instanceof Error ? e.message : e)
     return null
   }
 }
@@ -93,6 +93,18 @@ function mountCanvas(parent: HTMLElement, style: Partial<CSSStyleDeclaration>): 
   Object.assign(c.style, style)
   parent.appendChild(c)
   return c
+}
+
+/** Position the (padded) canvas exactly over the img's layout box. */
+function placeOverImg(c: HTMLCanvasElement, img: HTMLImageElement, pad: { x: number; top: number; bottom: number }) {
+  const w = img.offsetWidth
+  const h = img.offsetHeight
+  Object.assign(c.style, {
+    left: `${img.offsetLeft - pad.x * w}px`,
+    top: `${img.offsetTop - pad.top * h}px`,
+    width: `${w * (1 + 2 * pad.x)}px`,
+    height: `${h * (1 + pad.top + pad.bottom)}px`,
+  })
 }
 
 /** Wait until an <img> has decoded pixels. */
@@ -120,6 +132,8 @@ export interface LivingArtProps {
   cue?: string | null
   /** Delay (ms) of the pop-in when `cue` leaves 'enter' (staggered spawns). */
   spawnDelay?: number
+  /** Strength for `cue` (for 'defeat': duration multiplier). */
+  cueK?: number
   /** Direction for `cue` (−1 / 0 / +1). */
   cueDir?: number
   /** Dissolve edge glow colour (#rrggbb), e.g. the finishing element. */
@@ -195,21 +209,16 @@ export function LivingArt(props: LivingArtProps) {
     }
     const q = cueOf(c)
     // A cue already present at mount is a state, not an event (except spawn).
-    if (q && !(prev === undefined && q !== 'spawn')) reactor.cue(q, props.cueDir ?? 0)
-  }, [props.cue, props.cueDir, props.spawnDelay, reactor])
+    if (q && !(prev === undefined && q !== 'spawn')) reactor.cue(q, props.cueDir ?? 0, props.cueK ?? 1)
+  }, [props.cue, props.cueDir, props.cueK, props.spawnDelay, reactor])
 
   // WebGL setup per image.
   useEffect(() => {
     const img = imgRef.current
     const root = rootRef.current
     if (!img || !root) return
-    const canvas = mountCanvas(root, {
-      left: `${-pad.x * 100}%`,
-      right: `${-pad.x * 100}%`,
-      top: `${-pad.top * 100}%`,
-      bottom: `${-pad.bottom * 100}%`,
-      transformOrigin: `50% ${((pad.top + 1) / (1 + pad.top + pad.bottom)) * 100}%`,
-    })
+    const canvas = mountCanvas(root, { transformOrigin: `50% ${((pad.top + 1) / (1 + pad.top + pad.bottom)) * 100}%` })
+    placeOverImg(canvas, img, pad)
     canvasRef.current = canvas
     let r: MeshRenderer | null = null
     const lost = (e: Event) => {
@@ -236,14 +245,18 @@ export function LivingArt(props: LivingArtProps) {
     }
   }, [src, pad])
 
-  // Keep the buffer matched to the element size.
+  // Keep the canvas over the img box (plus padding) and the buffer matched to it.
   useLayoutEffect(() => {
     const c = canvasRef.current
-    if (!c || !on || typeof ResizeObserver === 'undefined') return
-    const ro = new ResizeObserver(() => rendererRef.current && fitCanvas(rendererRef.current, c))
-    ro.observe(c)
+    const img = imgRef.current
+    if (!c || !img || !on || typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(() => {
+      placeOverImg(c, img, pad)
+      if (rendererRef.current) fitCanvas(rendererRef.current, c)
+    })
+    ro.observe(img)
     return () => ro.disconnect()
-  }, [on])
+  }, [on, pad])
 
   // The frame loop.
   useEffect(() => {
@@ -256,6 +269,7 @@ export function LivingArt(props: LivingArtProps) {
     const W = 1 + 2 * pad.x
     const H = 1 + pad.top + pad.bottom
     const tint: [number, number, number] = [1, 1, 1]
+    let tintK = P.current.tint ?? 1
     return onTick((now, dt) => {
       const r = rendererRef.current
       const c = canvasRef.current
@@ -278,8 +292,9 @@ export function LivingArt(props: LivingArtProps) {
         edgeHex = p.edge
         edge = hexRgb(p.edge ?? '#ffd27a')
       }
-      const k = p.tint ?? 1
-      tint[0] = tint[1] = tint[2] = k
+      // Ease brightness changes (e.g. dimming a listener) instead of snapping.
+      tintK += ((p.tint ?? 1) - tintK) * Math.min(1, dt * 7)
+      tint[0] = tint[1] = tint[2] = tintK
       r.draw({ flash: f.flash, dissolve: f.dissolve, alpha: f.alpha, edge, tint })
       if (p.onLift) p.onLift((profile.float && !reduced ? floatPose(profile.float, t).dy * (profile.gain ?? 1) : 0) + f.ty)
     })
@@ -328,7 +343,7 @@ export function LivingScene(props: LivingSceneProps) {
     }
     canvas.addEventListener('webglcontextlost', lost)
     const stop = whenLoaded(img, () => {
-      r = makeRenderer(canvas, img)
+      r = makeRenderer(canvas, img, 16)
       rendererRef.current = r
       if (!r) return setOn(0)
       // Static full-screen grid; only the texture coordinates move.

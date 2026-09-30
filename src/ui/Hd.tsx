@@ -9,6 +9,7 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
 import { HD_BY_ID } from '../art/hd/manifest'
 import { useHdLoaded } from '../art/hd'
+import { LivingArt } from '../anim/LivingArt'
 import './hd.css'
 
 let layerSeq = 0
@@ -60,6 +61,8 @@ export interface Bust {
   active: boolean
   /** Mirror horizontally (face the other side). */
   flip?: boolean
+  /** Text is being typed out for this speaker: a soft talking bounce. */
+  talking?: boolean
 }
 
 /** Relative size: small floating mascots and full-body monsters are scaled down a little. */
@@ -78,7 +81,17 @@ function BustImg({ b }: { b: Bust }) {
   return (
     <div className={`vn-bust vn-${b.side} ${b.active ? 'on' : 'dim'} ${floaty ? 'floaty' : ''}`} style={{ '--vn-k': bustScale(b.id) } as CSSProperties}>
       <div className="vn-slide">
-        <img className={`hd-img vn-img ${b.flip ? 'flip' : ''}`} src={url} alt="" draggable={false} />
+        <LivingArt
+          src={url}
+          id={b.id}
+          className="vn-la"
+          imgClassName="vn-img"
+          flip={b.flip}
+          talking={b.active && b.talking}
+          // The speaker turns slightly toward the conversation; listeners are dimmed in-shader.
+          look={b.active ? (b.side === 'left' ? 0.6 : -0.6) : 0}
+          tint={b.active ? 1 : 0.55}
+        />
       </div>
     </div>
   )

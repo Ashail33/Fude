@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { uiSound } from '../ui/sound'
 
 export interface Command {
@@ -37,6 +37,8 @@ export function CommandMenu({
 }) {
   const [sel, setSel] = useState(Math.min(initial, items.length - 1))
   const refs = useRef<(HTMLButtonElement | null)[]>([])
+  const glide = useRef<HTMLLIElement>(null)
+  const placed = useRef(false)
   const cb = useRef({ onSelect, onCancel, onHighlight })
   cb.current = { onSelect, onCancel, onHighlight }
 
@@ -80,10 +82,33 @@ export function CommandMenu({
     return () => window.removeEventListener('keydown', onKey, true)
   })
 
+  // One ▶ cursor that glides (springs) to the selected entry instead of jumping.
+  useLayoutEffect(() => {
+    const g = glide.current
+    const place = () => {
+      const b = refs.current[sel]
+      if (!g || !b) return
+      const x = b.offsetLeft
+      const y = b.offsetTop + b.offsetHeight / 2
+      if (!placed.current) {
+        // first placement: no travel
+        g.style.transition = 'none'
+        g.style.transform = `translate(${x}px, ${y}px)`
+        void g.offsetWidth
+        g.style.transition = ''
+        placed.current = true
+      } else g.style.transform = `translate(${x}px, ${y}px)`
+    }
+    place()
+    window.addEventListener('resize', place)
+    return () => window.removeEventListener('resize', place)
+  }, [sel, items.length, columns])
+
   return (
-    <ul className={`cmd-list ${className ?? ''}`} role="menu" aria-label={label} style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
+    <ul className={`cmd-list glide ${className ?? ''}`} role="menu" aria-label={label} style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
+      <li ref={glide} role="none" aria-hidden className={`cmd-glide ${active && items[sel] && !items[sel].disabled ? '' : 'hidden'}`} />
       {items.map((it, i) => (
-        <li key={it.id} role="none">
+        <li key={it.id} role="none" style={{ ['--i' as string]: i }}>
           <button
             ref={(el) => {
               refs.current[i] = el

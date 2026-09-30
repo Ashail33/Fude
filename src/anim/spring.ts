@@ -72,6 +72,7 @@ export class Spring {
 
 export type Ease = (t: number) => number
 export const easeInCubic: Ease = (t) => t * t * t
+export const easeInQuad: Ease = (t) => t * t
 export const easeOutCubic: Ease = (t) => 1 - Math.pow(1 - t, 3)
 export const easeInOut: Ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
 export const linear: Ease = (t) => t
@@ -179,12 +180,12 @@ export class Reactor {
         // Sharp recoil, no anticipation: velocity impulses, springs pull back with a wobble.
         this.flash = 1
         this.flashHalf = c === 'crit' ? 0.11 : 0.075
-        this.tx.kick(side * 0.9 * s * m)
-        this.ty.kick(-0.35 * s * m)
-        this.sc.kick(-0.9 * s * m)
-        this.rot.kick(side * 0.9 * s * m)
-        this.squash.kick(-1.6 * s * m)
-        this.bend.kick(side * 1.1 * s * m)
+        this.tx.kick(side * 1.7 * s * m)
+        this.ty.kick(-0.5 * s * m)
+        this.sc.kick(-1.4 * s * m)
+        this.rot.kick(side * 1.3 * s * m)
+        this.squash.kick(-2.2 * s * m)
+        this.bend.kick(side * 1.5 * s * m)
         break
       }
       case 'dodge': {
@@ -258,10 +259,12 @@ export class Reactor {
         break
       }
       case 'defeat': {
+        // k stretches the dissolve (bosses take their time).
+        const d = Math.max(0.3, k)
         this.flash = 0.9
-        this.flashHalf = 0.16
-        this.dissolve.start(1, 0.85, easeInCubic, 0)
-        this.rise.start(-0.1, 0.9, easeInOut, 0)
+        this.flashHalf = 0.16 * d
+        this.dissolve.start(1, 0.8 * d, easeInQuad, 0)
+        this.rise.start(-0.1, 0.9 * d, easeInOut, 0)
         this.sc.tune({ freq: 1.2, damping: 1 })
         this.sc.target = 1.05
         this.squash.kick(0.6 * m)

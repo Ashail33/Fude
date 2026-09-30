@@ -159,6 +159,23 @@ describe('deformation', () => {
     expect(p.breathe).toBeDefined()
   })
 
+  it('the cached grid path matches the reference per-point maths', () => {
+    const uv = gridUvs(10)
+    const out = new Float32Array(uv.length)
+    const pad = { x: 0.1, top: 0.1, bottom: 0.05 }
+    for (const id of FIGURE_IDS)
+      for (const t of [0.13, 1.7, 5.2])
+        for (const dyn of [REST_DYN, { ...REST_DYN, squash: 0.05, bend: -0.02, lean: 0.5 }, { ...REST_DYN, reduced: true, amp: 0.5 }]) {
+          const p = profileFor(id)
+          deformGrid(out, uv, p, t, dyn, 1.3, pad, true)
+          for (let k = 0; k < uv.length; k += 7 * 2) {
+            const [x, y] = deformPoint(p, uv[k], uv[k + 1], t, dyn, 1.3)
+            expect(out[k]).toBeCloseTo((pad.x + 1 - x) / 1.2, 5)
+            expect(out[k + 1]).toBeCloseTo((pad.top + y) / 1.15, 5)
+          }
+        }
+  })
+
   it('grid helpers are consistent', () => {
     const n = 4
     const uv = gridUvs(n)

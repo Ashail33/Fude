@@ -410,14 +410,161 @@ export function gridUvs(n: number): Float32Array {
 }
 
 /**
+ * Per-vertex terms that don't change over time (mask weights, height
+ * profiles), computed once per profile × grid so a frame only evaluates
+ * a handful of sines per vertex.
+ */
+interface Prepared {
+  n: number
+  h: Float32Array
+  rise: Float32Array
+  band: Float32Array
+  swayH: Float32Array
+  lean: Float32Array
+  flutter: Float32Array[]
+  wave: Float32Array | null
+  flap: Float32Array | null
+}
+
+const prepCache = new WeakMap<Profile, WeakMap<Float32Array, Prepared>>()
+
+function prepare(p: Profile, uvs: Float32Array): Prepared {
+  let byGrid = prepCache.get(p)
+  if (!byGrid) prepCache.set(p, (byGrid = new WeakMap()))
+  const hit = byGrid.get(uvs)
+  if (hit) return hit
+  const n = uvs.length / 2
+  const f32 = () => new Float32Array(n)
+  const P: Prepared = { n, h: f32(), rise: f32(), band: f32(), swayH: f32(), lean: f32(), flutter: (p.flutter ?? []).map(f32), wave: p.wave ? f32() : null, flap: p.flap ? f32() : null }
+  const chest = p.breathe?.chest ?? 0.45
+  for (let i = 0; i < n; i++) {
+    const u = uvs[2 * i]
+    const v = uvs[2 * i + 1]
+    const h = heightOf(v)
+    P.h[i] = h
+    P.rise[i] = smooth01(h / Math.max(0.05, 1 - chest))
+    P.band[i] = Math.exp(-((v - chest) * (v - chest)) / 0.045)
+    P.swayH[i] = p.sway ? Math.pow(h, p.sway.power ?? 2) : 0
+    P.lean[i] = Math.pow(h, 1.5)
+    ;(p.flutter ?? []).forEach((f, k) => (P.flutter[k][i] = maskWeight(p, f.regions, u, v)))
+    if (P.wave) P.wave[i] = maskWeight(p, p.wave!.regions, u, v)
+    if (P.flap) P.flap[i] = maskWeight(p, p.flap!.regions, u, v)
+  }
+  byGrid.set(uvs, P)
+  return P
+}
+
+/**
  * Fill `out` (x,y interleaved, in canvas space 0..1) with the deformed
  * grid for a figure, including the canvas padding and optional mirroring.
+ * Same maths as `deformPoint`, with the static terms cached.
  */
 export function deformGrid(out: Float32Array, uvs: Float32Array, p: Profile, t: number, dyn: Dyn, aspect: number, pad: { x: number; top: number; bottom: number }, flip = false) {
+  const P = prepare(p, uvs)
   const W = 1 + 2 * pad.x
   const H = 1 + pad.top + pad.bottom
-  for (let k = 0; k < uvs.length; k += 2) {
-    const [x, y] = deformPoint(p, uvs[k], uvs[k + 1], t, dyn, aspect)
+  const g = (p.gain ?? 1) * dyn.amp
+  const cx = p.cx ?? 0.5
+  const idle = !dyn.reduced
+  // Time-only terms.
+  const b = p.breathe
+  const bk = b ? breathCurve(t, b.period) * g : 0
+  const bAmp = b ? b.amp * bk : 0
+  const bWiden = b ? (b.widen ?? b.amp * 0.5) * bk : 0
+  let swayX = 0
+  if (idle && p.sway) {
+    const w = (TAU * t) / p.sway.period + (p.sway.phase ?? 0)
+    swayX = (p.sway.amp * g * (Math.sin(w) + 0.3 * Math.sin(2.7 * w + 1.1))) / 1.3
+  }
+  const js = idle && p.jelly ? jellySquash(p.jelly, t) * g : 0
+  const jsLag = idle && p.jelly ? 0.18 * jellySquash(p.jelly, t - 0.09) * g : 0
+  const jWide = 1 / Math.sqrt(1 + js) - 1
+  const dSq = dyn.squash
+  const dWide = dSq !== 0 ? 1 / Math.sqrt(Math.max(0.2, 1 + dSq)) - 1 : 0
+  const leanX = dyn.lean * (p.lean ?? 0.02)
+  let fdy = 0
+  let fc = 1
+  let fs = 0
+  if (idle && p.float) {
+    const f = floatPose(p.float, t)
+    fdy = f.dy * g
+    const a = f.tilt * g
+    fc = Math.cos(a)
+    fs = Math.sin(a)
+  }
+  const fl = p.flap
+  const flPh = fl ? TAU * fl.freq * t : 0
+  const wv = p.wave
+  for (let i = 0, k = 0; i < P.n; i++, k += 2) {
+    const u = uvs[k]
+    const v = uvs[k + 1]
+    const h = P.h[i]
+    let dx = 0
+    let dy = 0
+    if (b) {
+      dy -= bAmp * P.rise[i]
+      dx += (u - cx) * bWiden * P.band[i]
+    }
+    if (idle) {
+      dx += swayX * P.swayH[i]
+      const fls = p.flutter
+      if (fls)
+        for (let j = 0; j < fls.length; j++) {
+          const w = P.flutter[j][i]
+          if (w <= 0.001) continue
+          const f = fls[j]
+          const fr = f.freq ?? 1.5
+          const ph = f.phase ?? 0
+          const T = t * f.speed
+          const s1 = Math.sin(TAU * (fr * (v + 0.3 * u) - T) + ph)
+          const s2 = Math.sin(TAU * (fr * 1.73 * (u - 0.5 * v) - T * 1.37) + ph * 2.1 + 0.7)
+          const s3 = Math.sin(TAU * (fr * 0.61 * (u + v) - T * 0.53) + ph * 0.7 + 2.3)
+          dx += g * w * (f.ax * (0.55 * s1 + 0.3 * s2 + 0.15 * s3) + (f.bx ?? 0) * (0.5 + 0.5 * s1))
+          dy += g * w * (f.ay * (0.5 * s2 + 0.3 * s3 + 0.2 * s1) + (f.by ?? 0) * (0.5 + 0.5 * s2))
+        }
+      if (fl) {
+        const w = P.flap![i]
+        if (w > 0.001) {
+          const ph = flPh - (fl.lag ?? 0.6) * w
+          dy += (fl.amp * g * w * (Math.sin(ph) + 0.22 * Math.sin(2 * ph + 0.5))) / 1.1
+          dx -= (u - cx) * fl.amp * 0.35 * g * w * Math.max(0, Math.sin(ph))
+        }
+      }
+      if (wv) {
+        const w = P.wave![i]
+        if (w > 0.001) {
+          const ph = TAU * ((wv.axis === 'x' ? u : v) / wv.wavelength - wv.speed * t)
+          const perp = wv.amp * g * w * Math.sin(ph)
+          const par = wv.amp * 0.25 * g * w * Math.cos(ph)
+          if (wv.axis === 'x') {
+            dy += perp
+            dx += par / aspect
+          } else {
+            dx += perp
+            dy += par
+          }
+        }
+      }
+      if (js !== 0 || jsLag !== 0) {
+        dy -= js * h
+        dx += (u - cx) * jWide + jsLag * h * h
+      }
+    }
+    if (dSq !== 0) {
+      dy -= dSq * h
+      dx += (u - cx) * dWide
+    }
+    if (dyn.bend !== 0) dx += dyn.bend * h * h
+    if (leanX !== 0) dx += leanX * P.lean[i]
+    let x = u + dx
+    let y = v + dy
+    if (fs !== 0) {
+      const px = (x - cx) * aspect
+      const py = y - 0.5
+      x = cx + (px * fc - py * fs) / aspect
+      y = 0.5 + px * fs + py * fc
+    }
+    y += fdy
     out[k] = (pad.x + (flip ? 1 - x : x)) / W
     out[k + 1] = (pad.top + y) / H
   }

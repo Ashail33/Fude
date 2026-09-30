@@ -1788,10 +1788,6 @@
   display: block;
 }
 
-.bt-enemy.floats .la {
-  margin-bottom: 18px;
-}
-
 @media (prefers-reduced-motion: reduce) {
   .bt-hd-bg img,
   .bt-hd-enemy,

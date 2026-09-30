@@ -627,7 +627,9 @@ export class Renderer {
           b.fillRect(x + 7, y - 24 + Math.round(k * 6), 2, 26)
           b.globalAlpha = 1
           const rise = Math.round(easeOutQuad(Math.min(1, (t - 110) / 500)) * 14)
-          drawSprite(b, 'star', x, y - 6 - rise, {})
+          b.globalAlpha = t > 800 ? Math.max(0, 1 - (t - 800) / 300) : 1
+          drawSprite(b, 'star', x, y - 6 - rise - (t > 800 ? Math.round((t - 800) / 60) : 0), {})
+          b.globalAlpha = 1
         }
       }
     }
@@ -928,7 +930,12 @@ export class Renderer {
       fs.x = fp.x
       fs.y = fp.y
       fs.vx = fs.vy = 0
-    } else springStep(fs, fp.x, fp.y, 8, 0.62, dt)
+    } else {
+      // partial feed-forward of the tile tween's velocity: lazy on starts/turns, but no long tail when running
+      const f = world.fude
+      const k = f.t < 1 ? world.vel * 16 * ((2 * 0.7) / 10) * 0.65 : 0
+      springStep(fs, fp.x + (f.x - f.px) * k, fp.y + (f.y - f.py) * k, 10, 0.7, dt)
+    }
     this.snapNext = false
     const clamp = (c: number, view: number, size: number) => (size <= view ? -(view - size) / 2 : Math.max(0, Math.min(size - view, c - view / 2)))
     let cx = clamp(px + 8 + cs.x, this.viewW, m.w * 16)

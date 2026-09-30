@@ -66,16 +66,53 @@ export function SpeakButton({ text, label, className }: { text: string; label?: 
   )
 }
 
+/**
+ * A segmented HP/MP bar. The fill drains smoothly; a pale "ghost" bar
+ * lingers where it was and catches up after a beat (fighting-game style),
+ * and the fill flashes on each hit.
+ */
 export function HpBar({ value, max, color, label, flip }: { value: number; max: number; color?: string; label?: ReactNode; flip?: boolean }) {
   const pct = Math.max(0, Math.min(100, (value / max) * 100))
+  const prev = useRef(pct)
+  const [hit, setHit] = useState(0)
+  useEffect(() => {
+    if (pct < prev.current - 0.01) setHit((h) => h + 1)
+    prev.current = pct
+  }, [pct])
   return (
     <div className={`hpbar ${flip ? 'flip' : ''}`}>
       {label && <div className="hpbar-label">{label}</div>}
       <div className="hpbar-track">
-        <div className="hpbar-fill" style={{ width: `${pct}%`, background: color }} />
+        <div className="hpbar-ghost" style={{ width: `${pct}%` }} />
+        <div className={`hpbar-fill ${hit ? (hit % 2 ? 'hit-a' : 'hit-b') : ''}`} style={{ width: `${pct}%`, background: color }} />
       </div>
     </div>
   )
+}
+
+/**
+ * Floating numbers (damage, score, +XP) that hop up on an arc and fade.
+ * Render `node` inside a position:relative container; call `pop(text, xPct, yPct, kind)`.
+ */
+export function usePopNumbers(): [ReactNode, (text: string, x?: number, y?: number, kind?: 'good' | 'bad' | 'gold' | 'big' | '') => void] {
+  const [nums, setNums] = useState<{ id: number; text: string; x: number; y: number; dx: number; kind: string }[]>([])
+  const nextId = useRef(0)
+  const pop = useCallback((text: string, x = 50, y = 40, kind: 'good' | 'bad' | 'gold' | 'big' | '' = '') => {
+    const id = nextId.current++
+    const dx = (Math.random() - 0.5) * 60
+    setNums((ns) => [...ns, { id, text, x, y, dx, kind }])
+    setTimeout(() => setNums((ns) => ns.filter((n) => n.id !== id)), 1000)
+  }, [])
+  const node = (
+    <div className="num-pop-layer" aria-hidden>
+      {nums.map((n) => (
+        <span key={n.id} className={`num-pop ${n.kind}`} style={{ left: `${n.x}%`, top: `${n.y}%`, ['--dx' as string]: `${n.dx}px` }}>
+          {n.text}
+        </span>
+      ))}
+    </div>
+  )
+  return [node, pop]
 }
 
 /** Rows of a pixel bitmap ('#' = filled) → crisp SVG rects. */

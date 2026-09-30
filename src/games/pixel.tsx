@@ -4,15 +4,18 @@
  * strip (village / shrine / forge scenery) drawn with `drawTile`.
  */
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { PixelSprite, spriteSize, type Dir, type SpriteId } from '../art'
+import { PixelSprite, spriteSize, type Anim, type Dir, type SpriteId } from '../art'
 import { computeNeighbours, drawTile, type TileId } from '../art/tiles'
 import { usePlayer } from '../engine/store'
 import './pixel.css'
 
-/** The player's mage, wearing their current outfit. */
-export function PlayerMage({ scale = 3, dir = 'down', animate = true, flash, className }: { scale?: number; dir?: Dir; animate?: boolean; flash?: boolean; className?: string }) {
+/**
+ * The player's mage, wearing their current outfit. Breathes and blinks by
+ * default; pass `anim="walk"` / `"run"` when the mage is on the move.
+ */
+export function PlayerMage({ scale = 3, dir = 'down', animate = true, anim = 'idle', flash, className }: { scale?: number; dir?: Dir; animate?: boolean; anim?: Anim; flash?: boolean; className?: string }) {
   const outfit = usePlayer().outfit
-  return <PixelSprite id="mage" outfit={outfit} scale={scale} dir={dir} animate={animate} flash={flash} className={className} title="you" />
+  return <PixelSprite id="mage" outfit={outfit} scale={scale} dir={dir} animate={animate} anim={anim} flash={flash} className={className} title="you" />
 }
 
 export type StripCell = TileId | { id: TileId; under?: TileId } | null
@@ -90,10 +93,10 @@ export function TileStrip({ rows, scale = 2, className, animate = true, align = 
 }
 
 /** A named character sprite standing in a scene, with an optional shadow. */
-export function SceneSprite({ id, scale = 3, dir, animate = true, flash, className }: { id: SpriteId; scale?: number; dir?: Dir; animate?: boolean; flash?: boolean; className?: string }) {
+export function SceneSprite({ id, scale = 3, dir, animate = true, anim = 'idle', flash, className }: { id: SpriteId; scale?: number; dir?: Dir; animate?: boolean; anim?: Anim; flash?: boolean; className?: string }) {
   return (
     <span className={`scene-sprite ${className ?? ''}`}>
-      <PixelSprite id={id} scale={scale} dir={dir} animate={animate} flash={flash} />
+      <PixelSprite id={id} scale={scale} dir={dir} animate={animate} anim={anim} flash={flash} />
     </span>
   )
 }
@@ -127,7 +130,7 @@ export function Portrait({
     <span className={`px-portrait ${talking ? 'talking' : ''} ${className ?? ''}`} style={{ width: box, height: box }} title={title}>
       <TileStrip rows={Array.from({ length: rows }, () => [ground])} scale={2} animate={false} />
       <span className="px-portrait-sprite">
-        <PixelSprite id={id} scale={scale} dir={dir} animate flash={flash} title={title} />
+        <PixelSprite id={id} scale={scale} dir={dir} animate anim="idle" flash={flash} title={title} />
       </span>
     </span>
   )

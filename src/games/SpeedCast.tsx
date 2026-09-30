@@ -314,7 +314,7 @@ export default function SpeedCast({ activity, params, onFinish, onExit }: GamePr
           <TileStrip rows={ROAD_ROWS} scale={2} align="start" />
         </div>
         <div className="sc-player" style={{ left: `${PLAYER_X}%` }} aria-hidden>
-          <PlayerMage scale={3} dir="right" animate={phase === 'play'} flash={shake} />
+          <PlayerMage scale={3} dir="right" anim={phase === 'play' ? 'run' : 'idle'} flash={shake} />
         </div>
         {e && (
           <div

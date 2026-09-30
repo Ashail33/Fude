@@ -72,7 +72,7 @@ function Typewriter({ text, onDone, skip }: { text: string; onDone: () => void; 
   )
 }
 
-function SayStep({ step, onNext, bust }: { step: Extract<Step, { kind: 'say' }>; onNext: () => void; bust?: string }) {
+function SayStep({ step, onNext, bust, onTalking }: { step: Extract<Step, { kind: 'say' }>; onNext: () => void; bust?: string; onTalking?: (on: boolean) => void }) {
   const bustShown = useHdLoaded(bust)
   const p = usePlayer()
   const lvl = immersionOf(p)
@@ -81,6 +81,11 @@ function SayStep({ step, onNext, bust }: { step: Extract<Step, { kind: 'say' }>;
   const [showEn, setShowEn] = useState(false)
   const typedRef = useRef(false)
   typedRef.current = typed
+  // Drives the speaking portrait's talking bounce while the line types out.
+  useEffect(() => {
+    onTalking?.(!typed)
+    return () => onTalking?.(false)
+  }, [typed, onTalking])
   useEffect(() => {
     if (step.voice !== false) void speak(step.line.jp)
   }, [step])
@@ -306,6 +311,7 @@ export function Dialog({ steps, speaker, onClose, onStart }: { steps: Step[]; sp
   // The parent remounts the dialog (via `key`) for each new conversation.
   const [queue, setQueue] = useState(steps)
   const [i, setI] = useState(0)
+  const [talking, setTalking] = useState(false)
   const step = queue[i]
 
   // ─── Visual-novel bust (illustrated portrait) when available ───
@@ -329,7 +335,7 @@ export function Dialog({ steps, speaker, onClose, onStart }: { steps: Step[]; sp
   const curPortrait = portraitOf(step)
   const bustId = hdOf(bustSprite)
   const bustActive = !(step?.kind === 'say' && curPortrait !== bustSprite)
-  const busts: Bust[] = bustId ? [{ id: bustId, side: HEROES.has(bustSprite!) ? 'left' : 'right', active: bustActive }] : []
+  const busts: Bust[] = bustId ? [{ id: bustId, side: HEROES.has(bustSprite!) ? 'left' : 'right', active: bustActive, talking: talking && step?.kind === 'say' }] : []
 
   useEffect(() => {
     if (!step) onClose()
@@ -345,7 +351,7 @@ export function Dialog({ steps, speaker, onClose, onStart }: { steps: Step[]; sp
   let body: ReactNode
   switch (step.kind) {
     case 'say':
-      body = <SayStep key={i} step={step} onNext={() => next()} bust={hdOf(step.portrait)} />
+      body = <SayStep key={i} step={step} onNext={() => next()} bust={hdOf(step.portrait)} onTalking={setTalking} />
       break
     case 'activity':
       body = <ActivityStep key={i} step={step} onStart={onStart} onNext={() => next()} />

@@ -48,7 +48,7 @@
 }
 
 .px-portrait.talking .px-portrait-sprite {
-  animation: pxTalk 0.28s steps(2) infinite alternate;
+  animation: pxTalk 0.3s var(--ease-in-out, ease-in-out) infinite alternate;
 }
 
 @keyframes pxTalk {

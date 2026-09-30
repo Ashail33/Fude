@@ -100,7 +100,7 @@
   display: block;
   height: 100%;
   background: linear-gradient(180deg, #9bd65b 0 50%, #5cb24a 50% 100%);
-  transition: width 0.6s steps(12);
+  transition: width 0.7s var(--ease-out);
 }
 
 .ow-shards {
@@ -164,7 +164,7 @@
   padding: 8px 22px 7px !important;
   z-index: 6;
   pointer-events: none;
-  animation: owBanner 2.8s steps(28) both;
+  animation: owBanner 2.8s linear both;
   white-space: nowrap;
 }
 
@@ -200,19 +200,25 @@
   letter-spacing: 0.08em;
 }
 
+/* drops in with a little spring, holds, then lifts away */
 @keyframes owBanner {
   0% {
     opacity: 0;
-    transform: translate(-50%, -24px);
+    transform: translate(-50%, -26px) scaleX(0.7);
+    animation-timing-function: cubic-bezier(0.22, 1.4, 0.4, 1);
   }
-  12%,
+  14% {
+    opacity: 1;
+    transform: translate(-50%, 0) scaleX(1);
+  }
   82% {
     opacity: 1;
     transform: translate(-50%, 0);
+    animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45);
   }
   100% {
     opacity: 0;
-    transform: translate(-50%, -12px);
+    transform: translate(-50%, -14px);
   }
 }
 
@@ -233,7 +239,8 @@
   color: inherit;
   text-align: left;
   cursor: pointer;
-  animation: owToast 0.35s steps(6) both;
+  animation: owToast 0.45s var(--ease-spring) both;
+  transform-origin: 20px 100%;
   max-width: 460px;
 }
 
@@ -244,7 +251,7 @@
 }
 
 .ow-toast-face {
-  animation: owBob 1.2s steps(2) infinite;
+  animation: owBob 1.6s var(--ease-in-out) infinite;
 }
 
 .ow-toast-bubble {
@@ -255,7 +262,7 @@
 @keyframes owToast {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(14px) scale(0.85);
   }
 }
 
@@ -305,14 +312,23 @@
   pointer-events: auto;
   width: min(720px, 100%);
   padding: 16px 16px 14px !important;
-  animation: dqOpen 0.16s steps(4) both;
+  /* grows out of the speaker's corner (portrait side) with a soft spring */
+  animation: dqOpen 0.32s var(--ease-spring) both;
+  transform-origin: 14% 100%;
 }
 
 @keyframes dqOpen {
   from {
-    transform: scaleY(0.2);
+    transform: translateY(10px) scale(0.84, 0.6);
     opacity: 0;
   }
+  40% {
+    opacity: 1;
+  }
+}
+
+.dq-portrait {
+  animation: pop-in 0.34s var(--ease-spring) 70ms backwards;
 }
 
 .dq-name {
@@ -370,7 +386,7 @@
   bottom: -4px;
   font-size: 0.8rem;
   color: var(--gold, #f7c948);
-  animation: dqMore 0.7s steps(2) infinite;
+  animation: dqMore 0.9s var(--ease-in-out) infinite;
 }
 
 @keyframes dqMore {

@@ -11,6 +11,7 @@ import { playMusic } from '../engine/music'
 import { resetProgress, usePlayer } from '../engine/store'
 import { SceneBackdrop } from '../story/Backdrop'
 import '../ui/hd.css'
+import { LivingScene } from '../anim/LivingArt'
 import { uiSound } from '../ui/sound'
 import Onboarding from './Onboarding'
 
@@ -96,13 +97,20 @@ function TitleArt({ onReady }: { onReady: (ready: boolean) => void }) {
   const [playing, setPlaying] = useState(false)
   const useVideo = !!video && !calm
   const ready = !!still || playing
+  // Once the video has faded in, stop drawing the living still underneath it.
+  const [videoShown, setVideoShown] = useState(false)
+  useEffect(() => {
+    if (!playing) return setVideoShown(false)
+    const t = setTimeout(() => setVideoShown(true), 1300)
+    return () => clearTimeout(t)
+  }, [playing])
   const cb = useRef(onReady)
   cb.current = onReady
   useEffect(() => cb.current(ready), [ready])
   if (!still && !useVideo) return null
   return (
     <div className={`title-hd ${ready ? 'ready' : ''} ${portrait ? 'tall' : 'wide'}`} aria-hidden>
-      {still && <img className="hd-img title-hd-img" src={still} alt="" draggable={false} />}
+      {still && !videoShown && <LivingScene src={still} id={still === main ? id : portrait ? 'title-wide' : 'title-tall'} imgClassName="title-hd-img" />}
       {useVideo && (
         <video className={`title-hd-video ${playing ? 'on' : ''}`} src={video} poster={still ?? undefined} autoPlay muted loop playsInline preload="auto" onPlaying={() => setPlaying(true)} onError={() => setPlaying(false)} />
       )}

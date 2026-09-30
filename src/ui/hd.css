@@ -173,6 +173,15 @@
   margin-bottom: 4%;
 }
 
+/* Living art: the mesh breathes/sways; dimming is done in the shader. */
+.vn-slide > .vn-la {
+  height: 100%;
+}
+
+.vn-bust.dim:has(.la-on) {
+  filter: saturate(0.75);
+}
+
 @keyframes vn-breathe {
   0%,
   100% {

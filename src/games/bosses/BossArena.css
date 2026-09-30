@@ -756,6 +756,20 @@
 .ba-hd-flash {
   filter: brightness(0) invert(1) drop-shadow(0 0 12px #fff);
 }
+/* Living art (WebGL): recoil, lunge and the defeat dissolve happen in the
+   mesh; the CSS versions stay as the no-WebGL fallback. */
+.ba-living:has(.la-on).ba-anim-hit,
+.ba-living:has(.la-on).ba-anim-attack,
+.ba-living:has(.la-on).ba-dissolve {
+  animation: none;
+}
+.ba-living:has(.la-on).ba-dissolve .ba-aura {
+  transition: opacity 1.6s ease-in;
+  opacity: 0;
+}
+.ba-sprite .la {
+  display: block;
+}
 @keyframes ba-hd-breathe {
   0%, 100% { transform: scale(1, 1); }
   50% { transform: scale(1.015, 0.985) translateY(1px); }

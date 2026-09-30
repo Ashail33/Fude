@@ -14,6 +14,7 @@ import { speak } from '../engine/speech'
 import { getState, immersionOf, markScene, usePlayer } from '../engine/store'
 import { SceneBackdrop } from './Backdrop'
 import { KenBurns, VnBusts, type Bust } from '../ui/Hd'
+import { LivingArt } from '../anim/LivingArt'
 import { backdropAt, castAt, fill, MAP_IDS, SCENES, SPEAKERS, speechText, type ActorId, type Backdrop, type Scene } from './scenes'
 import './Cutscene.css'
 
@@ -225,11 +226,11 @@ export function Cutscene({ id, onDone }: CutsceneProps) {
   const busts: Bust[] = []
   if (speakers.hero) {
     const id = bustOf(speakers.hero)
-    if (id) busts.push({ id, side: 'left', active: step?.who === speakers.hero })
+    if (id) busts.push({ id, side: 'left', active: step?.who === speakers.hero, talking: typing && !isPause })
   }
   if (speakers.other && cast.includes(speakers.other) && !(stageBossUrl && speakers.other === stageBossActor)) {
     const id = bustOf(speakers.other)
-    if (id) busts.push({ id, side: 'right', active: step?.who === speakers.other })
+    if (id) busts.push({ id, side: 'right', active: step?.who === speakers.other, talking: typing && !isPause })
   }
   const whoBust = useHdLoaded(step?.who && !(stageBossUrl && step.who === stageBossActor) ? bustOf(step.who) : null)
   const hidePortrait = !!whoBust || (!!stageBossUrl && step?.who === stageBossActor)
@@ -265,7 +266,14 @@ export function Cutscene({ id, onDone }: CutsceneProps) {
                 {step.emote}
               </span>
             )}
-            <img className="hd-img" src={stageBossUrl} alt="" draggable={false} />
+            <LivingArt
+              src={stageBossUrl}
+              id={bossHd(stageBossActor)}
+              className="cs-boss-la"
+              talking={step.who === stageBossActor && typing && !isPause}
+              tint={step.who && step.who !== stageBossActor ? 0.72 : 1}
+              look={-0.4}
+            />
           </div>
         )}
         <div className={`cs-actors ${illustrated ? 'hidden' : ''}`}>

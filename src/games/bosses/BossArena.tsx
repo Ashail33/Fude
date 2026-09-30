@@ -3,6 +3,7 @@ import type { Activity } from '../types'
 import { GameFrame, Hearts, Intro, T } from '../../components/ui'
 import { PixelSprite, spriteSize, type SpriteId } from '../../art'
 import { BOSS_HD, useHdLoaded } from '../../art/hd'
+import { LivingArt } from '../../anim/LivingArt'
 import { TileStrip, type StripCell } from '../pixel'
 import { useHitFlash, useWide } from '../pixelHooks'
 import { useLatest, useNumberKeys, type Battle } from './battle'
@@ -64,11 +65,14 @@ export function BossArena({
   const big = spriteSize(spriteId).w > 32
   const scale = big ? (wide ? 3 : 2) : wide ? 5 : 4
   // Illustrated boss art (Higgsfield) when available; pixel sprite otherwise.
-  const hd = useHdLoaded(BOSS_HD[activity.game])
+  const hdId = BOSS_HD[activity.game]
+  const hd = useHdLoaded(hdId)
+  // Living art reacts through the mesh (hit recoil, lunge, dissolve) instead of CSS keyframes.
+  const hdCue = b.status === 'won' ? 'defeat' : b.status === 'fight' && b.anim.kind ? `${b.anim.kind} #${b.anim.n}` : null
   const art = (
     <>
       {hd ? (
-        <img src={hd} alt="" draggable={false} className={`ba-hd ${flash ? 'ba-hd-flash' : ''} ${big ? 'ba-hd-big' : ''}`} />
+        <LivingArt src={hd} id={hdId} imgClassName={`ba-hd ${flash ? 'ba-hd-flash' : ''} ${big ? 'ba-hd-big' : ''}`} cue={hdCue} cueK={b.status === 'won' ? 2.4 : 1} edge={/^#[0-9a-f]{6}$/i.test(aura) ? aura : undefined} />
       ) : (
         <PixelSprite id={spriteId} scale={scale} animate flash={flash} className="ba-pixel" />
       )}
@@ -100,6 +104,7 @@ export function BossArena({
     b.status === 'won' ? 'ba-dissolve' : '',
     b.status === 'phase' ? 'ba-transform' : '',
     b.anim.kind && b.status === 'fight' ? `ba-anim-${b.anim.kind}` : '',
+    hd ? 'ba-living' : '',
   ].join(' ')
   const nextPhase = phaseNames[b.phase + 1] ?? { en: `Phase ${b.phase + 2}`, jp: `第${b.phase + 2}形態` }
   return (
@@ -129,7 +134,7 @@ export function BossArena({
         <div className={`ba-stage ${floor ? 'has-floor' : ''}`}>
           {floor && <TileStrip rows={floor} scale={wide ? 3 : 2} className="ba-ground" />}
           <div className="ba-floor" />
-          <div className={bossCls} key={`${b.anim.n}-${b.status}`}>
+          <div className={bossCls} key={hd ? 'living' : `${b.anim.n}-${b.status}`}>
             <div className="ba-aura" />
             <div className="ba-sprite">{art}</div>
           </div>
