@@ -460,6 +460,16 @@ rt {
 .game-title {
   font-weight: 800;
   font-size: 1.1rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 420px) {
+  .game-title {
+    font-size: 0.95rem;
+  }
 }
 
 .game-header-right {
