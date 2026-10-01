@@ -228,7 +228,13 @@ export class Renderer3D extends Renderer {
       this.post = null
     }
     this.post?.setGrade(this.grade, lv)
+    this.sceneryShadows()
     if (!init) this.resize3D()
+  }
+
+  /** Forests of instanced scenery only cast shadows at the top quality level. */
+  private sceneryShadows() {
+    for (const c of this.dio?.voxels.children ?? []) if (c.userData.scenery) c.castShadow = this.level >= 3
   }
 
   private pixelRatio(): number {
@@ -418,6 +424,7 @@ export class Renderer3D extends Renderer {
     const up = Math.max(0, Math.min(2, Math.floor(Math.log2(4096 / (Math.max(m.w, m.h) * 16)))))
     this.dio = buildDiorama(m, this.atlas, this.cardMat, this.groundMat, up, this.voxMat, this.toonMat)
     this.scene.add(this.dio.ground, this.dio.statics, this.dio.dynamic, this.dio.voxels)
+    this.sceneryShadows()
     this.atlas.flush()
   }
 

@@ -442,6 +442,7 @@ export function buildDiorama(m: GameMap, atlas: Atlas, cardMat: THREE.Material, 
     mesh.receiveShadow = true
     // geometry and material belong to the shared prop cache
     mesh.userData.shared = true
+    mesh.userData.scenery = natural
     voxels.add(mesh)
   }
   for (const vb of chunks.values()) {

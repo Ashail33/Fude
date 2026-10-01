@@ -36,7 +36,6 @@ const FIT: Partial<Record<TileId, { h: number; w: number; sway?: number }>> = {
   tablet: { h: 1.2, w: 0.8 },
   altar: { h: 0.9, w: 1.1 },
   throne: { h: 1.7, w: 1.2 },
-  'shrine-bell': { h: 1.6, w: 0.9 },
 }
 /** Scenery that gets a random turn and size per cell, so forests don't look stamped. */
 export const NATURAL = new Set<TileId>(['tree', 'pine', 'sakura', 'bamboo', 'bush', 'rock', 'boulder', 'stump'])
