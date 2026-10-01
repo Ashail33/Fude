@@ -29,7 +29,7 @@ import { makeEntities } from './entities'
 import { tileSolid } from './mapdef'
 import { getMap, locateActivity, REGION_MAPS } from './maps'
 import { Renderer, smoothstep, type RenderInfo } from './render'
-import { canRender3D, Renderer3D } from '../world3d/Renderer3D'
+import { CAM_MODES, canRender3D, Renderer3D, type CamMode } from '../world3d/Renderer3D'
 import { fxQuality } from '../fx/quality'
 import type { Entity, Exit, GameMap, Line } from './types'
 import { Sprite } from './Sprite'
@@ -165,6 +165,18 @@ export default function Overworld() {
   const [banner, setBanner] = useState<{ jp: string; en: string; key: number } | null>(null)
   const [toast, setToast] = useState<{ line: Line; key: number } | null>(null)
   const [run, setRun] = useState(false)
+  /** Camera view (3D only): the angled diorama, overhead, or first person. */
+  const [camMode, setCamModeState] = useState<CamMode | null>(null)
+  const camRef = useRef<CamMode | null>(null)
+  const cycleCam = useCallback(() => {
+    const r = R.current
+    if (!(r instanceof Renderer3D)) return
+    const next = CAM_MODES[(CAM_MODES.indexOf(r.camMode) + 1) % CAM_MODES.length]
+    r.setCamMode(next)
+    camRef.current = next
+    setCamModeState(next)
+    fx('confirm')
+  }, [])
   const [encountering, setEncountering] = useState(false)
   const [touch] = useState(() => typeof window !== 'undefined' && (window.matchMedia?.('(pointer: coarse)').matches || 'ontouchstart' in window))
 
@@ -426,6 +438,8 @@ export default function Overworld() {
       r = new Renderer(canvas)
     }
     R.current = r
+    camRef.current = r instanceof Renderer3D ? r.camMode : null
+    setCamModeState(camRef.current)
     /** If the 3D view fails (a crash, or the phone reclaiming GPU memory) carry on in 2D instead of a blank screen. */
     const fallBackTo2D = (why: unknown) => {
       if (!(r instanceof Renderer3D)) return
@@ -440,6 +454,8 @@ export default function Overworld() {
       }
       r = next
       R.current = next
+      camRef.current = null
+      setCamModeState(null)
       resize()
       if (Wd.current) next.setMap(Wd.current.map)
     }
@@ -505,6 +521,16 @@ export default function Overworld() {
     }
     resize()
     window.addEventListener('resize', resize)
+    // phones report the new size late after a rotation: follow the stage itself, and re-measure once it settles
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => resize()) : null
+    ro?.observe(canvas.parentElement!)
+    const rotated = () => {
+      resize()
+      setTimeout(resize, 250)
+      setTimeout(resize, 700)
+    }
+    window.addEventListener('orientationchange', rotated)
+    screen.orientation?.addEventListener?.('change', rotated)
     r.fade = 1
     loadMap(m.id, x, y, dir)
 
@@ -527,6 +553,8 @@ export default function Overworld() {
     let irisShown = -1
     const times = new Float32Array(240)
     let ti = 0
+    let fpLast: Dir | null = null
+    let fpHold = 0
     const loop = (now: number) => {
       raf = requestAnimationFrame(loop)
       const t0 = performance.now()
@@ -549,7 +577,22 @@ export default function Overworld() {
       if (w.frozen) {
         w.held = null
         w.path = []
-      } else w.held = heldStack.current[heldStack.current.length - 1] ?? null
+      } else {
+        const raw = heldStack.current[heldStack.current.length - 1] ?? null
+        if (camRef.current === 'fp') {
+          // first person: up walks ahead, down turns back, left/right turn on the spot
+          const p = w.player
+          if (raw === 'left' || raw === 'right') {
+            fpHold += dt
+            if (raw !== fpLast || fpHold > 0.42) {
+              w.pendingTurn = turnDir(p.dir, raw === 'right' ? 1 : -1)
+              fpHold = 0
+            }
+            w.held = null
+          } else w.held = raw === 'up' ? p.dir : raw === 'down' ? turnDir(p.dir, 2) : null
+          fpLast = raw
+        } else w.held = raw
+      }
       try {
         w.update(dt, now)
         r.draw(w, now, dt, infoRef.current)
@@ -589,6 +632,9 @@ export default function Overworld() {
     return () => {
       cancelAnimationFrame(raf)
       window.removeEventListener('resize', resize)
+      ro?.disconnect()
+      window.removeEventListener('orientationchange', rotated)
+      screen.orientation?.removeEventListener?.('change', rotated)
       r.dispose()
       clearTimeout(saveTimer.current)
       const cur = Wd.current
@@ -638,7 +684,7 @@ export default function Overworld() {
       if (d) {
         e.preventDefault()
         if (!heldStack.current.includes(d)) heldStack.current.push(d)
-        if (Wd.current && !e.repeat) Wd.current.pendingTurn = d
+        if (Wd.current && !e.repeat && camRef.current !== 'fp') Wd.current.pendingTurn = d
         return
       }
       if (e.key === 'Shift') {
@@ -647,6 +693,9 @@ export default function Overworld() {
       else if (e.key === 'z' || e.key === 'Z' || e.key === 'Enter' || e.key === ' ') {
         e.preventDefault()
         if (!e.repeat) Wd.current?.interact()
+      } else if (e.key === 'v' || e.key === 'V') {
+        e.preventDefault()
+        if (!e.repeat) cycleCam()
       } else if (e.key === 'c' || e.key === 'C') {
         e.preventDefault()
         if (!e.repeat) castWord()
@@ -673,7 +722,7 @@ export default function Overworld() {
       window.removeEventListener('keyup', up)
       window.removeEventListener('blur', blur)
     }
-  }, [run, castWord])
+  }, [run, castWord, cycleCam])
 
   // ─── touch / pointer ─────────────────────────────────────────────
   const onCanvasPointer = (e: React.PointerEvent<HTMLCanvasElement>) => {
@@ -792,6 +841,12 @@ export default function Overworld() {
               <span aria-hidden>⟳</span>
             </button>
           )}
+          {camMode && (
+            <button type="button" className="win ow-view-btn" onClick={cycleCam} aria-label={`Camera: ${CAM_LABEL[camMode].en} (V to change)`} title={`${CAM_LABEL[camMode].en} — tap to change (V)`}>
+              <span aria-hidden>{CAM_LABEL[camMode].icon}</span>
+              <small>{CAM_LABEL[camMode].en.replace(' view', '')}</small>
+            </button>
+          )}
         </div>
       </div>
 
@@ -831,7 +886,7 @@ export default function Overworld() {
       )}
       {!touch && !isModal && (
         <div className="ow-keys-hint" aria-hidden>
-          <span>←↑↓→ / WASD</span> <span>Z: しらべる</span> <span>C: まほう</span> <span>X: {run ? 'はしる ON' : 'はしる'}</span> <span>Esc: メニュー</span>
+          <span>←↑↓→ / WASD</span> <span>Z: しらべる</span> <span>C: まほう</span> <span>X: {run ? 'はしる ON' : 'はしる'}</span> <span>V: してん</span> <span>Esc: メニュー</span>
         </div>
       )}
 
@@ -864,6 +919,18 @@ export default function Overworld() {
       )}
     </div>
   )
+}
+
+const COMPASS: Dir[] = ['up', 'right', 'down', 'left']
+/** Turn a facing by quarter turns (1 = clockwise, 2 = about-face). */
+function turnDir(d: Dir, q: number): Dir {
+  return COMPASS[(COMPASS.indexOf(d) + q + 4) % 4]
+}
+
+const CAM_LABEL: Record<CamMode, { icon: string; jp: string; en: string }> = {
+  iso: { icon: '🏯', jp: 'ななめ', en: 'Classic view' },
+  top: { icon: '🗺️', jp: 'うえから', en: 'Overhead view' },
+  fp: { icon: '👁️', jp: 'いちにんしょう', en: 'First person' },
 }
 
 /** Joystick reach (px) and the push past which the mage breaks into a run. */

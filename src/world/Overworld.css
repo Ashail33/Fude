@@ -129,6 +129,23 @@
   min-height: 40px;
 }
 
+.ow-view-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 10px;
+  font: inherit;
+  font-size: 0.8rem;
+  color: inherit;
+  cursor: pointer;
+}
+
+.ow-view-btn span {
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
 .ow-rotate-btn {
   display: grid;
   place-items: center;
@@ -856,5 +873,84 @@
 @media (prefers-reduced-motion: reduce) {
   .ow-cast {
     animation: none;
+  }
+}
+
+/* ─── Phones on their side: compact controls so the world gets the room ─── */
+@media (orientation: landscape) and (max-height: 540px) {
+  .ow-hud {
+    top: max(4px, env(safe-area-inset-top));
+    left: max(8px, env(safe-area-inset-left));
+    right: max(8px, env(safe-area-inset-right));
+  }
+  .ow-stat,
+  .ow-menu-btn {
+    font-size: 0.82rem;
+    min-height: 34px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+  .ow-rotate-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 1.15rem;
+  }
+  .ow-view-btn {
+    min-height: 36px;
+  }
+  .ow-view-btn small {
+    display: none;
+  }
+  /* the joystick sits low in the left thumb's reach */
+  .ow-stick {
+    left: calc(max(10px, env(safe-area-inset-left)) + 52px);
+    top: calc(100% - max(10px, env(safe-area-inset-bottom)) - 52px);
+    width: 96px;
+    height: 96px;
+    margin: -48px 0 0 -48px;
+  }
+  .ow-stick-knob {
+    width: 42px;
+    height: 42px;
+    margin: -21px 0 0 -21px;
+  }
+  .ow-stick-up {
+    margin-top: -45px;
+  }
+  .ow-stick-down {
+    margin-top: 33px;
+  }
+  .ow-stick-left {
+    margin-left: -45px;
+  }
+  .ow-stick-right {
+    margin-left: 33px;
+  }
+  .ow-stick-zone {
+    width: 34%;
+    height: 70%;
+  }
+  .ow-ab {
+    right: max(10px, env(safe-area-inset-right));
+    bottom: max(10px, env(safe-area-inset-bottom));
+    width: 112px;
+    height: 96px;
+  }
+  .ow-btn {
+    width: 50px;
+    height: 50px;
+    font-size: 1.1rem;
+  }
+  .ow-cast.touch {
+    bottom: calc(max(10px, env(safe-area-inset-bottom)) + 100px);
+    padding: 4px 12px;
+    font-size: 0.82rem;
+  }
+  .ow-toast {
+    bottom: calc(max(10px, env(safe-area-inset-bottom)) + 100px);
+    max-width: 52%;
+  }
+  .ow-banner {
+    transform: scale(0.8);
   }
 }

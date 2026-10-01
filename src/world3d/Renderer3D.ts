@@ -37,6 +37,13 @@ const PITCH = (40 * Math.PI) / 180
 /** >1 shows more of the map than the 2D view at the same scale. */
 const ZOOM = 0.85
 const ZOOM_MIN = 0.5
+/** Camera views: the angled diorama, straight overhead, or through the mage's eyes. */
+export type CamMode = 'iso' | 'top' | 'fp'
+export const CAM_MODES: CamMode[] = ['iso', 'top', 'fp']
+const PITCHES: Record<CamMode, number> = { iso: PITCH, top: (78 * Math.PI) / 180, fp: 0 }
+const FP_FOV = 68
+/** Eye height above the ground in first person (tiles). */
+const FP_EYE = 1.15
 const ZOOM_MAX = 1.9
 const N_LIGHTS = 8
 const REDUCED = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -128,6 +135,10 @@ export class Renderer3D extends Renderer {
   private lastT = 0
   private frameDt = 1 / 60
   private talkingTo: Entity | null = null
+  /** Current camera view (saved). */
+  camMode: CamMode = 'iso'
+  /** Smoothed first-person look direction (yaw, radians). */
+  private fpYaw = Math.PI
   /** Called when the WebGL context is lost. */
   onLost?: () => void
 
@@ -284,6 +295,12 @@ export class Renderer3D extends Renderer {
     }
     this.particleLift = 22
     this.markerLights = false
+    try {
+      const c = localStorage.getItem('fude.cam') as CamMode | null
+      if (c && CAM_MODES.includes(c)) this.camMode = c
+    } catch {
+      /* private mode */
+    }
     this.bindZoom()
     this.applyLevel(this.level, true)
   }
@@ -352,10 +369,30 @@ export class Renderer3D extends Renderer {
   /** Camera distance, ground footprint and fog for the current size and zoom. */
   private frame3D() {
     const cam = this.camera
-    // show about as many tiles across as the 2D view (at least 10), fewer inside small rooms
     const inside = this.map?.spec.interior ? 0.82 : 1
+    const tanHalf = Math.tan(((FOV / 2) * Math.PI) / 180)
+    if (this.camMode === 'fp') {
+      cam.fov = FP_FOV
+      cam.near = 0.08
+      cam.far = 80
+      cam.updateProjectionMatrix()
+      const near = this.map?.spec.interior ? 5 : 9
+      const far = this.map?.spec.interior ? 16 : 34
+      if (this.scene.fog instanceof THREE.Fog) {
+        this.scene.fog.near = near
+        this.scene.fog.far = far
+      } else this.scene.fog = new THREE.Fog(this.fogColor(), near, far)
+      return
+    }
+    cam.fov = FOV
+    cam.near = 0.5
+    // show about as many tiles across as the 2D view (at least 10), fewer inside small rooms
     const viewTiles = Math.min(cam.aspect < 0.8 ? 10 : 30, Math.max(10, (this.viewW / 16) * ZOOM)) * inside * this.zoom
-    this.dist = viewTiles / 2 / (Math.tan(((FOV / 2) * Math.PI) / 180) * cam.aspect)
+    this.dist = viewTiles / 2 / (tanHalf * cam.aspect)
+    // phones on their side: frame by the short (vertical) side, so characters stay as big as in portrait
+    if (cam.aspect > 1.2 && this.cssH < 560) this.dist = (11 * inside * this.zoom) / 2 / tanHalf
+    // overhead sees less depth per tile: pull back a little so the view covers a similar area
+    if (this.camMode === 'top') this.dist *= 1.08
     cam.far = this.dist * 4
     cam.updateProjectionMatrix()
     // ground footprint relative to the target
@@ -377,6 +414,21 @@ export class Renderer3D extends Renderer {
       this.scene.fog.near = this.dist * 0.95
       this.scene.fog.far = this.dist * far
     } else this.scene.fog = new THREE.Fog(this.fogColor(), this.dist * 0.95, this.dist * far)
+  }
+
+  /** Switch the camera view (saved for next time). */
+  setCamMode(m: CamMode) {
+    if (m === this.camMode) return
+    this.camMode = m
+    try {
+      localStorage.setItem('fude.cam', m)
+    } catch {
+      /* private mode */
+    }
+    // tilt-shift suits the diorama views only
+    if (this.post) this.post.setGrade(this.grade, this.level)
+    this.frame3D()
+    this.snapNext = true
   }
 
   // ─── zoom (wheel / pinch / + −) ────────────────────────────────
@@ -470,7 +522,8 @@ export class Renderer3D extends Renderer {
 
   private placeCamera(x: number, z: number) {
     const d = this.dist
-    this.camera.position.set(x, Math.sin(PITCH) * d, z + Math.cos(PITCH) * d)
+    const pitch = PITCHES[this.camMode] || PITCH
+    this.camera.position.set(x, Math.sin(pitch) * d, z + Math.cos(pitch) * d)
     this.tgt.set(x, 0, z)
     this.camera.lookAt(this.tgt)
     this.camera.updateMatrixWorld()
@@ -539,6 +592,10 @@ export class Renderer3D extends Renderer {
     const m = this.map!
     const pl = world.player
     const pp = wpos(pl, this.p0)
+    if (this.camMode === 'fp') {
+      this.fpCamera(world, pp, dt)
+      return
+    }
     const moving = pl.t < 1
     const d = DIRS[pl.dir]
     const look = REDUCED ? 0 : moving ? (world.vel > WALK_SPEED * 1.35 ? 26 : 14) : 7
@@ -601,6 +658,48 @@ export class Renderer3D extends Renderer {
     this.sun.target.updateMatrixWorld()
   }
 
+  /** First person: eyes at the mage's head, turning smoothly with the way they face. */
+  private fpCamera(world: World, pp: Pt, dt: number) {
+    const pl = world.player
+    // DIR_YAW is the model's turn; the camera looks along it (down = toward +z)
+    const want = (DIR_YAW[pl.dir] ?? 0) + Math.PI
+    let d = want - this.fpYaw
+    while (d > Math.PI) d -= Math.PI * 2
+    while (d < -Math.PI) d += Math.PI * 2
+    this.fpYaw = this.snapNext || REDUCED ? want : this.fpYaw + d * Math.min(1, dt * 9)
+    this.snapNext = false
+    const fx = -Math.sin(this.fpYaw)
+    const fz = -Math.cos(this.fpYaw)
+    const ex = (pp.x + 8) / 16
+    const ez = pp.y / 16 + ANCHOR
+    // a gentle bob while walking
+    const bob = pl.t < 1 && !REDUCED ? Math.abs(Math.sin((pl.steps + pl.t) * Math.PI)) * 0.04 : 0
+    this.camera.position.set(ex - fx * 0.15, FP_EYE + bob, ez - fz * 0.15)
+    this.tgt.set(ex + fx * 6, 0.55, ez + fz * 6)
+    this.camera.lookAt(this.tgt)
+    this.camera.updateMatrixWorld()
+    this.camF.x = ex * 16 - this.viewW / 2
+    this.camF.y = ez * 16 - this.viewH / 2
+    this.cam.x = Math.floor(this.camF.x)
+    this.cam.y = Math.floor(this.camF.y)
+    // sun and shadows cover the ground ahead
+    const ext = 16
+    const sc = this.sun.shadow.camera
+    if (sc.right !== ext) {
+      sc.left = sc.bottom = -ext
+      sc.right = sc.top = ext
+      sc.near = 0.5
+      sc.far = 80
+      sc.updateProjectionMatrix()
+    }
+    const texel = (ext * 2) / this.sun.shadow.mapSize.x
+    const sx = Math.round((ex + fx * 7) / texel) * texel
+    const sz = Math.round((ez + fz * 7) / texel) * texel
+    this.sun.target.position.set(sx, 0, sz)
+    this.sun.position.set(sx - 12, 26, sz + 14)
+    this.sun.target.updateMatrixWorld()
+  }
+
   override snap() {
     this.snapNext = true
   }
@@ -609,6 +708,11 @@ export class Renderer3D extends Renderer {
   protected override proj(wx: number, wy: number, h: number, out: Pt): Pt {
     const v = this.v3.set(wx / 16, (h / 16) * VS, wy / 16).project(this.camera)
     const k = this.dpr / this.scale
+    if (v.z > 1) {
+      // behind the camera (first person): keep markers off screen
+      out.x = out.y = -9999
+      return out
+    }
     out.x = ((v.x + 1) / 2) * this.cssW * k
     out.y = ((1 - v.y) / 2) * this.cssH * k
     return out
@@ -764,7 +868,12 @@ export class Renderer3D extends Renderer {
     if (moving && (frame === 0 || frame === 2) && frame !== st.lastFrame) this.footfall(world, w, run, now, !st.wasMoving)
     st.lastFrame = moving ? frame : -1
     st.wasMoving = moving
-    this.setModel(this.card(w, true), 'mage', info.outfit, (p.x + 8) / 16, 0, p.y / 16 + ANCHOR, dir, w.steps + Math.min(1, w.t), moving, run, now)
+    const pc = this.card(w, true)
+    this.setModel(pc, 'mage', info.outfit, (p.x + 8) / 16, 0, p.y / 16 + ANCHOR, dir, w.steps + Math.min(1, w.t), moving, run, now)
+    // first person: we are the mage
+    const me = this.camMode !== 'fp'
+    if (pc.model) pc.model.root.visible = me
+    if (pc.blob) pc.blob.visible = me
   }
 
   private fude3D(world: World, now: number) {
@@ -891,6 +1000,7 @@ export class Renderer3D extends Renderer {
 
   private render3D(now: number) {
     const pl = this.v3.set(this.tgt.x, 0.5, this.tgt.z).project(this.camera)
+    if (this.post && this.camMode === 'fp' && this.post.tiltH.enabled) this.post.tiltH.enabled = this.post.tiltV.enabled = false
     if (this.post) this.post.render(now, (pl.y + 1) / 2 - 0.02, this.tgt.x, this.tgt.z)
     else this.gl.render(this.scene, this.camera)
   }
