@@ -159,6 +159,11 @@ export function buildDiorama(m: GameMap, atlas: Atlas, cardMat: THREE.Material, 
     return bare(id, x, y, frame, nb)
   }
   const S = (r: UvRect) => (hdRects.has(r) ? hq : st)
+  /** Bridges are built in 3D from HD wood when it's available. */
+  const woodRect = hdMat ? (hd?.rect('bridge-h') ?? null) : null
+  if (woodRect) hdRects.add(woodRect)
+  const isBridge = (id: TileId | null | undefined) => id === 'bridge-h' || id === 'bridge-v'
+  const modeled = (id: TileId) => !!propAsset(id) || (isBridge(id) && !!woodRect)
 
   // ── ground: HD terrain (per-tile material ids blended in the shader) with the
   // remaining pixel art as an overlay, or the pixel tiles alone ──
@@ -192,7 +197,7 @@ export function buildDiorama(m: GameMap, atlas: Atlas, cardMat: THREE.Material, 
         g.drawImage(tileCanvas(gid, tileVariant(gid, x, y), 0, computeNeighbours(gGet, x, y)), x * 16, y * 16)
       }
       // flat objects are painted (with terrain on, onto a transparent overlay)
-      if (ob && FLAT.has(ob) && !(ids && soft && layer !== undefined)) g.drawImage(tileCanvas(ob, tileVariant(ob, x, y), 0, objNb(x, y), ob), x * 16, y * 16)
+      if (ob && FLAT.has(ob) && !modeled(ob) && !(ids && soft && layer !== undefined)) g.drawImage(tileCanvas(ob, tileVariant(ob, x, y), 0, objNb(x, y), ob), x * 16, y * 16)
     }
   if (ids && tu) {
     idsTex = new THREE.DataTexture(ids, W, H, THREE.RGBAFormat)
@@ -294,6 +299,43 @@ export function buildDiorama(m: GameMap, atlas: Atlas, cardMat: THREE.Material, 
         if (heightAt(x + 1, y) < h) S(r).add([x + 1, 0, y + 1], [x + 1, 0, y], [x + 1, h, y], [x + 1, h, y + 1], r, EAST)
       }
     }
+
+  // ── bridges: plank deck, posts, rails and piles in HD wood, joined along each run ──
+  if (woodRect) {
+    const wr = woodRect
+    /** Box from local coords: a = along the bridge, c = across it (0..1 within the tile). */
+    const box = (x: number, y: number, horiz: boolean, a0: number, a1: number, y0: number, y1: number, c0: number, c1: number, planks = false) => {
+      const P = (a: number, h: number, c: number): number[] => (horiz ? [x + a, h, y + c] : [x + c, h, y + a])
+      const n = (v: number[]): number[] => (horiz ? v : [v[2], v[1], v[0]])
+      // top: planks run across the direction of travel
+      if (planks) S(wr).add(P(a0, y1, c1), P(a0, y1, c0), P(a1, y1, c0), P(a1, y1, c1), wr, UP)
+      else S(wr).add(P(a0, y1, c1), P(a1, y1, c1), P(a1, y1, c0), P(a0, y1, c0), wr, UP, 0, [0, 0, 1, 0.2])
+      // long sides and ends
+      S(wr).add(P(a0, y0, c1), P(a1, y0, c1), P(a1, y1, c1), P(a0, y1, c1), wr, n(SOUTH), 0, [0, 0.4, 1, 0.5])
+      S(wr).add(P(a1, y0, c0), P(a0, y0, c0), P(a0, y1, c0), P(a1, y1, c0), wr, n([0, 0, -1]), 0, [0, 0.4, 1, 0.5])
+      S(wr).add(P(a0, y0, c0), P(a0, y0, c1), P(a0, y1, c1), P(a0, y1, c0), wr, n(WEST), 0, [0, 0.6, 0.2, 0.7])
+      S(wr).add(P(a1, y0, c1), P(a1, y0, c0), P(a1, y1, c0), P(a1, y1, c1), wr, n(EAST), 0, [0, 0.6, 0.2, 0.7])
+    }
+    for (let y = 0; y < H; y++)
+      for (let x = 0; x < W; x++) {
+        const id = o(x, y)
+        if (!isBridge(id)) continue
+        const horiz = id === 'bridge-h'
+        const prev = horiz ? o(x - 1, y) : o(x, y - 1)
+        const next = horiz ? o(x + 1, y) : o(x, y + 1)
+        // deck
+        box(x, y, horiz, 0, 1, -0.05, 0.07, 0.06, 0.94, true)
+        // rails on both sides, posts at each tile end, piles into the water
+        for (const c of [0.06, 0.88]) {
+          box(x, y, horiz, 0, 1, 0.34, 0.41, c, c + 0.06)
+          box(x, y, horiz, 0.02, 0.98, 0.18, 0.22, c + 0.01, c + 0.05)
+          box(x, y, horiz, 0.44, 0.56, -0.35, -0.05, c, c + 0.06)
+          if (!isBridge(prev)) box(x, y, horiz, 0, 0.1, 0.07, 0.47, c - 0.01, c + 0.07)
+          if (!isBridge(next)) box(x, y, horiz, 0.9, 1, 0.07, 0.47, c - 0.01, c + 0.07)
+          else box(x, y, horiz, 0.95, 1.05, 0.07, 0.44, c, c + 0.06)
+        }
+      }
+  }
 
   // ── roofs: each column of roof cells becomes a gable over the wall below ──
   const isRoof = (x: number, y: number) => {
@@ -430,7 +472,8 @@ export function buildDiorama(m: GameMap, atlas: Atlas, cardMat: THREE.Material, 
     for (let x = 0; x < W; x++) {
       const i = y * W + x
       const ob = m.obj[i]
-      if (ob && !FLAT.has(ob) && !SOLID.has(ob) && !ROOF.has(ob)) place(ob, x, y, objNb(x, y))
+      // flat things with a model (bridges, stepping stones) are placed, not painted
+      if (ob && (!FLAT.has(ob) || propAsset(ob)) && !SOLID.has(ob) && !ROOF.has(ob)) place(ob, x, y, objNb(x, y))
       const ov = m.over[i]
       if (ov) place(ov, x, y, computeNeighbours(vGet, x, y))
     }
@@ -453,8 +496,8 @@ export function buildDiorama(m: GameMap, atlas: Atlas, cardMat: THREE.Material, 
     const natural = NATURAL.has(id)
     cells.forEach(([x, y, span], i) => {
       const s = natural ? 0.88 + rnd(x, y, 7) * 0.24 : 1
-      pos.set(x + 0.5 + (natural ? (rnd(x, y, 3) - 0.5) * 0.12 : 0), 0, y + 0.55 + (natural ? (rnd(y, x, 5) - 0.5) * 0.12 : 0))
-      q.setFromAxisAngle(yAxis, natural ? rnd(x, y, 11) * Math.PI * 2 : 0)
+      pos.set(x + 0.5 + (natural ? (rnd(x, y, 3) - 0.5) * 0.12 : 0), 0, y + (id.startsWith('bridge') ? 0.5 : 0.55) + (natural ? (rnd(y, x, 5) - 0.5) * 0.12 : 0))
+      q.setFromAxisAngle(yAxis, natural ? rnd(x, y, 11) * Math.PI * 2 : id === 'bridge-v' ? Math.PI / 2 : id === 'stepping-stone' ? rnd(x, y, 13) * Math.PI * 2 : 0)
       // wide gates stretch sideways more than they grow taller
       if (span > 1) scl.set(0.8 * span, 0.6 + 0.3 * span, 0.6 + 0.3 * span)
       else scl.set(s, s, s)

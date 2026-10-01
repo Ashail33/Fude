@@ -45,6 +45,8 @@ export const FACE_TEX: Partial<Record<TileId, string>> = {
   'roof-red': 'roof-red',
   'roof-red-edge': 'roof-red',
   'shop-awning': 'awning',
+  'bridge-h': 'wood-floor',
+  'bridge-v': 'wood-floor',
 }
 
 let available: Set<string> | null = null

@@ -11,7 +11,16 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import type { TileId } from '../../art/tiles'
 
 /** Size limits in tiles: tallest point and widest footprint. */
-const FIT: Partial<Record<TileId, { h: number; w: number; sway?: number }>> = {
+/** Tiles drawn with another tile's model. */
+const ALIAS: Partial<Record<TileId, TileId>> = {}
+const asset = (id: TileId): TileId => ALIAS[id] ?? id
+
+/**
+ * Size limits in tiles: tallest point and widest footprint. `fill` stretches
+ * the model to exactly w × d × h instead, so walkway segments join up.
+ */
+const FIT: Partial<Record<TileId, { h: number; w: number; d?: number; sway?: number; fill?: boolean }>> = {
+  'stepping-stone': { h: 0.16, w: 0.9 },
   tree: { h: 1.5, w: 1.3, sway: 0.035 },
   pine: { h: 1.6, w: 1.1, sway: 0.025 },
   sakura: { h: 1.6, w: 1.45, sway: 0.035 },
@@ -130,7 +139,8 @@ function prepare(id: TileId, scene: THREE.Object3D): PropAsset | null {
   const k = Math.min(fit.h / Math.max(1e-6, size.y), fit.w / Math.max(1e-6, size.x, size.z))
   const c = box.getCenter(new THREE.Vector3())
   geometry.translate(-c.x, -box.min.y, -c.z)
-  geometry.scale(k, k, k)
+  if (fit.fill) geometry.scale(fit.w / Math.max(1e-6, size.x), fit.h / Math.max(1e-6, size.y), (fit.d ?? fit.w) / Math.max(1e-6, size.z))
+  else geometry.scale(k, k, k)
   geometry.computeBoundingBox()
   geometry.computeBoundingSphere()
   return { geometry, material: material(map, fit.sway ?? 0, NATURAL.has(id) ? 0.05 : 0.14) }
@@ -138,7 +148,7 @@ function prepare(id: TileId, scene: THREE.Object3D): PropAsset | null {
 
 /** Start loading generated models for these tiles; resolves when all have settled. */
 export function requestProps(ids: Iterable<TileId>): Promise<void> {
-  const want = [...new Set(ids)].filter((id) => FIT[id])
+  const want = [...new Set([...ids].map(asset))].filter((id) => FIT[id])
   return list().then(() =>
     Promise.all(
       want.map((id) => {
@@ -167,5 +177,5 @@ export function requestProps(ids: Iterable<TileId>): Promise<void> {
 
 /** The loaded generated model for a tile, or null (use the built-in prop). */
 export function propAsset(id: TileId): PropAsset | null {
-  return assets.get(id) ?? null
+  return assets.get(asset(id)) ?? null
 }
