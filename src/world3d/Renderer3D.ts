@@ -30,6 +30,7 @@ import { Mesher, toonMaterial } from './models/kit'
 import { addProp } from './models/props'
 import { propAsset, propTime, requestProps } from './models/propglb'
 import { HdAtlas, requestTextures, texCount } from './hdtex'
+import { buildCurtains, magicFx, type Curtain } from './fx3d'
 
 const FOV = 30
 const PITCH = (40 * Math.PI) / 180
@@ -106,6 +107,8 @@ export class Renderer3D extends Renderer {
   private propGeo = new Map<TileId, THREE.BufferGeometry | null>()
   /** HD wall/roof/cliff faces and their material. */
   private hd = new HdAtlas()
+  /** Light curtains across the map's exits. */
+  private curtains: Curtain[] = []
   private hdMat = new THREE.MeshLambertMaterial({ map: this.hd.tex, side: THREE.DoubleSide })
   /** Terrain shader inputs (filled per map by buildDiorama). */
   private terrainU: TerrainUniforms = { uTerrain: { value: 0 }, uIds: { value: null }, uLayers: { value: null }, uMapSize: { value: new THREE.Vector2(1, 1) } }
@@ -228,11 +231,18 @@ export class Renderer3D extends Renderer {
           `#ifdef USE_MAP
             vec4 sampledDiffuseColor = texture2D(map, vMapUv);
             if (uTerrain > 0.5) {
+              // the plane runs past the map: the overlay only covers the map itself
+              vec2 ouv = vec2(vWPos.x / uMapSize.x, 1.0 - vWPos.z / uMapSize.y);
+              vec4 ov = texture2D(map, clamp(ouv, 0.0, 1.0));
+              ov.a *= step(0.0, ouv.x) * step(ouv.x, 1.0) * step(0.0, ouv.y) * step(ouv.y, 1.0);
               vec4 tc = terrainCol(vWPos.xz);
               float ww = tc.a;
               // a soft line of foam where water meets the shore
               vec3 t = tc.rgb + vec3(0.7, 0.8, 0.85) * smoothstep(0.1, 0.42, ww) * smoothstep(0.88, 0.55, ww) * (0.45 + 0.35 * sin(uTime * 1.6 + vWPos.x * 3.1 + vWPos.z * 2.3));
-              diffuseColor.rgb *= mix(t, sampledDiffuseColor.rgb, sampledDiffuseColor.a);
+              // beyond the edge the world dims a little as it recedes
+              float outD = max(max(-vWPos.x, vWPos.x - uMapSize.x), max(-vWPos.z, vWPos.z - uMapSize.y));
+              t *= mix(1.0, 0.72, smoothstep(0.0, 10.0, outD));
+              diffuseColor.rgb *= mix(t, ov.rgb, ov.a);
             } else diffuseColor *= sampledDiffuseColor;
           #endif`,
         )
@@ -484,6 +494,13 @@ export class Renderer3D extends Renderer {
     const up = Math.max(0, Math.min(2, Math.floor(Math.log2(4096 / (Math.max(m.w, m.h) * 16)))))
     this.dio = buildDiorama(m, this.atlas, this.cardMat, this.groundMat, up, this.voxMat, this.toonMat, this.hd, this.hdMat)
     this.scene.add(this.dio.ground, this.dio.statics, this.dio.dynamic, this.dio.voxels)
+    for (const c of this.curtains) {
+      this.scene.remove(c.mesh)
+      c.mesh.geometry.dispose()
+      ;(c.mesh.material as THREE.Material).dispose()
+    }
+    this.curtains = buildCurtains(m)
+    for (const c of this.curtains) this.scene.add(c.mesh)
     this.sceneryShadows()
     this.atlas.flush()
   }
@@ -688,7 +705,7 @@ export class Renderer3D extends Renderer {
 
   /** Smooth prop model for an entity tile (cached geometry per tile id). */
   private setProp(c: Card, tile: TileId, x: number, y: number, z: number): boolean {
-    const pa = c.ghost ? null : propAsset(tile)
+    const pa = c.ghost ? null : (magicFx(tile) ?? propAsset(tile))
     if (pa) {
       if (c.mesh.geometry !== pa.geometry) c.mesh.geometry = pa.geometry
       if (c.mesh.material !== pa.material) c.mesh.material = pa.material
@@ -932,7 +949,11 @@ export class Renderer3D extends Renderer {
     b.imageSmoothingEnabled = false
     b.clearRect(0, 0, this.vw, this.vh)
     this.drawPuffs(now)
-    for (const ex of m.exits.values()) if (info.exitLocked(ex)) this.drawBarrier(ex, now)
+    // exits glow in 3D: ease each curtain between open and locked
+    for (const c of this.curtains) {
+      const want = c.cells.some((ex) => info.exitLocked(ex)) ? 1 : 0
+      c.locked.value += (want - c.locked.value) * Math.min(1, dt * 4)
+    }
     for (const e of world.ents) {
       const mk = info.markers.get(e.spec.id)
       if (mk) this.drawMarker(e, mk, now)

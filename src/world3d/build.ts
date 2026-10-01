@@ -19,6 +19,7 @@ import { G, Mesher, rnd, T } from './models/kit'
 import { addProp, hasProp } from './models/props'
 import { NATURAL, propAsset } from './models/propglb'
 import { GROUND_TEX, terrainLayers, WATER, type HdAtlas } from './hdtex'
+import { buildOutskirts, magicFx, MARGIN } from './fx3d'
 
 /** World units per 16 px of height (vertical art stands a little taller than the ground squash). */
 export const VS = 1.35
@@ -214,7 +215,9 @@ export function buildDiorama(m: GameMap, atlas: Atlas, cardMat: THREE.Material, 
   groundTex.magFilter = THREE.LinearFilter
   groundTex.minFilter = THREE.LinearMipmapLinearFilter
   groundTex.anisotropy = 8
-  const gg = new THREE.PlaneGeometry(W, H)
+  // with HD terrain the ground carries on past the edge (the shader extends the edge tiles)
+  const M = idsTex ? MARGIN : 0
+  const gg = new THREE.PlaneGeometry(W + M * 2, H + M * 2)
   gg.rotateX(-Math.PI / 2)
   gg.translate(W / 2, 0, H / 2)
   groundMat.map = groundTex
@@ -407,6 +410,41 @@ export function buildDiorama(m: GameMap, atlas: Atlas, cardMat: THREE.Material, 
   const place = (id: TileId, x: number, y: number, nb: number) => {
     const frames = frameCount(id)
     const variant = tileVariant(id, x, y)
+    const fx = magicFx(id)
+    if (fx) {
+      const mesh = new THREE.Mesh(fx.geometry, fx.material)
+      mesh.position.set(x + 0.5, 0, y + 0.5)
+      if (id === 'warp-circle') {
+        // neighbouring circle tiles (around a portal, say) make one great circle
+        if (circleDone.has(y * W + x)) return
+        const magic = (t: TileId | null) => t === 'warp-circle' || t === 'portal'
+        let [x0, x1, y0, y1] = [x, x, y, y]
+        const todo = [[x, y]]
+        circleDone.add(y * W + x)
+        while (todo.length) {
+          const [cx, cy] = todo.pop()!
+          for (let dy = -1; dy <= 1; dy++)
+            for (let dx = -1; dx <= 1; dx++) {
+              const nx = cx + dx
+              const ny = cy + dy
+              if (!inb(nx, ny) || circleDone.has(ny * W + nx) || !magic(m.obj[ny * W + nx])) continue
+              circleDone.add(ny * W + nx)
+              todo.push([nx, ny])
+              x0 = Math.min(x0, nx)
+              x1 = Math.max(x1, nx)
+              y0 = Math.min(y0, ny)
+              y1 = Math.max(y1, ny)
+            }
+        }
+        const span = Math.max(x1 - x0, y1 - y0) + 1
+        mesh.position.set((x0 + x1 + 1) / 2, 0, (y0 + y1 + 1) / 2)
+        if (span > 1) mesh.scale.setScalar((span / 1.25) * 1.05)
+      }
+      mesh.renderOrder = 4
+      mesh.userData.shared = true
+      voxels.add(mesh)
+      return
+    }
     if (DECAL.has(id)) {
       for (let f = 0; f < frames; f++) atlas.get(tileCanvas(id, variant, f, nb, id))
       const v = dq.add([x, 0.02, y + 1], [x + 1, 0.02, y + 1], [x + 1, 0.02, y], [x, 0.02, y], atlas.get(tileCanvas(id, variant, 0, nb, id)), UP)
@@ -450,6 +488,7 @@ export function buildDiorama(m: GameMap, atlas: Atlas, cardMat: THREE.Material, 
     vb.add(tileCanvas(id, variant, 0, nb, id), x + 0.5, 0, y + ANCHOR, { depth, sway: SWAY[id] ?? 0 })
   }
   const voxels = new THREE.Group()
+  const circleDone = new Set<number>()
   const dynVox: DynVox[] = []
   const chunks = new Map<number, VoxelBuilder>()
   const smooth = new Map<number, Mesher>()
@@ -533,6 +572,7 @@ export function buildDiorama(m: GameMap, atlas: Atlas, cardMat: THREE.Material, 
     mesh.receiveShadow = true
     voxels.add(mesh)
   }
+  if (idsTex) for (const mesh of buildOutskirts(m)) voxels.add(mesh)
   if (!blades.empty) {
     const mesh = new THREE.Mesh(blades.geometry(), toonMat)
     mesh.receiveShadow = true
