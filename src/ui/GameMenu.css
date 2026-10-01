@@ -34,6 +34,10 @@
   gap: 16px;
   position: sticky;
   top: 10px;
+  /* the command list scrolls on its own when the screen is short (phones in landscape) */
+  max-height: calc(100dvh - 24px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .gm-cmds {

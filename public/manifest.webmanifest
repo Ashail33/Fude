@@ -3,6 +3,7 @@
   "short_name": "言葉の魔法",
   "start_url": "./",
   "display": "standalone",
+  "orientation": "any",
   "background_color": "#0f1024",
   "theme_color": "#0f1024",
   "icons": [{ "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml" }]

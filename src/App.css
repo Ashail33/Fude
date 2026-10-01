@@ -12,6 +12,17 @@
   animation: float 1.2s steps(4) infinite;
 }
 
+.app-loading {
+  min-height: 80vh;
+  align-content: center;
+  gap: 10px;
+}
+
+.app-loading small {
+  font-size: 1rem;
+  color: var(--muted);
+}
+
 .xp-mini {
   display: inline-block;
   width: 44px;
@@ -1406,9 +1417,10 @@ a.act:hover {
   position: absolute;
   top: 4px;
   right: 4px;
-  width: 30px;
-  height: 30px;
-  font-size: 0.8rem;
+  z-index: 3;
+  width: 38px;
+  height: 38px;
+  font-size: 0.95rem;
 }
 
 .kana-chart {

@@ -129,6 +129,19 @@
   min-height: 40px;
 }
 
+.ow-rotate-btn {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  font: inherit;
+  font-size: 1.4rem;
+  line-height: 1;
+  color: inherit;
+  cursor: pointer;
+}
+
 .ow-menu-btn:active {
   transform: translateY(1px);
 }

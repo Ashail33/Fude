@@ -8,12 +8,14 @@
  */
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { slimToBudget } from './glb-opt.mjs'
 
 const SRC = 'art-src/props.json'
 const OUT = 'public/props'
 /** Triangle budgets: repeated scenery stays light, landmarks keep detail. */
 const SCENERY = new Set(['tree', 'pine', 'sakura', 'bamboo', 'bush', 'rock', 'stump'])
-const budget = (id) => (SCENERY.has(id) ? 1800 : 6000)
+const SMALL = new Set(['stepping-stone', 'pot', 'barrel', 'crate', 'chest', 'chest-open', 'lantern', 'sign', 'campfire', 'anvil'])
+const budget = (id) => (SCENERY.has(id) ? 1800 : SMALL.has(id) ? 1500 : 3000)
 
 mkdirSync(OUT, { recursive: true })
 const sources = existsSync(SRC) ? JSON.parse(readFileSync(SRC, 'utf8')) : {}
@@ -21,25 +23,7 @@ let fetched = 0
 let failed = 0
 
 async function optimise(buf, id) {
-  const { NodeIO } = await import('@gltf-transform/core')
-  const { dedup, prune, simplify, weld, textureCompress } = await import('@gltf-transform/functions')
-  const { MeshoptSimplifier } = await import('meshoptimizer')
-  const { default: sharp } = await import('sharp')
-  await MeshoptSimplifier.ready
-  const io = new NodeIO()
-  const doc = await io.readBinary(new Uint8Array(buf))
-  let tris = 0
-  for (const mesh of doc.getRoot().listMeshes())
-    for (const prim of mesh.listPrimitives()) tris += (prim.getIndices()?.getCount() ?? prim.getAttribute('POSITION').getCount()) / 3
-  const ratio = Math.min(1, budget(id) / Math.max(1, tris))
-  await doc.transform(
-    dedup(),
-    weld(),
-    simplify({ simplifier: MeshoptSimplifier, ratio, error: 0.01 }),
-    textureCompress({ encoder: sharp, targetFormat: 'jpeg', resize: [512, 512], quality: 85 }),
-    prune(),
-  )
-  return Buffer.from(await io.writeBinary(doc))
+  return (await slimToBudget(buf, budget(id))).glb
 }
 
 await Promise.all(

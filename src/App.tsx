@@ -5,6 +5,7 @@ import { dueItems, ensureQuests } from './engine/quests'
 import { level, usePlayer } from './engine/store'
 import { levelForXp, xpForLevel } from './engine/rewards'
 import Title from './screens/Title'
+import { AppErrorBoundary } from './components/AppErrorBoundary'
 
 const Home = lazy(() => import('./screens/Home'))
 const RegionScreen = lazy(() => import('./screens/RegionScreen'))
@@ -100,6 +101,18 @@ const TITLE_ON_LAUNCH = (() => {
 })()
 let titleShown = false
 
+/** Shown while a screen's code loads: a clear message, not a lone sparkle on blue. */
+function Loading() {
+  return (
+    <div className="loading app-loading" role="status">
+      <span aria-hidden>✨</span>
+      <small>
+        <span lang="ja">よみこみちゅう…</span> Loading…
+      </small>
+    </div>
+  )
+}
+
 export default function App() {
   const p = usePlayer()
   const loc = useLocation()
@@ -122,22 +135,24 @@ export default function App() {
   return (
     <div className={`app ${fullscreen ? 'in-game' : ''} ${loc.pathname.startsWith('/play') ? 'in-play' : ''}`}>
       {!fullscreen && <TopBar />}
-      <Suspense fallback={<div className="loading">✨</div>}>
-        <Routes>
-          <Route path="/" element={showTitle && loc.pathname === '/' ? <Navigate to="/title" replace /> : <Overworld />} />
-          <Route path="/title" element={<Title />} />
-          <Route path="/journal" element={<Home />} />
-          <Route path="/region/:id" element={<RegionScreen />} />
-          <Route path="/play/*" element={<Play key={loc.pathname} />} />
-          <Route path="/grimoire" element={<Grimoire />} />
-          <Route path="/wardrobe" element={<Wardrobe />} />
-          <Route path="/settings" element={<SettingsScreen />} />
-          <Route path="/tavern" element={<Tavern />} />
-          <Route path="/world" element={<Navigate to="/" replace />} />
-          <Route path="/battle-test/:region" element={<BattleTest />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Suspense>
+      <AppErrorBoundary key={loc.pathname}>
+        <Suspense fallback={<Loading />}>
+          <Routes>
+            <Route path="/" element={showTitle && loc.pathname === '/' ? <Navigate to="/title" replace /> : <Overworld />} />
+            <Route path="/title" element={<Title />} />
+            <Route path="/journal" element={<Home />} />
+            <Route path="/region/:id" element={<RegionScreen />} />
+            <Route path="/play/*" element={<Play key={loc.pathname} />} />
+            <Route path="/grimoire" element={<Grimoire />} />
+            <Route path="/wardrobe" element={<Wardrobe />} />
+            <Route path="/settings" element={<SettingsScreen />} />
+            <Route path="/tavern" element={<Tavern />} />
+            <Route path="/world" element={<Navigate to="/" replace />} />
+            <Route path="/battle-test/:region" element={<BattleTest />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
+      </AppErrorBoundary>
       {!fullscreen && <BottomNav />}
     </div>
   )

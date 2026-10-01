@@ -207,7 +207,7 @@ export function magicFx(id: TileId): { geometry: THREE.BufferGeometry; material:
 
 // ─── outskirts ───────────────────────────────────────────────────
 /** How far the world carries on past the map's edge (tiles). */
-export const MARGIN = 12
+export const MARGIN = 9
 
 /**
  * A ring of the map's own trees around an outdoor map, densest at the edge
@@ -238,7 +238,7 @@ export function buildOutskirts(m: GameMap): THREE.InstancedMesh[] {
   const placed = new Map<string, THREE.Matrix4[]>()
   const q = new THREE.Quaternion()
   const yAxis = new THREE.Vector3(0, 1, 0)
-  const STEP = 1.25
+  const STEP = 1.55
   for (let gy = -MARGIN; gy < H + MARGIN; gy += STEP)
     for (let gx = -MARGIN; gx < W + MARGIN; gx += STEP) {
       const ix = Math.round(gx * 4)
@@ -248,7 +248,7 @@ export function buildOutskirts(m: GameMap): THREE.InstancedMesh[] {
       const out = Math.max(-x, x - W, -y, y - H)
       if (out < 0.4) continue
       // dense at the edge, thinning into the distance
-      if (rnd(ix, iy, 3) > 0.95 - out * 0.035) continue
+      if (rnd(ix, iy, 3) > 0.9 - out * 0.06) continue
       if (blocked(x, y)) continue
       const id = out < 1.8 && rnd(ix, iy, 4) < 0.3 ? fill[fill.length - 1] : pick[Math.floor(rnd(ix, iy, 5) * pick.length)]
       const s = (id === 'bush' ? 0.9 : 1.0) * (0.85 + rnd(ix, iy, 6) * 0.35)

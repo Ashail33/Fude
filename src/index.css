@@ -532,6 +532,8 @@ button {
 
 .btn-icon {
   position: relative;
+  /* above any card link it sits on, so a tap always reaches it */
+  z-index: 2;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -947,6 +949,10 @@ input[type='range']::-moz-range-thumb {
 input[type='checkbox'],
 input[type='radio'] {
   accent-color: var(--gold);
+  /* finger-sized */
+  width: 22px;
+  height: 22px;
+  flex: none;
 }
 
 .intro {
@@ -1451,4 +1457,11 @@ input[type='radio'] {
   .app.in-play .prompt {
     padding: 14px 10px;
   }
+}
+
+/* The mini-game header (with its ✕ leave button) always stays on screen. */
+.app.in-play .game-header {
+  position: sticky;
+  top: max(4px, env(safe-area-inset-top));
+  z-index: 40;
 }

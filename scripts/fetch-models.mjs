@@ -8,6 +8,7 @@
  */
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { slimToBudget } from './glb-opt.mjs'
 
 const SRC = 'art-src/models.json'
 const OUT = 'public/models'
@@ -146,7 +147,8 @@ await Promise.all(
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const buf = Buffer.from(await res.arrayBuffer())
       if (buf.subarray(0, 4).toString() !== 'glTF') throw new Error('not a GLB')
-      writeFileSync(dest, await slimGlb(turn ? turnGlb(buf, turn) : buf))
+      // characters stand ~100 px tall on a phone: 7k triangles and 512 px textures are plenty
+      writeFileSync(dest, (await slimToBudget(await slimGlb(turn ? turnGlb(buf, turn) : buf), 7000)).glb)
       fetched++
     } catch (e) {
       failed++

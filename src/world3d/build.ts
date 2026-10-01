@@ -209,7 +209,9 @@ export function buildDiorama(m: GameMap, atlas: Atlas, cardMat: THREE.Material, 
     tu.uMapSize.value.set(W, H)
     tu.uTerrain.value = 1
   } else if (tu) tu.uTerrain.value = 0
-  const big = groundUp > 0 ? upscaleCanvas(gc, groundUp) : gc
+  // with painted terrain the pixel layer only holds a few overlays: 2× is plenty (and much cheaper on phones)
+  const up = idsTex ? Math.min(groundUp, 1) : groundUp
+  const big = up > 0 ? upscaleCanvas(gc, up) : gc
   const groundTex = new THREE.CanvasTexture(big)
   groundTex.colorSpace = THREE.SRGBColorSpace
   groundTex.magFilter = THREE.LinearFilter

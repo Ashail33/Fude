@@ -16,7 +16,7 @@ import { type SpriteId } from '../art'
 import { animAt } from '../art'
 import { PAL } from '../art/palette'
 import { tileCanvas, tileFrame, tileVariant, type TileId } from '../art/tiles'
-import { fxQuality, onFxQuality, QualityGovernor, type FxLevel } from '../fx/quality'
+import { fxChosen, fxQuality, onFxQuality, QualityGovernor, touchDevice, type FxLevel } from '../fx/quality'
 import { DIRS, WALK_SPEED, npcState, springStep, walkFrame, type World } from '../world/engine'
 import { Renderer, safeSprite, wpos, type RenderInfo } from '../world/render'
 import type { Entity, GameMap, Pt } from '../world/types'
@@ -128,11 +128,14 @@ export class Renderer3D extends Renderer {
   private lastT = 0
   private frameDt = 1 / 60
   private talkingTo: Entity | null = null
+  /** Called when the WebGL context is lost. */
+  onLost?: () => void
 
   constructor(canvas: HTMLCanvasElement) {
     super(canvas, false)
     const q = fxQuality()
-    this.level = q === 'low' ? 2 : 3
+    // phones and tablets start a step down unless the player chose 'high' themselves
+    this.level = q === 'low' || (q === 'high' && !fxChosen() && touchDevice()) ? 2 : 3
     this.governor = new QualityGovernor(this.level, { threshold: 24 })
     this.unsubQ = onFxQuality((nq) => {
       if (nq === 'high' || nq === 'low') this.applyLevel(nq === 'low' ? 2 : 3)
@@ -141,6 +144,11 @@ export class Renderer3D extends Renderer {
     this.glCanvas.className = 'ow-canvas ow-3d'
     canvas.parentElement?.insertBefore(this.glCanvas, canvas)
     this.gl = new THREE.WebGLRenderer({ canvas: this.glCanvas, antialias: true, powerPreference: 'high-performance' })
+    // phones drop the GPU context under memory pressure: let the overworld switch to 2D
+    this.glCanvas.addEventListener('webglcontextlost', (e) => {
+      e.preventDefault()
+      this.onLost?.()
+    })
     this.gl.shadowMap.enabled = true
     this.gl.shadowMap.type = THREE.PCFShadowMap
     this.gl.outputColorSpace = THREE.SRGBColorSpace

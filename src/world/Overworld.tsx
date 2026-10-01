@@ -3,6 +3,7 @@
  * React only renders the overlays (HUD, dialogue, battle, cutscenes, menu).
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { toggleLandscape } from '../engine/orientation'
 import { useNavigate } from 'react-router-dom'
 import type { Dir, SpriteId } from '../art'
 import Battle, { type BattleOutcome } from '../battle/Battle'
@@ -225,9 +226,15 @@ export default function Overworld() {
     irisMode.current = true
     fadeTarget.current = 1
     onFaded.current = () => {
-      fn()
-      fadeTarget.current = 0
-      setTimeout(() => (busy.current = false), 180)
+      // whatever happens, the screen fades back in (never stuck on the dark iris)
+      try {
+        fn()
+      } catch (err) {
+        console.error('[overworld] transition failed', err)
+      } finally {
+        fadeTarget.current = 0
+        setTimeout(() => (busy.current = false), 180)
+      }
     }
   }, [])
 
@@ -419,6 +426,24 @@ export default function Overworld() {
       r = new Renderer(canvas)
     }
     R.current = r
+    /** If the 3D view fails (a crash, or the phone reclaiming GPU memory) carry on in 2D instead of a blank screen. */
+    const fallBackTo2D = (why: unknown) => {
+      if (!(r instanceof Renderer3D)) return
+      console.warn('[3d] falling back to 2D:', why)
+      const old = r
+      const next = new Renderer(canvas)
+      next.fade = old.fade
+      try {
+        old.dispose()
+      } catch {
+        /* already gone */
+      }
+      r = next
+      R.current = next
+      resize()
+      if (Wd.current) next.setMap(Wd.current.map)
+    }
+    if (r instanceof Renderer3D) r.onLost = () => fallBackTo2D('graphics context lost')
     const s = getState()
     let m = getMap(s.world.map) ?? getMap('village')!
     let { x, y } = s.world
@@ -503,6 +528,7 @@ export default function Overworld() {
     const times = new Float32Array(240)
     let ti = 0
     const loop = (now: number) => {
+      raf = requestAnimationFrame(loop)
       const t0 = performance.now()
       const raw = Math.min(0.1, Math.max(0, (now - last) / 1000))
       last = now
@@ -524,8 +550,13 @@ export default function Overworld() {
         w.held = null
         w.path = []
       } else w.held = heldStack.current[heldStack.current.length - 1] ?? null
-      w.update(dt, now)
-      r.draw(w, now, dt, infoRef.current)
+      try {
+        w.update(dt, now)
+        r.draw(w, now, dt, infoRef.current)
+      } catch (err) {
+        console.error('[overworld] frame failed', err)
+        fallBackTo2D(err)
+      }
       // iris / fade overlay (DOM, so it sits above the WebGL layer too)
       const el = irisRef.current
       if (el) {
@@ -552,7 +583,6 @@ export default function Overworld() {
         }
       }
       times[ti++ % times.length] = performance.now() - t0
-      raf = requestAnimationFrame(loop)
     }
     if (import.meta.env.DEV) (window as unknown as { __owTimes: () => number[] }).__owTimes = () => Array.from(times.subarray(0, Math.min(ti, times.length)))
     raf = requestAnimationFrame(loop)
@@ -747,6 +777,21 @@ export default function Overworld() {
             </span>
             <Bi line={{ jp: 'メニュー', en: 'Menu' }} />
           </button>
+          {touch && (
+            <button
+              type="button"
+              className="win ow-rotate-btn"
+              aria-label="Rotate screen"
+              title="Rotate screen"
+              onClick={() => {
+                void toggleLandscape().then((ok) => {
+                  if (!ok) showToast({ jp: 'スマホを よこに むけてね！', en: 'Turn your phone sideways to play in landscape!' })
+                })
+              }}
+            >
+              <span aria-hidden>⟳</span>
+            </button>
+          )}
         </div>
       </div>
 

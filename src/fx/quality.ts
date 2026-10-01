@@ -24,6 +24,22 @@ export function fxQuality(): FxQuality {
   }
 }
 
+/** Whether the player picked a quality themselves (otherwise it's the default). */
+export function fxChosen(): boolean {
+  try {
+    return typeof localStorage !== 'undefined' && localStorage.getItem(KEY) !== null
+  } catch {
+    return false
+  }
+}
+
+/** Phones and tablets (coarse pointer or little memory). */
+export function touchDevice(): boolean {
+  if (typeof window === 'undefined') return false
+  const mem = (navigator as Navigator & { deviceMemory?: number }).deviceMemory
+  return !!window.matchMedia?.('(pointer: coarse)').matches || (mem !== undefined && mem <= 4)
+}
+
 /** Save the preference and apply it live to any running overworld. */
 export function setFxQuality(q: FxQuality) {
   const v = parse(q)
