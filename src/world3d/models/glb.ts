@@ -13,13 +13,31 @@ import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js
 import type { Model } from './chars'
 
 /** Per-character fit: height in tiles, extra yaw (radians) if the mesh faces the wrong way. */
-const FIT: Record<string, { h: number; yaw?: number; float?: boolean }> = {
+const FIT: Record<string, { h: number; yaw?: number; float?: boolean; quad?: boolean }> = {
   // (the mage mesh is turned to face +Z at build time: art-src/models.json "turn")
   mage: { h: 1.55 },
   fude: { h: 0.85, float: true },
   elder: { h: 1.4 },
   merchant: { h: 1.45 },
   guard: { h: 1.6 },
+  priest: { h: 1.5 },
+  king: { h: 1.6 },
+  innkeeper: { h: 1.45 },
+  jailer: { h: 1.55 },
+  'villager-a': { h: 1.45 },
+  'villager-b': { h: 1.45 },
+  child: { h: 1.1 },
+  oni: { h: 2.1 },
+  tanuki: { h: 1.0 },
+  golem: { h: 1.6 },
+  treant: { h: 1.9 },
+  dragon: { h: 2.4 },
+  wisp: { h: 0.8, float: true },
+  // four-legged: a trotting rock instead of a waddle
+  kitsune: { h: 0.95, quad: true },
+  cat: { h: 0.55, quad: true },
+  dog: { h: 0.7, quad: true },
+  fox: { h: 0.65, quad: true },
 }
 
 let available: Set<string> | null = null
@@ -133,6 +151,7 @@ export function glbModel(id: string): Model | null {
   const inner = body.children[0] as THREE.Group
   const h = tpl.userData.height as number
   const float = !!FIT[id]?.float
+  const quad = !!FIT[id]?.quad
   const rig = makeRig(inner)
   return {
     root,
@@ -152,6 +171,15 @@ export function glbModel(id: string): Model | null {
         return
       }
       const s = Math.sin(phase * Math.PI)
+      if (quad) {
+        // trotting: a quick bob with a nose-to-tail rock
+        inner.position.y = moving ? Math.abs(Math.sin(phase * Math.PI * 2)) * (run ? 0.06 : 0.03) : 0
+        inner.rotation.x = moving ? Math.sin(phase * Math.PI * 2) * (run ? 0.1 : 0.06) : 0
+        inner.rotation.z = 0
+        const br = moving ? 0 : Math.sin(t * 3) * 0.015
+        inner.scale.set(1 + br * 0.4, 1 + br, 1 + br * 0.4)
+        return
+      }
       // walking: a hop per step, a side-to-side waddle, and a forward lean when running
       inner.position.y = moving ? Math.abs(s) * (run ? 0.07 : 0.045) : 0
       inner.rotation.z = moving ? s * (run ? 0.07 : 0.09) : 0
