@@ -351,10 +351,17 @@ export function buildDiorama(m: GameMap, atlas: Atlas, cardMat: THREE.Material, 
       return
     }
     if (propAsset(id)) {
+      // a run of torii across a wide path is one wider gate
+      let span = 1
+      if (id === 'torii') {
+        const isT = (xx: number) => xx >= 0 && xx < W && (m.obj[y * W + xx] === 'torii' || m.over[y * W + xx] === 'torii')
+        if (isT(x - 1)) return
+        while (isT(x + span)) span++
+      }
       const ck = `${id}|${Math.floor(x / 8) + Math.floor(y / 8) * 1000}`
       let list = placed.get(ck)
       if (!list) placed.set(ck, (list = []))
-      list.push([x, y])
+      list.push([x + (span - 1) / 2, y, span])
       return
     }
     if (hasProp(id)) {
@@ -384,7 +391,7 @@ export function buildDiorama(m: GameMap, atlas: Atlas, cardMat: THREE.Material, 
   const chunks = new Map<number, VoxelBuilder>()
   const smooth = new Map<number, Mesher>()
   /** Generated-model props, per tile id and 8×8 chunk (instanced, culled per chunk). */
-  const placed = new Map<string, [number, number][]>()
+  const placed = new Map<string, [x: number, y: number, span: number][]>()
   for (let y = 0; y < H; y++)
     for (let x = 0; x < W; x++) {
       if (m.ground[y * W + x] !== 'tall-grass' || m.obj[y * W + x]) continue
@@ -421,11 +428,14 @@ export function buildDiorama(m: GameMap, atlas: Atlas, cardMat: THREE.Material, 
     const pa = propAsset(id)!
     const mesh = new THREE.InstancedMesh(pa.geometry, pa.material, cells.length)
     const natural = NATURAL.has(id)
-    cells.forEach(([x, y], i) => {
+    cells.forEach(([x, y, span], i) => {
       const s = natural ? 0.88 + rnd(x, y, 7) * 0.24 : 1
       pos.set(x + 0.5 + (natural ? (rnd(x, y, 3) - 0.5) * 0.12 : 0), 0, y + 0.55 + (natural ? (rnd(y, x, 5) - 0.5) * 0.12 : 0))
       q.setFromAxisAngle(yAxis, natural ? rnd(x, y, 11) * Math.PI * 2 : 0)
-      mesh.setMatrixAt(i, mtx.compose(pos, q, scl.set(s, s, s)))
+      // wide gates stretch sideways more than they grow taller
+      if (span > 1) scl.set(0.8 * span, 0.6 + 0.3 * span, 0.6 + 0.3 * span)
+      else scl.set(s, s, s)
+      mesh.setMatrixAt(i, mtx.compose(pos, q, scl))
     })
     mesh.computeBoundingSphere()
     mesh.castShadow = true

@@ -12,9 +12,9 @@ import type { TileId } from '../../art/tiles'
 
 /** Size limits in tiles: tallest point and widest footprint. */
 const FIT: Partial<Record<TileId, { h: number; w: number; sway?: number }>> = {
-  tree: { h: 1.75, w: 1.45, sway: 0.035 },
-  pine: { h: 2.0, w: 1.3, sway: 0.025 },
-  sakura: { h: 1.75, w: 1.55, sway: 0.035 },
+  tree: { h: 1.5, w: 1.3, sway: 0.035 },
+  pine: { h: 1.6, w: 1.1, sway: 0.025 },
+  sakura: { h: 1.6, w: 1.45, sway: 0.035 },
   bamboo: { h: 1.9, w: 0.95, sway: 0.05 },
   bush: { h: 0.75, w: 1.0, sway: 0.03 },
   rock: { h: 0.45, w: 0.7 },
@@ -78,10 +78,10 @@ function toonGradient(): THREE.DataTexture {
   return gradient
 }
 
-function material(map: THREE.Texture | null, sway: number): THREE.Material {
+function material(map: THREE.Texture | null, sway: number, fill: number): THREE.Material {
   const m = new THREE.MeshToonMaterial({ map, gradientMap: toonGradient() })
-  // the same soft fill as the characters, so shadowed sides don't go muddy
-  m.emissive = new THREE.Color(0.16, 0.16, 0.16)
+  // a soft fill so shadowed sides don't go muddy (less on bright foliage)
+  m.emissive = new THREE.Color(fill, fill, fill)
   if (map) m.emissiveMap = map
   if (sway > 0) {
     m.onBeforeCompile = (sh) => {
@@ -134,7 +134,7 @@ function prepare(id: TileId, scene: THREE.Object3D): PropAsset | null {
   geometry.scale(k, k, k)
   geometry.computeBoundingBox()
   geometry.computeBoundingSphere()
-  return { geometry, material: material(map, fit.sway ?? 0) }
+  return { geometry, material: material(map, fit.sway ?? 0, NATURAL.has(id) ? 0.05 : 0.14) }
 }
 
 /** Start loading generated models for these tiles; resolves when all have settled. */
