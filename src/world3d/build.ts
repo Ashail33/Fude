@@ -15,9 +15,10 @@ import type { Atlas, UvRect } from './atlas'
 import { upscaleCanvas } from './upscale'
 import { PAL } from '../art/palette'
 import { VoxelBuilder, voxelGeometry } from './voxel'
-import { Mesher, rnd } from './models/kit'
+import { G, Mesher, rnd, T } from './models/kit'
 import { addProp, hasProp } from './models/props'
 import { NATURAL, propAsset } from './models/propglb'
+import { GROUND_TEX, terrainLayers, WATER, type HdAtlas } from './hdtex'
 
 /** World units per 16 px of height (vertical art stands a little taller than the ground squash). */
 export const VS = 1.35
@@ -34,32 +35,6 @@ const SOLID = new Set<TileId>(['wall', 'wall-window', 'door', 'noren', 'stone-wa
 const ROOF = new Set<TileId>(['roof', 'roof-edge', 'roof-red', 'roof-red-edge', 'shop-awning'])
 /** Cards that sway in the wind (amount at the top edge, in tiles). */
 const SWAY: Partial<Record<TileId, number>> = { tree: 0.05, pine: 0.035, sakura: 0.06, bamboo: 0.08, bush: 0.03, torii: 0 }
-
-/** Cut-out grass blades stood up in tall-grass cells (two variants, cached). */
-const blades: HTMLCanvasElement[] = []
-function bladeCanvas(v: number): HTMLCanvasElement {
-  if (blades[v]) return blades[v]
-  const c = document.createElement('canvas')
-  c.width = c.height = 16
-  const g = c.getContext('2d')!
-  let seed = 7 + v * 31
-  const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647)
-  const cols = [PAL.leafDark, PAL.leaf, PAL.grass, PAL.grassLight]
-  for (let i = 0; i < 11; i++) {
-    let x = Math.floor(rnd() * 15)
-    const h = 5 + Math.floor(rnd() * 10)
-    const lean = rnd() < 0.5 ? -1 : 1
-    for (let k = 0; k < h; k++) {
-      const y = 15 - k
-      if (k > 2 && k % 4 === 3) x = Math.max(0, Math.min(15, x + lean))
-      const t = k / h
-      g.fillStyle = cols[Math.min(3, Math.floor(t * 3.2) + (i % 3 === 0 ? 1 : 0))]
-      g.fillRect(x, y, 1, 1)
-    }
-  }
-  blades[v] = c
-  return c
-}
 
 export interface DynQuad {
   /** First vertex index in the owning geometry. */
@@ -154,7 +129,15 @@ export function voxDepth(id: TileId): number {
   return DEPTH[id] ?? 5
 }
 
-export function buildDiorama(m: GameMap, atlas: Atlas, cardMat: THREE.Material, groundMat: THREE.MeshLambertMaterial, groundUp: number, voxMat: THREE.Material, toonMat: THREE.Material): Diorama {
+/** Uniforms the ground material's terrain shader reads (owned by the renderer). */
+export interface TerrainUniforms {
+  uTerrain: { value: number }
+  uIds: { value: THREE.DataTexture | null }
+  uLayers: { value: THREE.DataArrayTexture | null }
+  uMapSize: { value: THREE.Vector2 }
+}
+
+export function buildDiorama(m: GameMap, atlas: Atlas, cardMat: THREE.Material, groundMat: THREE.MeshLambertMaterial, groundUp: number, voxMat: THREE.Material, toonMat: THREE.Material, hd: HdAtlas | null = null, hdMat: THREE.Material | null = null): Diorama {
   const W = m.w
   const H = m.h
   const inb = (x: number, y: number) => x >= 0 && y >= 0 && x < W && y < H
@@ -164,24 +147,62 @@ export function buildDiorama(m: GameMap, atlas: Atlas, cardMat: THREE.Material, 
   const vGet = (x: number, y: number) => (inb(x, y) ? (m.over[y * W + x] ?? m.ground[y * W + x]) : null)
   const objNb = (x: number, y: number) => computeNeighbours(oGet, x, y)
   const bare = (id: TileId, x: number, y: number, frame = 0, nb = objNb(x, y)) => atlas.get(tileCanvas(id, tileVariant(id, x, y), frame, nb, id))
+  // HD faces (walls, roofs, cliffs) go in their own mesh on the HD atlas
+  const hq = new Quads()
+  const hdRects = new WeakSet<UvRect>()
+  const face = (id: TileId, x: number, y: number, frame = 0, nb?: number): UvRect => {
+    const r = hdMat ? hd?.rect(id) : null
+    if (r) {
+      hdRects.add(r)
+      return r
+    }
+    return bare(id, x, y, frame, nb)
+  }
+  const S = (r: UvRect) => (hdRects.has(r) ? hq : st)
 
-  // ── ground texture: ground tiles + flat objects, frame 0 ──
+  // ── ground: HD terrain (per-tile material ids blended in the shader) with the
+  // remaining pixel art as an overlay, or the pixel tiles alone ──
+  const terrain = terrainLayers()
+  const tu = groundMat.userData.terrain as TerrainUniforms | undefined
+  let idsTex: THREE.DataTexture | null = null
+  const layerOf = (id: TileId | null | undefined) => (terrain && id ? terrain.index.get(GROUND_TEX[id] ?? '') : undefined)
   const gc = document.createElement('canvas')
   gc.width = W * 16
   gc.height = H * 16
   const g = gc.getContext('2d')!
   g.imageSmoothingEnabled = false
+  const ids = terrain ? new Uint8Array(W * H * 4) : null
   for (let y = 0; y < H; y++)
     for (let x = 0; x < W; x++) {
       const i = y * W + x
       const gid = m.ground[i]
-      g.drawImage(tileCanvas(gid, tileVariant(gid, x, y), 0, computeNeighbours(gGet, x, y)), x * 16, y * 16)
       const ob = m.obj[i]
-      if (ob && (FLAT.has(ob) || SOLID.has(ob) || ROOF.has(ob))) {
-        // flat objects are painted; under blocks/roofs paint a darker floor (hidden, but seen at edges)
-        if (FLAT.has(ob)) g.drawImage(tileCanvas(ob, tileVariant(ob, x, y), 0, objNb(x, y), ob), x * 16, y * 16)
+      // a flower or tall-grass object is just a different patch of ground
+      const soft = ob === 'flowers' || ob === 'tall-grass' ? ob : null
+      const layer = layerOf(soft ?? gid) ?? (soft ? layerOf(gid) : undefined)
+      if (ids && layer !== undefined) {
+        ids[i * 4] = layer
+        ids[i * 4 + 1] = m.ground[i] === 'water-deep' ? 2 : WATER.has(gid) ? 1 : 0
+        ids[i * 4 + 3] = 255
+      } else {
+        if (ids) {
+          ids[i * 4] = layerOf('grass') ?? 0
+          ids[i * 4 + 3] = 255
+        }
+        g.drawImage(tileCanvas(gid, tileVariant(gid, x, y), 0, computeNeighbours(gGet, x, y)), x * 16, y * 16)
       }
+      // flat objects are painted (with terrain on, onto a transparent overlay)
+      if (ob && FLAT.has(ob) && !(ids && soft && layer !== undefined)) g.drawImage(tileCanvas(ob, tileVariant(ob, x, y), 0, objNb(x, y), ob), x * 16, y * 16)
     }
+  if (ids && tu) {
+    idsTex = new THREE.DataTexture(ids, W, H, THREE.RGBAFormat)
+    idsTex.magFilter = idsTex.minFilter = THREE.NearestFilter
+    idsTex.needsUpdate = true
+    tu.uIds.value = idsTex
+    tu.uLayers.value = terrain!.tex
+    tu.uMapSize.value.set(W, H)
+    tu.uTerrain.value = 1
+  } else if (tu) tu.uTerrain.value = 0
   const big = groundUp > 0 ? upscaleCanvas(gc, groundUp) : gc
   const groundTex = new THREE.CanvasTexture(big)
   groundTex.colorSpace = THREE.SRGBColorSpace
@@ -242,7 +263,7 @@ export function buildDiorama(m: GameMap, atlas: Atlas, cardMat: THREE.Material, 
       const blk = blockOf.get(y * W + x)
       const h = blk?.h ?? VS
       const id = o(x, y)!
-      const r = bare(id, x, y)
+      const r = face(id, x, y)
       if (blk) {
         // tall facade: only the southmost cell emits the front; rows stack upward
         const L = blk.bottom - blk.top + 1
@@ -250,27 +271,27 @@ export function buildDiorama(m: GameMap, atlas: Atlas, cardMat: THREE.Material, 
         if (y === blk.bottom) {
           for (let k = blk.top; k <= blk.bottom; k++) {
             const y0 = (blk.bottom - k) * band
-            const rk = bare(o(x, k)!, x, k)
-            st.add([x, y0, y + 1], [x + 1, y0, y + 1], [x + 1, y0 + band, y + 1], [x, y0 + band, y + 1], rk, SOUTH)
+            const rk = face(o(x, k)!, x, k)
+            S(rk).add([x, y0, y + 1], [x + 1, y0, y + 1], [x + 1, y0 + band, y + 1], [x, y0 + band, y + 1], rk, SOUTH)
           }
         }
         // top cap
-        const rt = bare(o(x, blk.top)!, x, blk.top)
-        st.add([x, h, y + 1], [x + 1, h, y + 1], [x + 1, h, y], [x, h, y], rt, UP)
+        const rt = face(o(x, blk.top)!, x, blk.top)
+        S(rt).add([x, h, y + 1], [x + 1, h, y + 1], [x + 1, h, y], [x, h, y], rt, UP)
         // sides where the neighbour is lower
         if (heightAt(x - 1, y) < h) {
           const lo = heightAt(x - 1, y)
-          st.add([x, lo, y], [x, lo, y + 1], [x, h, y + 1], [x, h, y], r, WEST, 0, [0, lo / h, 1, 1])
+          S(r).add([x, lo, y], [x, lo, y + 1], [x, h, y + 1], [x, h, y], r, WEST, 0, [0, lo / h, 1, 1])
         }
         if (heightAt(x + 1, y) < h) {
           const lo = heightAt(x + 1, y)
-          st.add([x + 1, lo, y + 1], [x + 1, lo, y], [x + 1, h, y], [x + 1, h, y + 1], r, EAST, 0, [0, lo / h, 1, 1])
+          S(r).add([x + 1, lo, y + 1], [x + 1, lo, y], [x + 1, h, y], [x + 1, h, y + 1], r, EAST, 0, [0, lo / h, 1, 1])
         }
       } else {
-        if (heightAt(x, y + 1) < h) st.add([x, 0, y + 1], [x + 1, 0, y + 1], [x + 1, h, y + 1], [x, h, y + 1], r, SOUTH)
-        st.add([x, h, y + 1], [x + 1, h, y + 1], [x + 1, h, y], [x, h, y], r, UP)
-        if (heightAt(x - 1, y) < h) st.add([x, 0, y], [x, 0, y + 1], [x, h, y + 1], [x, h, y], r, WEST)
-        if (heightAt(x + 1, y) < h) st.add([x + 1, 0, y + 1], [x + 1, 0, y], [x + 1, h, y], [x + 1, h, y + 1], r, EAST)
+        if (heightAt(x, y + 1) < h) S(r).add([x, 0, y + 1], [x + 1, 0, y + 1], [x + 1, h, y + 1], [x, h, y + 1], r, SOUTH)
+        S(r).add([x, h, y + 1], [x + 1, h, y + 1], [x + 1, h, y], [x, h, y], r, UP)
+        if (heightAt(x - 1, y) < h) S(r).add([x, 0, y], [x, 0, y + 1], [x, h, y + 1], [x, h, y], r, WEST)
+        if (heightAt(x + 1, y) < h) S(r).add([x + 1, 0, y + 1], [x + 1, 0, y], [x + 1, h, y], [x + 1, h, y + 1], r, EAST)
       }
     }
 
@@ -313,12 +334,12 @@ export function buildDiorama(m: GameMap, atlas: Atlas, cardMat: THREE.Material, 
         // row index from the front: s>>1 ; rows run r1 (front) … r0 (back)
         const row = r1 - (s >> 1)
         const half = s & 1
-        const rr = bare(o(x, row)!, x, row)
+        const rr = face(o(x, row)!, x, row)
         const [ya, za] = P(ta)
         const [yb, zb] = P(tb)
         const nrm = tb <= 0.5 ? [0, 0.85, 0.53] : [0, 0.85, -0.53]
         // tile v runs bottom(0)→top(1); the front half of a row is its lower half
-        st.add([x - (isRoof(x - 1, row) ? 0 : 0.12), ya, za], [x + 1 + (isRoof(x + 1, row) ? 0 : 0.12), ya, za], [x + 1 + (isRoof(x + 1, row) ? 0 : 0.12), yb, zb], [x - (isRoof(x - 1, row) ? 0 : 0.12), yb, zb], rr, nrm, 0, [0, half * 0.5, 1, half * 0.5 + 0.5])
+        S(rr).add([x - (isRoof(x - 1, row) ? 0 : 0.12), ya, za], [x + 1 + (isRoof(x + 1, row) ? 0 : 0.12), ya, za], [x + 1 + (isRoof(x + 1, row) ? 0 : 0.12), yb, zb], [x - (isRoof(x - 1, row) ? 0 : 0.12), yb, zb], rr, nrm, 0, [0, half * 0.5, 1, half * 0.5 + 0.5])
       }
       // gable ends (and walls under the roof) where the roof region ends
       const wallId: TileId = wallBelow ? o(x, r1 + 1)! : 'wall'
@@ -326,15 +347,15 @@ export function buildDiorama(m: GameMap, atlas: Atlas, cardMat: THREE.Material, 
         if (isRoof(x + side, r0) || isRoof(x + side, r1)) continue
         const X = side < 0 ? x : x + 1
         const nrm = side < 0 ? WEST : EAST
-        const rw = bare(wallId === 'door' || wallId === 'noren' ? 'wall' : wallId, x, r1 + 1, 0, 0)
+        const rw = face(wallId === 'door' || wallId === 'noren' ? 'wall' : wallId, x, r1 + 1, 0, 0)
         for (let z = zBack; z < zWall; z++) {
           const z1 = Math.min(zWall, z + 1)
           const za = side < 0 ? z : z1
           const zb = side < 0 ? z1 : z
-          st.add([X, 0, za], [X, 0, zb], [X, eaveH, zb], [X, eaveH, za], rw, nrm)
+          S(rw).add([X, 0, za], [X, 0, zb], [X, eaveH, zb], [X, eaveH, za], rw, nrm)
           const ta = roofY(za)
           const tb = roofY(zb)
-          if (Math.max(ta, tb) > eaveH + 0.01) st.add([X, eaveH, za], [X, eaveH, zb], [X, tb, zb], [X, ta, za], rw, nrm, 0, [0, 0.5, 1, 1])
+          if (Math.max(ta, tb) > eaveH + 0.01) S(rw).add([X, eaveH, za], [X, eaveH, zb], [X, tb, zb], [X, ta, za], rw, nrm, 0, [0, 0.5, 1, 1])
         }
       }
     }
@@ -392,15 +413,17 @@ export function buildDiorama(m: GameMap, atlas: Atlas, cardMat: THREE.Material, 
   const smooth = new Map<number, Mesher>()
   /** Generated-model props, per tile id and 8×8 chunk (instanced, culled per chunk). */
   const placed = new Map<string, [x: number, y: number, span: number][]>()
+  const blades = new Mesher(0.5)
+  const BLADE = [PAL.leafDark, PAL.leaf, PAL.grass, PAL.grassLight]
   for (let y = 0; y < H; y++)
     for (let x = 0; x < W; x++) {
       if (m.ground[y * W + x] !== 'tall-grass' || m.obj[y * W + x]) continue
-      for (let k = 0; k < 3; k++) {
-        const r = atlas.get(bladeCanvas((x * 3 + y * 5 + k) % 2))
-        const z = y + 0.2 + k * 0.33
-        const j = (((x * 7 + y * 13 + k * 5) % 5) - 2) * 0.06
-        const h = VS * (0.42 + ((x + y + k) % 3) * 0.06)
-        st.add([x - 0.1 + j, 0, z], [x + 1.1 + j, 0, z], [x + 1.1 + j, h, z], [x - 0.1 + j, h, z], r, CARD_N, 0.07)
+      for (let k = 0; k < 9; k++) {
+        const bx = x + 0.08 + rnd(x, y, k) * 0.84
+        const bz = y + 0.08 + rnd(y, x, k + 3) * 0.84
+        const h = 0.28 + rnd(x + k, y, 5) * 0.3
+        const lean = (rnd(x, y + k, 7) - 0.5) * 0.5
+        blades.add(G.cone4, BLADE[(x + y + k) % 4], T([bx, h / 2, bz], [0.035, h, 0.014], [lean * 0.6, rnd(x, y, k + 11) * 3, lean]), { sway: 0.06 })
       }
     }
   for (let y = 0; y < H; y++)
@@ -451,6 +474,17 @@ export function buildDiorama(m: GameMap, atlas: Atlas, cardMat: THREE.Material, 
     mesh.receiveShadow = true
     voxels.add(mesh)
   }
+  if (!blades.empty) {
+    const mesh = new THREE.Mesh(blades.geometry(), toonMat)
+    mesh.receiveShadow = true
+    voxels.add(mesh)
+  }
+  if (hdMat && hq.count) {
+    const mesh = new THREE.Mesh(hq.geometry(), hdMat)
+    mesh.castShadow = true
+    mesh.receiveShadow = true
+    voxels.add(mesh)
+  }
   const statics = new THREE.Mesh(st.geometry(), cardMat)
   statics.castShadow = true
   statics.receiveShadow = true
@@ -469,6 +503,7 @@ export function buildDiorama(m: GameMap, atlas: Atlas, cardMat: THREE.Material, 
       for (const c of voxels.children) if (!c.userData.shared && !dynVox.some((d) => d.mesh === c)) (c as THREE.Mesh).geometry.dispose()
       gg.dispose()
       groundTex.dispose()
+      idsTex?.dispose()
       statics.geometry.dispose()
       dynamic.geometry.dispose()
     },

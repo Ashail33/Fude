@@ -1,0 +1,37 @@
+{
+  "awning": "https://d8j0ntlcm91z4.cloudfront.net/user_32Gtaw5yTeqBNRnW1bKP181bgml/hf_20261001_101954_40d8c455-fc62-4f90-9c59-276ee23721b5.png",
+  "bookshelf": {
+    "url": "https://d8j0ntlcm91z4.cloudfront.net/user_32Gtaw5yTeqBNRnW1bKP181bgml/hf_20261001_101954_d45b4399-3f2f-4a1c-84a0-8e6d443a6095.png",
+    "tile": false
+  },
+  "castle-wall": "https://d8j0ntlcm91z4.cloudfront.net/user_32Gtaw5yTeqBNRnW1bKP181bgml/hf_20261001_101943_df091742-b57a-4fbd-8e69-cdd5fb9812f4.png",
+  "cliff": "https://d8j0ntlcm91z4.cloudfront.net/user_32Gtaw5yTeqBNRnW1bKP181bgml/hf_20261001_101943_eda9ef8b-cee1-48f3-ba61-6a621016eee9.png",
+  "dirt": "https://d8j0ntlcm91z4.cloudfront.net/user_32Gtaw5yTeqBNRnW1bKP181bgml/hf_20261001_101432_1a9cb9c7-891e-4d41-a1df-f56a095580e6.png",
+  "door": {
+    "url": "https://d8j0ntlcm91z4.cloudfront.net/user_32Gtaw5yTeqBNRnW1bKP181bgml/hf_20261001_101541_5f23bdc8-adce-47a5-8a15-bc6c91a15f49.png",
+    "tile": false
+  },
+  "flowers": "https://d8j0ntlcm91z4.cloudfront.net/user_32Gtaw5yTeqBNRnW1bKP181bgml/hf_20261001_101433_143819d0-b97d-466c-adaa-615e4301ea27.png",
+  "grass": "https://d8j0ntlcm91z4.cloudfront.net/user_32Gtaw5yTeqBNRnW1bKP181bgml/hf_20261001_101432_047a0f27-f35c-4fd7-b793-009ff4f8c7ad.png",
+  "grass-dark": "https://d8j0ntlcm91z4.cloudfront.net/user_32Gtaw5yTeqBNRnW1bKP181bgml/hf_20261001_101433_8f96bf0e-7ddc-47b4-8b0e-14e9295c1c67.png",
+  "noren": {
+    "url": "https://d8j0ntlcm91z4.cloudfront.net/user_32Gtaw5yTeqBNRnW1bKP181bgml/hf_20261001_101943_386d4ffa-837b-4390-88d1-557c99bcbfd8.png",
+    "tile": false
+  },
+  "path": "https://d8j0ntlcm91z4.cloudfront.net/user_32Gtaw5yTeqBNRnW1bKP181bgml/hf_20261001_101434_859f56dd-f98e-462a-9505-552ef66fea30.png",
+  "roof": "https://d8j0ntlcm91z4.cloudfront.net/user_32Gtaw5yTeqBNRnW1bKP181bgml/hf_20261001_101943_f7497637-da63-4afe-9f36-b9b98e7dc174.png",
+  "roof-red": "https://d8j0ntlcm91z4.cloudfront.net/user_32Gtaw5yTeqBNRnW1bKP181bgml/hf_20261001_101953_478119be-34c0-41e5-ace9-e07277b31580.png",
+  "sand": "https://d8j0ntlcm91z4.cloudfront.net/user_32Gtaw5yTeqBNRnW1bKP181bgml/hf_20261001_101540_5908cabe-f49e-4db9-a57d-dce422adc7d5.png",
+  "snow": "https://d8j0ntlcm91z4.cloudfront.net/user_32Gtaw5yTeqBNRnW1bKP181bgml/hf_20261001_101436_a70d672f-48aa-4ab2-bb75-f65a026d24a3.png",
+  "stone-floor": "https://d8j0ntlcm91z4.cloudfront.net/user_32Gtaw5yTeqBNRnW1bKP181bgml/hf_20261001_101541_ce7e40af-26bf-4fdc-b366-c4039920dc2f.png",
+  "stone-wall": "https://d8j0ntlcm91z4.cloudfront.net/user_32Gtaw5yTeqBNRnW1bKP181bgml/hf_20261001_101943_7c9a801b-9bcd-4dfa-8cf5-03501c19bb12.png",
+  "tatami": "https://d8j0ntlcm91z4.cloudfront.net/user_32Gtaw5yTeqBNRnW1bKP181bgml/hf_20261001_101436_b698eb29-c5ce-4370-a314-333186a99071.png",
+  "tower-wall": "https://d8j0ntlcm91z4.cloudfront.net/user_32Gtaw5yTeqBNRnW1bKP181bgml/hf_20261001_101943_7e34e426-be29-4b2f-9438-564658375541.png",
+  "wall": "https://d8j0ntlcm91z4.cloudfront.net/user_32Gtaw5yTeqBNRnW1bKP181bgml/hf_20261001_101436_66aea64a-5fdd-4eff-9002-14a1aed2baa4.png",
+  "wall-window": {
+    "url": "https://d8j0ntlcm91z4.cloudfront.net/user_32Gtaw5yTeqBNRnW1bKP181bgml/hf_20261001_101540_52b2f129-bedc-4f90-876f-ce4ceb3b8a2d.png",
+    "tile": false
+  },
+  "water": "https://d8j0ntlcm91z4.cloudfront.net/user_32Gtaw5yTeqBNRnW1bKP181bgml/hf_20261001_101436_d6a1a0b3-0a89-4738-9b53-7f0b54a4ed12.png",
+  "wood-floor": "https://d8j0ntlcm91z4.cloudfront.net/user_32Gtaw5yTeqBNRnW1bKP181bgml/hf_20261001_101435_47da350b-6280-4af5-9b8f-2fcc5a1bb2fc.png"
+}

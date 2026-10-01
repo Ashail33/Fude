@@ -21,7 +21,7 @@ import { DIRS, WALK_SPEED, npcState, springStep, walkFrame, type World } from '.
 import { Renderer, safeSprite, wpos, type RenderInfo } from '../world/render'
 import type { Entity, GameMap, Pt } from '../world/types'
 import { Atlas } from './atlas'
-import { ANCHOR, animateDyn, buildDiorama, voxDepth, VS, type Diorama } from './build'
+import { ANCHOR, animateDyn, buildDiorama, voxDepth, VS, type Diorama, type TerrainUniforms } from './build'
 import { Post } from './post'
 import { voxelGeometry, voxelMaterial } from './voxel'
 import { buildModel, hasModel, type Model } from './models/chars'
@@ -29,6 +29,7 @@ import { glbModel, glbReady } from './models/glb'
 import { Mesher, toonMaterial } from './models/kit'
 import { addProp } from './models/props'
 import { propAsset, propTime, requestProps } from './models/propglb'
+import { HdAtlas, requestTextures, texCount } from './hdtex'
 
 const FOV = 30
 const PITCH = (40 * Math.PI) / 180
@@ -103,6 +104,11 @@ export class Renderer3D extends Renderer {
   private toonMat: THREE.MeshToonMaterial
   private ghostToon: THREE.MeshToonMaterial
   private propGeo = new Map<TileId, THREE.BufferGeometry | null>()
+  /** HD wall/roof/cliff faces and their material. */
+  private hd = new HdAtlas()
+  private hdMat = new THREE.MeshLambertMaterial({ map: this.hd.tex, side: THREE.DoubleSide })
+  /** Terrain shader inputs (filled per map by buildDiorama). */
+  private terrainU: TerrainUniforms = { uTerrain: { value: 0 }, uIds: { value: null }, uLayers: { value: null }, uMapSize: { value: new THREE.Vector2(1, 1) } }
   private blobGeo: THREE.PlaneGeometry
   private blobMat: THREE.MeshBasicMaterial
   private frameNo = 0
@@ -178,7 +184,60 @@ export class Renderer3D extends Renderer {
           }`,
         )
         .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance += glint;')
+      // HD terrain: per-tile painted materials blended with soft, wavy edges;
+      // the remaining pixel art (bridges, carpets…) is an overlay on top
+      Object.assign(sh.uniforms, this.terrainU)
+      sh.fragmentShader = sh.fragmentShader
+        .replace(
+          'float wetK = 0.0;',
+          `uniform float uTerrain; uniform sampler2D uIds; uniform highp sampler2DArray uLayers; uniform vec2 uMapSize;
+          float vn(vec2 p) { vec2 i = floor(p); vec2 f = fract(p); f = f * f * (3.0 - 2.0 * f);
+            return mix(mix(h21(i), h21(i + vec2(1.0, 0.0)), f.x), mix(h21(i + vec2(0.0, 1.0)), h21(i + vec2(1.0, 1.0)), f.x), f.y); }
+          vec4 layerCol(vec4 id, vec2 p) {
+            float L = floor(id.r * 255.0 + 0.5);
+            float wat = floor(id.g * 255.0 + 0.5);
+            if (wat > 0.5) {
+              vec2 q = p * 0.35;
+              vec3 a = texture(uLayers, vec3(q + vec2(uTime * 0.02, uTime * 0.012), L)).rgb;
+              vec3 b = texture(uLayers, vec3(q * 1.37 + vec2(-uTime * 0.015, uTime * 0.018), L)).rgb;
+              vec3 c = (a + b) * 0.5;
+              return vec4(wat > 1.5 ? c * vec3(0.6, 0.7, 0.85) : c, 1.0);
+            }
+            return vec4(texture(uLayers, vec3(p * 0.5, L)).rgb, 0.0);
+          }
+          vec4 terrainCol(vec2 p) {
+            vec2 q = p - 0.5;
+            vec2 c = floor(q);
+            vec2 f = q - c;
+            float n = vn(p * 2.7) * 0.6 + vn(p * 6.3) * 0.4 - 0.5;
+            vec2 w = smoothstep(0.22, 0.78, clamp(f + n * 0.45, 0.0, 1.0));
+            ivec2 mx = ivec2(uMapSize) - 1;
+            ivec2 a = clamp(ivec2(c), ivec2(0), mx);
+            ivec2 b = clamp(ivec2(c) + 1, ivec2(0), mx);
+            vec4 i00 = texelFetch(uIds, a, 0);
+            vec4 i10 = texelFetch(uIds, ivec2(b.x, a.y), 0);
+            vec4 i01 = texelFetch(uIds, ivec2(a.x, b.y), 0);
+            vec4 i11 = texelFetch(uIds, b, 0);
+            if (i00 == i10 && i00 == i01 && i00 == i11) return layerCol(i00, p);
+            return layerCol(i00, p) * (1.0 - w.x) * (1.0 - w.y) + layerCol(i10, p) * w.x * (1.0 - w.y) + layerCol(i01, p) * (1.0 - w.x) * w.y + layerCol(i11, p) * w.x * w.y;
+          }
+          float wetK = 0.0;`,
+        )
+        .replace(
+          '#include <map_fragment>',
+          `#ifdef USE_MAP
+            vec4 sampledDiffuseColor = texture2D(map, vMapUv);
+            if (uTerrain > 0.5) {
+              vec4 tc = terrainCol(vWPos.xz);
+              float ww = tc.a;
+              // a soft line of foam where water meets the shore
+              vec3 t = tc.rgb + vec3(0.7, 0.8, 0.85) * smoothstep(0.1, 0.42, ww) * smoothstep(0.88, 0.55, ww) * (0.45 + 0.35 * sin(uTime * 1.6 + vWPos.x * 3.1 + vWPos.z * 2.3));
+              diffuseColor.rgb *= mix(t, sampledDiffuseColor.rgb, sampledDiffuseColor.a);
+            } else diffuseColor *= sampledDiffuseColor;
+          #endif`,
+        )
     }
+    this.groundMat.userData.terrain = this.terrainU
 
     const skirtMat = new THREE.MeshLambertMaterial({ color: 0x1e3a2a })
     this.skirt = new THREE.Mesh(new THREE.PlaneGeometry(600, 600).rotateX(-Math.PI / 2), skirtMat)
@@ -410,9 +469,10 @@ export class Renderer3D extends Renderer {
     const ids = new Set<TileId>(['chest', 'chest-open'])
     for (const a of [m.obj, m.over]) for (const id of a) if (id) ids.add(id)
     for (const e of m.spec.entities) if (e.tile) ids.add(e.tile)
-    const before = [...ids].filter((id) => propAsset(id)).length
-    void requestProps(ids).then(() => {
-      if (this.map === m && [...ids].filter((id) => propAsset(id)).length > before) this.buildDio(m)
+    const count = () => [...ids].filter((id) => propAsset(id)).length + texCount()
+    const before = count()
+    void Promise.all([requestProps(ids), requestTextures()]).then(() => {
+      if (this.map === m && count() > before) this.buildDio(m)
     })
   }
 
@@ -422,7 +482,7 @@ export class Renderer3D extends Renderer {
       this.dio.dispose()
     }
     const up = Math.max(0, Math.min(2, Math.floor(Math.log2(4096 / (Math.max(m.w, m.h) * 16)))))
-    this.dio = buildDiorama(m, this.atlas, this.cardMat, this.groundMat, up, this.voxMat, this.toonMat)
+    this.dio = buildDiorama(m, this.atlas, this.cardMat, this.groundMat, up, this.voxMat, this.toonMat, this.hd, this.hdMat)
     this.scene.add(this.dio.ground, this.dio.statics, this.dio.dynamic, this.dio.voxels)
     this.sceneryShadows()
     this.atlas.flush()
