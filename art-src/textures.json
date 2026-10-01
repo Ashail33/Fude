@@ -25,9 +25,15 @@
   "snow": "https://d8j0ntlcm91z4.cloudfront.net/user_32Gtaw5yTeqBNRnW1bKP181bgml/hf_20261001_101436_a70d672f-48aa-4ab2-bb75-f65a026d24a3.png",
   "stone-floor": "https://d8j0ntlcm91z4.cloudfront.net/user_32Gtaw5yTeqBNRnW1bKP181bgml/hf_20261001_101541_ce7e40af-26bf-4fdc-b366-c4039920dc2f.png",
   "stone-wall": "https://d8j0ntlcm91z4.cloudfront.net/user_32Gtaw5yTeqBNRnW1bKP181bgml/hf_20261001_101943_7c9a801b-9bcd-4dfa-8cf5-03501c19bb12.png",
-  "tatami": "https://d8j0ntlcm91z4.cloudfront.net/user_32Gtaw5yTeqBNRnW1bKP181bgml/hf_20261001_101436_b698eb29-c5ce-4370-a314-333186a99071.png",
+  "tatami": {
+    "url": "https://d8j0ntlcm91z4.cloudfront.net/user_32Gtaw5yTeqBNRnW1bKP181bgml/hf_20261001_101436_b698eb29-c5ce-4370-a314-333186a99071.png",
+    "tile": false
+  },
   "tower-wall": "https://d8j0ntlcm91z4.cloudfront.net/user_32Gtaw5yTeqBNRnW1bKP181bgml/hf_20261001_101943_7e34e426-be29-4b2f-9438-564658375541.png",
-  "wall": "https://d8j0ntlcm91z4.cloudfront.net/user_32Gtaw5yTeqBNRnW1bKP181bgml/hf_20261001_101436_66aea64a-5fdd-4eff-9002-14a1aed2baa4.png",
+  "wall": {
+    "url": "https://d8j0ntlcm91z4.cloudfront.net/user_32Gtaw5yTeqBNRnW1bKP181bgml/hf_20261001_101436_66aea64a-5fdd-4eff-9002-14a1aed2baa4.png",
+    "tile": false
+  },
   "wall-window": {
     "url": "https://d8j0ntlcm91z4.cloudfront.net/user_32Gtaw5yTeqBNRnW1bKP181bgml/hf_20261001_101540_52b2f129-bedc-4f90-876f-ce4ceb3b8a2d.png",
     "tile": false

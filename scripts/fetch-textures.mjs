@@ -69,5 +69,3 @@ const available = readdirSync(OUT)
   .sort()
 writeFileSync(join(OUT, 'available.json'), JSON.stringify(available) + '\n')
 console.log(`textures: ${Object.keys(sources).length} sources, ${fetched} downloaded, ${failed} unavailable, ${available.length} available`)
-// TEMP: verification export
-writeFileSync(join(OUT, 'all.txt'), JSON.stringify(Object.fromEntries(available.map((id) => [id, readFileSync(join(OUT, `${id}.jpg`)).toString('base64')]))))
