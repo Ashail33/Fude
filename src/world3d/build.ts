@@ -163,7 +163,7 @@ export function buildDiorama(m: GameMap, atlas: Atlas, cardMat: THREE.Material, 
   const woodRect = hdMat ? (hd?.rect('bridge-h') ?? null) : null
   if (woodRect) hdRects.add(woodRect)
   const isBridge = (id: TileId | null | undefined) => id === 'bridge-h' || id === 'bridge-v'
-  const modeled = (id: TileId) => !!propAsset(id) || (isBridge(id) && !!woodRect)
+  const modeled = (id: TileId) => !!propAsset(id) || (isBridge(id) && !!woodRect) || (id === 'lily' && !!terrainLayers())
 
   // ── ground: HD terrain (per-tile material ids blended in the shader) with the
   // remaining pixel art as an overlay, or the pixel tiles alone ──
@@ -456,6 +456,22 @@ export function buildDiorama(m: GameMap, atlas: Atlas, cardMat: THREE.Material, 
   /** Generated-model props, per tile id and 8×8 chunk (instanced, culled per chunk). */
   const placed = new Map<string, [x: number, y: number, span: number][]>()
   const blades = new Mesher(0.5)
+  // lily pads float on the HD water as little 3D pads with a flower
+  if (terrainLayers())
+    for (let y = 0; y < H; y++)
+      for (let x = 0; x < W; x++) {
+        if (m.obj[y * W + x] !== 'lily') continue
+        for (let k = 0; k < 2; k++) {
+          const px = x + 0.3 + rnd(x, y, k) * 0.4
+          const pz = y + 0.3 + rnd(y, x, k + 2) * 0.4
+          const r = k ? 0.17 : 0.24
+          blades.add(G.cyl, k ? PAL.leaf : PAL.leafDark, T([px, 0.015, pz], [r, 0.02, r * 0.9], [0, rnd(x, y, k + 5) * 6, 0]))
+          if (!k) {
+            blades.add(G.sphere, PAL.sakura, T([px, 0.06, pz], [0.07, 0.05, 0.07]))
+            blades.add(G.sphere, '#fff4c2', T([px, 0.085, pz], [0.025, 0.02, 0.025]))
+          }
+        }
+      }
   const BLADE = [PAL.leafDark, PAL.leaf, PAL.grass, PAL.grassLight]
   for (let y = 0; y < H; y++)
     for (let x = 0; x < W; x++) {
