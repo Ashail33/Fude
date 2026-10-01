@@ -160,6 +160,3 @@ const available = readdirSync(OUT)
   .sort()
 writeFileSync(join(OUT, 'available.json'), JSON.stringify(available) + '\n')
 console.log(`models: ${Object.keys(sources).length} sources, ${fetched} downloaded, ${failed} unavailable, ${available.length} available`)
-// TEMP: verification export
-mkdirSync(join(OUT, 'b64'), { recursive: true })
-for (const id of available) writeFileSync(join(OUT, 'b64', `${id}.txt`), readFileSync(join(OUT, `${id}.glb`)).toString('base64'))
