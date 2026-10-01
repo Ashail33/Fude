@@ -15,8 +15,9 @@ import type { Atlas, UvRect } from './atlas'
 import { upscaleCanvas } from './upscale'
 import { PAL } from '../art/palette'
 import { VoxelBuilder, voxelGeometry } from './voxel'
-import { Mesher } from './models/kit'
+import { Mesher, rnd } from './models/kit'
 import { addProp, hasProp } from './models/props'
+import { NATURAL, propAsset } from './models/propglb'
 
 /** World units per 16 px of height (vertical art stands a little taller than the ground squash). */
 export const VS = 1.35
@@ -349,6 +350,13 @@ export function buildDiorama(m: GameMap, atlas: Atlas, cardMat: THREE.Material, 
       dyn.push({ v, id, variant, nb, x, y, frame: 0 })
       return
     }
+    if (propAsset(id)) {
+      const ck = `${id}|${Math.floor(x / 8) + Math.floor(y / 8) * 1000}`
+      let list = placed.get(ck)
+      if (!list) placed.set(ck, (list = []))
+      list.push([x, y])
+      return
+    }
     if (hasProp(id)) {
       const ck = Math.floor(x / 8) + Math.floor(y / 8) * 1000
       let tm = smooth.get(ck)
@@ -375,6 +383,8 @@ export function buildDiorama(m: GameMap, atlas: Atlas, cardMat: THREE.Material, 
   const dynVox: DynVox[] = []
   const chunks = new Map<number, VoxelBuilder>()
   const smooth = new Map<number, Mesher>()
+  /** Generated-model props, per tile id and 8×8 chunk (instanced, culled per chunk). */
+  const placed = new Map<string, [number, number][]>()
   for (let y = 0; y < H; y++)
     for (let x = 0; x < W; x++) {
       if (m.ground[y * W + x] !== 'tall-grass' || m.obj[y * W + x]) continue
@@ -401,6 +411,29 @@ export function buildDiorama(m: GameMap, atlas: Atlas, cardMat: THREE.Material, 
     mesh.receiveShadow = true
     voxels.add(mesh)
   }
+  const mtx = new THREE.Matrix4()
+  const q = new THREE.Quaternion()
+  const pos = new THREE.Vector3()
+  const scl = new THREE.Vector3()
+  const yAxis = new THREE.Vector3(0, 1, 0)
+  for (const [ck, cells] of placed) {
+    const id = ck.slice(0, ck.indexOf('|')) as TileId
+    const pa = propAsset(id)!
+    const mesh = new THREE.InstancedMesh(pa.geometry, pa.material, cells.length)
+    const natural = NATURAL.has(id)
+    cells.forEach(([x, y], i) => {
+      const s = natural ? 0.88 + rnd(x, y, 7) * 0.24 : 1
+      pos.set(x + 0.5 + (natural ? (rnd(x, y, 3) - 0.5) * 0.12 : 0), 0, y + 0.55 + (natural ? (rnd(y, x, 5) - 0.5) * 0.12 : 0))
+      q.setFromAxisAngle(yAxis, natural ? rnd(x, y, 11) * Math.PI * 2 : 0)
+      mesh.setMatrixAt(i, mtx.compose(pos, q, scl.set(s, s, s)))
+    })
+    mesh.computeBoundingSphere()
+    mesh.castShadow = true
+    mesh.receiveShadow = true
+    // geometry and material belong to the shared prop cache
+    mesh.userData.shared = true
+    voxels.add(mesh)
+  }
   for (const vb of chunks.values()) {
     const mesh = new THREE.Mesh(vb.geometry(), voxMat)
     mesh.castShadow = true
@@ -422,7 +455,7 @@ export function buildDiorama(m: GameMap, atlas: Atlas, cardMat: THREE.Material, 
     voxels,
     dynVox,
     dispose() {
-      for (const c of voxels.children) if (!dynVox.some((d) => d.mesh === c)) (c as THREE.Mesh).geometry.dispose()
+      for (const c of voxels.children) if (!c.userData.shared && !dynVox.some((d) => d.mesh === c)) (c as THREE.Mesh).geometry.dispose()
       gg.dispose()
       groundTex.dispose()
       statics.geometry.dispose()

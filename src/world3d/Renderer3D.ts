@@ -28,6 +28,7 @@ import { buildModel, hasModel, type Model } from './models/chars'
 import { glbModel, glbReady } from './models/glb'
 import { Mesher, toonMaterial } from './models/kit'
 import { addProp } from './models/props'
+import { propAsset, propTime, requestProps } from './models/propglb'
 
 const FOV = 30
 const PITCH = (40 * Math.PI) / 180
@@ -396,6 +397,20 @@ export class Renderer3D extends Renderer {
     super.setMap(m)
     for (const c of this.cards.values()) this.dropCard(c)
     this.cards.clear()
+    this.buildDio(m)
+    this.applyGrade()
+    this.resize3D()
+    // generated prop models stream in; rebuild the diorama once this map's are ready
+    const ids = new Set<TileId>(['chest', 'chest-open'])
+    for (const a of [m.obj, m.over]) for (const id of a) if (id) ids.add(id)
+    for (const e of m.spec.entities) if (e.tile) ids.add(e.tile)
+    const before = [...ids].filter((id) => propAsset(id)).length
+    void requestProps(ids).then(() => {
+      if (this.map === m && [...ids].filter((id) => propAsset(id)).length > before) this.buildDio(m)
+    })
+  }
+
+  private buildDio(m: GameMap) {
     if (this.dio) {
       this.scene.remove(this.dio.ground, this.dio.statics, this.dio.dynamic, this.dio.voxels)
       this.dio.dispose()
@@ -404,8 +419,6 @@ export class Renderer3D extends Renderer {
     this.dio = buildDiorama(m, this.atlas, this.cardMat, this.groundMat, up, this.voxMat, this.toonMat)
     this.scene.add(this.dio.ground, this.dio.statics, this.dio.dynamic, this.dio.voxels)
     this.atlas.flush()
-    this.applyGrade()
-    this.resize3D()
   }
 
   /** Lights, fog and sky from the map's grade. */
@@ -608,6 +621,14 @@ export class Renderer3D extends Renderer {
 
   /** Smooth prop model for an entity tile (cached geometry per tile id). */
   private setProp(c: Card, tile: TileId, x: number, y: number, z: number): boolean {
+    const pa = c.ghost ? null : propAsset(tile)
+    if (pa) {
+      if (c.mesh.geometry !== pa.geometry) c.mesh.geometry = pa.geometry
+      if (c.mesh.material !== pa.material) c.mesh.material = pa.material
+      c.mesh.visible = true
+      c.mesh.position.set(x, y, z)
+      return true
+    }
     let g = this.propGeo.get(tile)
     if (g === undefined) {
       const m = new Mesher(1.2)
@@ -616,7 +637,7 @@ export class Renderer3D extends Renderer {
     }
     if (!g) return false
     if (c.mesh.geometry !== g) c.mesh.geometry = g
-    if (!c.ghost && c.mesh.material !== this.toonMat) c.mesh.material = this.toonMat
+    if (c.ghost ? c.mesh.material !== this.ghostToon : c.mesh.material !== this.toonMat) c.mesh.material = c.ghost ? this.ghostToon : this.toonMat
     c.mesh.visible = true
     c.mesh.position.set(x, y, z)
     return true
@@ -796,6 +817,7 @@ export class Renderer3D extends Renderer {
       this.applyLevel(nl)
     }
     this.uTime.value = now / 1000
+    propTime.value = this.uTime.value
     this.frameDt = dt
     this.stepZoom(dt)
     if (this.pinchStarted) {
