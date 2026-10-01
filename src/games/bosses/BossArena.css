@@ -116,7 +116,7 @@
   align-items: center;
   justify-content: flex-end;
   padding-right: 6px;
-  font-size: 0.72rem;
+  font-size: 0.8rem;
   color: var(--paper);
   text-shadow:
     1px 0 0 var(--win-inset),
@@ -441,7 +441,7 @@
 
 .ba-taunt small {
   color: var(--muted);
-  font-size: 0.68rem;
+  font-size: 0.78rem;
 }
 
 /* Damage numbers */
@@ -659,7 +659,7 @@
   position: absolute;
   top: 4px;
   left: 7px;
-  font-size: 0.65rem;
+  font-size: 0.76rem;
   color: var(--muted);
   font-family: var(--font);
   font-weight: 600;

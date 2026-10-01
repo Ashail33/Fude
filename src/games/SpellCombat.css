@@ -127,7 +127,7 @@
 .sc-aura {
   position: absolute;
   z-index: 2;
-  font-size: 0.4em;
+  font-size: 0.55em;
   top: 0;
   right: -0.6em;
   animation: float 2.5s steps(6) infinite;
@@ -425,13 +425,13 @@
 }
 
 .sc-tile rt {
-  font-size: 0.5em;
+  font-size: 0.58em;
   color: var(--muted);
 }
 
 .sc-tile .romaji {
   display: block;
-  font-size: 0.55em;
+  font-size: 0.6em;
 }
 
 .sc-tile:hover:not(:disabled) {

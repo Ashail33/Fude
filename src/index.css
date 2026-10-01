@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=DotGothic16&family=Klee+One:wght@400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@500;600;700;800&family=M+PLUS+Rounded+1c:wght@500;700;800&family=Klee+One:wght@400;600&display=swap');
 
 /*
  * 言葉の魔法 — global 16-bit JRPG skin.
@@ -27,7 +27,7 @@
   --win-border: #f4ecd8;
   --win-inset: #05081a;
   --paper: #f4ecd8;
-  --mist: #a9adc7;
+  --mist: #c4c8e0;
   --stone: #6b6f8a;
   --gold: #f7c948;
   --orange: #f28a2e;
@@ -45,7 +45,7 @@
   --panel-2: #232c66;
   --line: rgba(244, 236, 216, 0.3);
   --text: #f8f3e6;
-  --muted: #b3b7d4;
+  --muted: #cdd1e8;
   --accent: #f7c948;
   --accent-2: #f7a8c4;
   --good: #8fe07a;
@@ -58,8 +58,9 @@
   --wind: #9be7e0;
   --radius: 6px;
   --shadow: 0 4px 0 rgba(0, 0, 0, 0.45);
-  --font: 'DotGothic16', 'Hiragino Maru Gothic ProN', 'Noto Sans JP', system-ui, sans-serif;
-  --font-jp: var(--font);
+  /* clear, rounded type: Nunito for Latin, M PLUS Rounded for kana and kanji */
+  --font: 'Nunito', 'M PLUS Rounded 1c', 'Hiragino Maru Gothic ProN', 'Noto Sans JP', system-ui, sans-serif;
+  --font-jp: 'M PLUS Rounded 1c', 'Nunito', 'Hiragino Maru Gothic ProN', 'Noto Sans JP', system-ui, sans-serif;
   --font-brush: 'Klee One', 'Hiragino Mincho ProN', 'Noto Serif JP', serif;
 
   /* window recipe */
@@ -96,8 +97,12 @@ body {
   color: var(--text);
   font-family: var(--font);
   font-size: 16px;
+  font-weight: 600;
   line-height: 1.55;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -265,7 +270,7 @@ button {
   border-radius: 3px;
   color: var(--muted);
   text-decoration: none;
-  font-size: 0.75rem;
+  font-size: 0.82rem;
 }
 
 .bottomnav a .ico {
@@ -283,7 +288,7 @@ button {
   left: 4px;
   top: 50%;
   transform: translateY(-50%);
-  font-size: 0.6rem;
+  font-size: 0.74rem;
   animation: blink 1s steps(1) infinite;
 }
 
@@ -616,7 +621,7 @@ button {
 }
 
 .bi small {
-  font-size: 0.66em;
+  font-size: 0.76em;
   color: var(--muted);
   font-family: var(--font);
 }
@@ -630,7 +635,7 @@ button {
 
 .jp .romaji {
   font-family: var(--font);
-  font-size: 0.45em;
+  font-size: 0.56em;
   color: var(--muted);
   letter-spacing: 0.04em;
 }
@@ -640,7 +645,7 @@ button {
 }
 
 rt {
-  font-size: 0.45em;
+  font-size: 0.56em;
   color: var(--muted);
 }
 
@@ -1408,7 +1413,7 @@ input[type='radio'] {
 }
 
 .cmd .bi small {
-  font-size: 0.7em;
+  font-size: 0.78em;
 }
 
 /* Pixel mage avatar wrapper */

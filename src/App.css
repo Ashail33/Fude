@@ -34,7 +34,7 @@
   margin-top: -6px;
   background: var(--sakura);
   color: var(--ink);
-  font-size: 0.62rem;
+  font-size: 0.75rem;
   border: 2px solid var(--ink);
   border-radius: 3px;
   padding: 0 4px;
@@ -309,7 +309,7 @@ main > h1,
 }
 
 .title-label small {
-  font-size: 0.75rem;
+  font-size: 0.82rem;
   color: var(--muted);
 }
 
@@ -319,7 +319,7 @@ main > h1,
   left: 0;
   right: 0;
   text-align: center;
-  font-size: 0.7rem;
+  font-size: 0.8rem;
   color: rgba(244, 236, 216, 0.55);
   z-index: 3;
 }
@@ -894,7 +894,7 @@ a.map-node:hover .node-emoji {
 }
 
 .node-label small {
-  font-size: 0.7rem;
+  font-size: 0.8rem;
   color: var(--muted);
 }
 
@@ -1041,7 +1041,7 @@ a.act:hover {
 }
 
 .tag {
-  font-size: 0.72rem;
+  font-size: 0.8rem;
   padding: 0 6px;
   border-radius: 3px;
   border: 2px solid var(--line);
@@ -1393,7 +1393,7 @@ a.act:hover {
 .word-meta {
   display: flex;
   gap: 6px;
-  font-size: 0.75rem;
+  font-size: 0.82rem;
 }
 
 .hero-badge {
@@ -1435,7 +1435,7 @@ a.act:hover {
 }
 
 .kana-cell small {
-  font-size: 0.65rem;
+  font-size: 0.76rem;
   color: var(--muted);
 }
 
@@ -1545,7 +1545,7 @@ a.act:hover {
 }
 
 .xp-col small {
-  font-size: 0.6rem;
+  font-size: 0.74rem;
   color: var(--muted);
 }
 

@@ -98,7 +98,7 @@
 
 .tav-npc-name {
   font-family: var(--font-jp);
-  font-size: 0.72rem;
+  font-size: 0.8rem;
   line-height: 1.2;
   text-align: center;
 }
@@ -251,7 +251,7 @@
 }
 
 .tav-tag {
-  font-size: 0.75rem;
+  font-size: 0.82rem;
   padding: 2px 8px;
   border-radius: 999px;
   background: var(--panel-2);

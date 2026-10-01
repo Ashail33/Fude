@@ -84,7 +84,7 @@
 }
 
 .gm-label small {
-  font-size: 0.72rem;
+  font-size: 0.8rem;
   color: var(--muted);
 }
 
@@ -93,7 +93,7 @@
   min-width: 20px;
   padding: 0 5px;
   text-align: center;
-  font-size: 0.75rem;
+  font-size: 0.82rem;
   color: var(--ink);
   background: var(--sakura);
   border: 2px solid var(--ink);
@@ -229,7 +229,7 @@
     font-size: 1rem;
   }
   .gm-label small {
-    font-size: 0.66rem;
+    font-size: 0.76rem;
   }
   .gm-cmd-list .cmd-hint {
     position: absolute;

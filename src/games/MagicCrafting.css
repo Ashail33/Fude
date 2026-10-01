@@ -17,7 +17,7 @@
 }
 
 .mc-hud-mana .hpbar-label {
-  font-size: 0.75rem;
+  font-size: 0.82rem;
 }
 
 /* ─── Evolution ─────────────────────────────── */
@@ -476,7 +476,7 @@
   right: 2px;
   bottom: 1px;
   font-family: var(--font-jp);
-  font-size: 0.75rem;
+  font-size: 0.82rem;
   line-height: 1;
   padding: 1px 2px;
   color: var(--paper);
@@ -601,7 +601,7 @@
 }
 
 .mc-spell-romaji {
-  font-size: 0.7rem;
+  font-size: 0.8rem;
   color: var(--muted);
 }
 
@@ -609,7 +609,7 @@
   position: absolute;
   top: 2px;
   left: 6px;
-  font-size: 0.6rem;
+  font-size: 0.74rem;
   color: var(--muted);
 }
 

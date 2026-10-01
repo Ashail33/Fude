@@ -283,14 +283,14 @@
 
 .cs-secondary {
   margin: 8px 0 0;
-  font-size: 1rem;
+  font-size: 1.08rem;
   color: var(--muted);
   animation: cs-fade 0.3s steps(3);
 }
 
 .cs-secondary.dim {
-  font-size: 0.9rem;
-  opacity: 0.8;
+  font-size: 1rem;
+  opacity: 0.92;
 }
 
 .cs-en-btn {
@@ -376,7 +376,7 @@
     font-size: 1.02rem;
   }
   .cs-secondary {
-    font-size: 0.92rem;
+    font-size: 1rem;
   }
 }
 

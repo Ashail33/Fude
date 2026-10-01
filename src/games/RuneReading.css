@@ -222,14 +222,14 @@
 }
 
 .rr-carving rt {
-  font-size: 0.42em;
+  font-size: 0.55em;
   color: #fff3c4;
   text-shadow: 0 0 6px rgba(255, 209, 102, 0.9);
 }
 
 .rr-carving .romaji {
   display: block;
-  font-size: 0.45em;
+  font-size: 0.56em;
   color: #1f2130;
 }
 

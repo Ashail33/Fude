@@ -6,7 +6,7 @@
   overflow: hidden;
   background: #05040c;
   color: var(--text, #f8f3e6);
-  font-family: var(--font, 'DotGothic16', system-ui, sans-serif);
+  font-family: var(--font);
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
@@ -195,7 +195,7 @@
 }
 
 .ow-banner-en {
-  font-size: 0.72rem;
+  font-size: 0.8rem;
   color: var(--region);
   letter-spacing: 0.08em;
 }
@@ -280,13 +280,13 @@
 }
 
 .bi-en {
-  color: var(--mist, #a9adc7);
-  font-size: 0.9em;
-  line-height: 1.35;
+  color: var(--mist, #c4c8e0);
+  font-size: 0.95em;
+  line-height: 1.4;
 }
 
 .bi-en.small {
-  font-size: 0.74em;
+  font-size: 0.85em;
 }
 
 /* ─── Dialogue window ───────────────────────────────────────────── */
@@ -337,7 +337,7 @@
 
 .dq-name small {
   color: var(--mist, #a9adc7);
-  font-size: 0.72rem;
+  font-size: 0.8rem;
 }
 
 .dq-msg {
@@ -398,7 +398,7 @@
 .dq-en-toggle {
   align-self: flex-start;
   font: inherit;
-  font-size: 0.7rem;
+  font-size: 0.8rem;
   color: var(--mist, #a9adc7);
   background: transparent;
   border: 1px solid rgba(244, 236, 216, 0.4);
@@ -428,7 +428,7 @@
 }
 
 .dq-stage {
-  font-size: 0.72rem;
+  font-size: 0.8rem;
   padding: 2px 8px;
   border-radius: 3px;
   background: #2b2f5e;
@@ -481,7 +481,7 @@
 
 .dq-card-region {
   margin-top: 6px;
-  font-size: 0.7rem;
+  font-size: 0.8rem;
   color: var(--stone, #6b6f8a);
 }
 
@@ -705,7 +705,7 @@
 .ow-btn small {
   position: absolute;
   bottom: 7px;
-  font-size: 0.5rem;
+  font-size: 0.72rem;
   color: var(--gold, #f7c948);
 }
 
@@ -736,7 +736,7 @@
   transform: translateX(-50%);
   display: flex;
   gap: 14px;
-  font-size: 0.72rem;
+  font-size: 0.8rem;
   color: rgba(244, 236, 216, 0.75);
   background: rgba(10, 12, 32, 0.55);
   padding: 4px 12px;
