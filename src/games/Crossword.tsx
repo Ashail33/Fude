@@ -316,8 +316,9 @@ export default function Crossword({ activity, params, onFinish, onExit }: GamePr
               className="cw-grid"
               style={{
                 gridTemplateColumns: `repeat(${cols}, 1fr)`,
-                width: `min(100%, ${cols * 46}px)`,
-                ['--cw-font' as string]: `min(1.5rem, calc(min(100vw - 40px, ${cols * 46}px) / ${cols} * 0.52))`,
+                // the board never takes more than ~40% of the screen's height, so the clue and input stay in view
+                width: `min(100%, ${cols * 46}px, calc(40dvh * ${cols} / ${rows}))`,
+                ['--cw-font' as string]: `min(1.5rem, calc(min(100vw - 40px, ${cols * 46}px, 40dvh * ${cols} / ${rows}) / ${cols} * 0.52))`,
               }}
             >
               {Array.from({ length: rows }, (_, rr) =>

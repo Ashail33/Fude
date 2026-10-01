@@ -120,7 +120,7 @@ export default function App() {
   if (!p.onboarded && !dev && loc.pathname !== '/settings') return <Title />
 
   return (
-    <div className={`app ${fullscreen ? 'in-game' : ''}`}>
+    <div className={`app ${fullscreen ? 'in-game' : ''} ${loc.pathname.startsWith('/play') ? 'in-play' : ''}`}>
       {!fullscreen && <TopBar />}
       <Suspense fallback={<div className="loading">✨</div>}>
         <Routes>

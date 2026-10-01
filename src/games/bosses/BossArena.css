@@ -128,7 +128,7 @@
 /* Stage */
 .ba-stage {
   position: relative;
-  height: clamp(190px, 27vh, 250px);
+  height: clamp(140px, 24dvh, 250px);
   border-radius: var(--radius);
   background:
     radial-gradient(ellipse at 50% 55%, color-mix(in srgb, var(--ba-aura) 30%, transparent), transparent 62%),
@@ -776,4 +776,28 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .ba-hd { animation: none; }
+}
+
+/* Phones: a smaller stage so the question and answers stay on screen. */
+@media (max-width: 600px), (max-height: 760px) {
+  .ba-top.card {
+    padding: 6px 12px;
+  }
+  .ba-top {
+    gap: 4px;
+  }
+  .ba-name-jp {
+    font-size: 1.15rem;
+  }
+  .ba-name-en {
+    font-size: 0.8rem;
+  }
+  .ba-aura {
+    height: 120px;
+  }
+  .ba-sprite canvas,
+  .ba-pixel canvas {
+    max-height: 18dvh;
+    width: auto;
+  }
 }

@@ -92,7 +92,19 @@ export default function ArcanaDrawing({ activity, params, onFinish, onExit }: Ga
   const [burst, fire] = useBurst()
   const [flashCls, flash] = useFlash()
 
-  const svgRef = useRef<SVGSVGElement>(null)
+  const svgRef = useRef<SVGSVGElement | null>(null)
+  // Touches on the paper only ever draw: they never scroll or zoom the page.
+  // (iOS doesn't reliably honour touch-action on SVG, and a scroll that starts
+  // mid-stroke cancels the pointer and loses the stroke.)
+  const paperRef = useCallback((el: SVGSVGElement | null) => {
+    svgRef.current = el
+    if (!el) return
+    const hold = (e: TouchEvent) => {
+      if (e.cancelable) e.preventDefault()
+    }
+    el.addEventListener('touchstart', hold, { passive: false })
+    el.addEventListener('touchmove', hold, { passive: false })
+  }, [])
   const drawing = useRef<{ id: number; pts: Pt[] } | null>(null)
   const timers = useRef<number[]>([])
   const charStart = useRef(0)
@@ -337,7 +349,7 @@ export default function ArcanaDrawing({ activity, params, onFinish, onExit }: Ga
         <div className="ad-rod" aria-hidden />
         <div className="ad-paper">
           <svg
-            ref={svgRef}
+            ref={paperRef}
             className="ad-svg"
             viewBox={`0 0 ${BOX} ${BOX}`}
             onPointerDown={onDown}

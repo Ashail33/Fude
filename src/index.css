@@ -1426,3 +1426,29 @@ input[type='radio'] {
 .avatar.silhouette canvas {
   filter: brightness(0) opacity(0.55);
 }
+
+/* ─── Mini-games on phones: fit the screen ───────────────────────── */
+/* No pull-to-refresh or rubber-banding while playing. */
+.app.in-play {
+  overscroll-behavior: none;
+}
+
+@media (max-width: 600px), (max-height: 760px) {
+  .app.in-play {
+    padding: 0 10px 12px;
+  }
+  .app.in-play .game-header {
+    margin: 6px 0 8px;
+    padding: 4px 8px;
+  }
+  .app.in-play .game-body {
+    gap: 10px;
+  }
+  .app.in-play .card,
+  .app.in-play .win {
+    padding: 12px 14px;
+  }
+  .app.in-play .prompt {
+    padding: 14px 10px;
+  }
+}
