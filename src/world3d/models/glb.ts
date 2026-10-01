@@ -226,8 +226,8 @@ const Y = new THREE.Vector3(0, 1, 0)
 const Z = new THREE.Vector3(0, 0, 1)
 const qa = new THREE.Quaternion()
 const qb = new THREE.Quaternion()
-/** How far to lower the arms from the rig's rest pose (radians). */
-const ARM_DOWN = 0.95
+/** How far from straight down the lowered arms hang (radians). */
+const ARM_HANG = 0.15
 
 /** Find the named joints of a skinned model; null when it has no usable skeleton. */
 function makeRig(model: THREE.Object3D) {
@@ -249,6 +249,21 @@ function makeRig(model: THREE.Object3D) {
     joints[k] = { bone: b, rest: b.quaternion.clone(), parentQ }
   }
   if (!joints.lUp || !joints.rUp) return null
+  /**
+   * How far to lower an arm from its rest pose so it hangs at the side: rigs
+   * rest in anything from a T-pose to arms already down, so measure it.
+   */
+  const drop = (arm: BoneKey, fore: BoneKey) => {
+    const a = joints[arm]?.bone
+    const f = joints[fore]?.bone ?? (a?.children.find((c) => (c as THREE.Bone).isBone) as THREE.Bone | undefined)
+    if (!a || !f) return 0
+    const pa = model.worldToLocal(a.getWorldPosition(new THREE.Vector3()))
+    const pf = model.worldToLocal(f.getWorldPosition(new THREE.Vector3()))
+    const fromDown = Math.atan2(Math.abs(pf.x - pa.x), pa.y - pf.y)
+    return Math.max(0, fromDown - ARM_HANG)
+  }
+  const lDrop = drop('lArm', 'lFore')
+  const rDrop = drop('rArm', 'rFore')
   /** Rotate a joint by `angle` about a model-space axis, relative to its rest pose. */
   const turn = (k: BoneKey, axis: THREE.Vector3, angle: number, add = false) => {
     const j = joints[k]
@@ -273,15 +288,15 @@ function makeRig(model: THREE.Object3D) {
       const idle = Math.sin(t * 2.4)
       const talk = talking ? Math.sin(t * 5.5) : 0
       // rigs rest in an A/T-pose: bring the arms down to the sides first
-      turn('lArm', Z, -ARM_DOWN)
-      turn('rArm', Z, ARM_DOWN)
+      turn('lArm', Z, -lDrop)
+      turn('rArm', Z, rDrop)
       turn('lArm', X, s * amp * 0.6 + (talking ? 0 : idle * 0.03), true)
       turn('rArm', X, -s * amp * 0.6 - (talking ? 0.55 + talk * 0.25 : 0), true)
       turn('rFore', X, talking ? -0.6 - talk * 0.2 : moving ? -0.25 : -0.08)
       turn('lFore', X, moving ? -0.25 : -0.08)
       // hands keep their rest angle, so held staffs, canes and scrolls stay upright
-      turn('lHand', Z, ARM_DOWN)
-      turn('rHand', Z, -ARM_DOWN)
+      turn('lHand', Z, lDrop)
+      turn('rHand', Z, -rDrop)
       // body: lean into a run, a little twist with each stride, breathing when idle
       turn('spine', X, moving ? (run ? 0.18 : 0.05) : 0)
       turn('spine', Y, moving ? s * 0.12 : 0, true)
