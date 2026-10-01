@@ -578,106 +578,90 @@
 }
 
 /* ─── Touch controls ────────────────────────────────────────────── */
-.ow-dpad {
+/* floating joystick: rests faintly bottom-left, jumps under the thumb */
+.ow-stick-zone {
   position: absolute;
-  left: max(14px, env(safe-area-inset-left));
-  bottom: max(18px, env(safe-area-inset-bottom));
-  width: 132px;
-  height: 132px;
+  left: 0;
+  bottom: 0;
+  width: 46%;
+  height: 58%;
   z-index: 8;
   touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
-.ow-dpad span {
+.ow-stick {
   position: absolute;
-  background: rgba(16, 22, 52, 0.72);
-  border: 2px solid rgba(244, 236, 216, 0.75);
-  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.45);
+  left: calc(max(14px, env(safe-area-inset-left)) + 66px);
+  top: calc(100% - max(18px, env(safe-area-inset-bottom)) - 66px);
+  width: 120px;
+  height: 120px;
+  margin: -60px 0 0 -60px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(16, 22, 52, 0.2) 0%, rgba(16, 22, 52, 0.5) 70%);
+  border: 2px solid rgba(244, 236, 216, 0.5);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35), inset 0 0 18px rgba(255, 255, 255, 0.08);
+  opacity: 0.55;
   pointer-events: none;
+  transition: opacity 0.15s, border-color 0.15s;
 }
 
-.ow-dpad-up,
-.ow-dpad-down {
-  left: 44px;
-  width: 44px;
-  height: 46px;
+.ow-stick.live {
+  opacity: 1;
+  transition: opacity 0.08s;
 }
 
-.ow-dpad-left,
-.ow-dpad-right {
-  top: 44px;
-  width: 46px;
-  height: 44px;
+.ow-stick.run {
+  border-color: rgba(247, 201, 72, 0.9);
 }
 
-.ow-dpad-up {
-  top: 0;
-  border-radius: 6px 6px 0 0;
-  border-bottom: 0 !important;
-}
-
-.ow-dpad-down {
-  bottom: 0;
-  border-radius: 0 0 6px 6px;
-  border-top: 0 !important;
-}
-
-.ow-dpad-left {
-  left: 0;
-  border-radius: 6px 0 0 6px;
-  border-right: 0 !important;
-}
-
-.ow-dpad-right {
-  right: 0;
-  border-radius: 0 6px 6px 0;
-  border-left: 0 !important;
-}
-
-.ow-dpad-c {
-  left: 44px;
-  top: 44px;
-  width: 44px;
-  height: 44px;
-  border: 0 !important;
-  box-shadow: none !important;
-}
-
-.ow-dpad span::after {
-  content: '';
+.ow-stick-knob {
   position: absolute;
   left: 50%;
   top: 50%;
-  border: 7px solid transparent;
-  transform: translate(-50%, -50%);
+  width: 54px;
+  height: 54px;
+  margin: -27px 0 0 -27px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, #fffaf0 0%, #f4ecd8 45%, #c9bda0 100%);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.45);
 }
 
-.ow-dpad-up::after {
-  border-bottom-color: rgba(244, 236, 216, 0.85) !important;
-  margin-top: -4px;
+.ow-stick.run .ow-stick-knob {
+  background: radial-gradient(circle at 38% 32%, #fff6d8 0%, #f7c948 55%, #c99a1e 100%);
 }
 
-.ow-dpad-down::after {
-  border-top-color: rgba(244, 236, 216, 0.85) !important;
-  margin-top: 4px;
+.ow-stick-tick {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  border: 6px solid transparent;
+  opacity: 0.55;
 }
 
-.ow-dpad-left::after {
-  border-right-color: rgba(244, 236, 216, 0.85) !important;
-  margin-left: -4px;
+.ow-stick-tick.on {
+  opacity: 1;
 }
 
-.ow-dpad-right::after {
-  border-left-color: rgba(244, 236, 216, 0.85) !important;
-  margin-left: 4px;
+.ow-stick-up {
+  margin: -56px 0 0 -6px;
+  border-bottom-color: #f4ecd8;
 }
 
-.ow-dpad-c::after {
-  display: none;
+.ow-stick-down {
+  margin: 44px 0 0 -6px;
+  border-top-color: #f4ecd8;
 }
 
-.ow-dpad span.on {
-  background: rgba(247, 201, 72, 0.55);
+.ow-stick-left {
+  margin: -6px 0 0 -56px;
+  border-right-color: #f4ecd8;
+}
+
+.ow-stick-right {
+  margin: -6px 0 0 44px;
+  border-left-color: #f4ecd8;
 }
 
 .ow-ab {

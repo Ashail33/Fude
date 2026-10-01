@@ -654,6 +654,14 @@ export default function Overworld() {
     Wd.current?.walkTo(t.x, t.y)
   }
 
+  /** A full push of the joystick runs (on top of the B toggle). */
+  const onPushRun = useCallback(
+    (on: boolean) => {
+      if (Wd.current) Wd.current.run = on || run
+    },
+    [run],
+  )
+
   const pressA = () => {
     if (modal.current) window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z' }))
     else Wd.current?.interact()
@@ -762,7 +770,7 @@ export default function Overworld() {
         </button>
       )}
 
-      {touch && !isModal && <TouchControls heldStack={heldStack} onA={pressA} onB={pressB} run={run} />}
+      {touch && !isModal && <TouchControls heldStack={heldStack} onA={pressA} onB={pressB} run={run} onPushRun={onPushRun} />}
       {touch && dialog && (
         <div className="ow-ab ow-ab-modal">
           <button type="button" className="ow-btn ow-btn-a" onPointerDown={(e) => (e.preventDefault(), pressA())}>
@@ -813,43 +821,97 @@ export default function Overworld() {
   )
 }
 
-function TouchControls({ heldStack, onA, onB, run }: { heldStack: React.MutableRefObject<Dir[]>; onA: () => void; onB: () => void; run: boolean }) {
-  const padRef = useRef<HTMLDivElement>(null)
+/** Joystick reach (px) and the push past which the mage breaks into a run. */
+const STICK_R = 54
+const STICK_RUN = 0.86
+
+function TouchControls({ heldStack, onA, onB, run, onPushRun }: { heldStack: React.MutableRefObject<Dir[]>; onA: () => void; onB: () => void; run: boolean; onPushRun: (on: boolean) => void }) {
+  const zoneRef = useRef<HTMLDivElement>(null)
+  const dirRef = useRef<Dir | null>(null)
+  const pid = useRef<number | null>(null)
+  // a floating stick: it appears under the thumb, the knob follows the drag
+  const [stick, setStick] = useState<{ x: number; y: number; dx: number; dy: number } | null>(null)
   const [active, setActive] = useState<Dir | null>(null)
   const setDir = (d: Dir | null) => {
+    dirRef.current = d
     heldStack.current = d ? [d] : []
     setActive(d)
   }
-  const fromEvent = (e: React.PointerEvent) => {
-    const r = padRef.current!.getBoundingClientRect()
-    const dx = e.clientX - (r.left + r.width / 2)
-    const dy = e.clientY - (r.top + r.height / 2)
-    if (Math.hypot(dx, dy) < r.width * 0.12) return null
-    return Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : dy > 0 ? 'down' : 'up'
+  const update = (ox: number, oy: number, cx: number, cy: number) => {
+    let dx = cx - ox
+    let dy = cy - oy
+    const len = Math.hypot(dx, dy)
+    if (len > STICK_R) {
+      dx = (dx / len) * STICK_R
+      dy = (dy / len) * STICK_R
+    }
+    setStick({ x: ox, y: oy, dx, dy })
+    if (len < 12) {
+      setDir(null)
+      onPushRun(false)
+      return
+    }
+    // four ways (the world is a grid); hold the current way near the diagonals so it doesn't flicker
+    const horiz = Math.abs(dx) > Math.abs(dy)
+    const cur = dirRef.current
+    const curHoriz = cur === 'left' || cur === 'right'
+    const keep = cur && (curHoriz ? Math.abs(dx) * 1.25 > Math.abs(dy) : Math.abs(dy) * 1.25 > Math.abs(dx))
+    const useH = keep ? curHoriz : horiz
+    const d: Dir = useH ? (dx > 0 ? 'right' : 'left') : dy > 0 ? 'down' : 'up'
+    if (d !== cur) setDir(d)
+    onPushRun(len >= STICK_R * STICK_RUN)
   }
-  useEffect(() => () => void (heldStack.current = []), [heldStack])
+  const release = () => {
+    pid.current = null
+    setStick(null)
+    setDir(null)
+    onPushRun(false)
+  }
+  const pushRun = useRef(onPushRun)
+  useEffect(() => {
+    pushRun.current = onPushRun
+  }, [onPushRun])
+  useEffect(
+    () => () => {
+      heldStack.current = []
+      pushRun.current(false)
+    },
+    [heldStack],
+  )
+  const local = (e: React.PointerEvent) => {
+    const r = zoneRef.current!.getBoundingClientRect()
+    return [e.clientX - r.left, e.clientY - r.top] as const
+  }
+  const knob = stick ? Math.hypot(stick.dx, stick.dy) / STICK_R : 0
   return (
     <>
       <div
-        ref={padRef}
-        className="ow-dpad"
+        ref={zoneRef}
+        className="ow-stick-zone"
         onPointerDown={(e) => {
+          if (pid.current !== null) return
           e.preventDefault()
           e.currentTarget.setPointerCapture(e.pointerId)
-          setDir(fromEvent(e))
+          pid.current = e.pointerId
+          const [x, y] = local(e)
+          update(x, y, x, y)
         }}
         onPointerMove={(e) => {
-          if (e.buttons || e.pointerType === 'touch') setDir(fromEvent(e) ?? active)
+          if (e.pointerId !== pid.current || !stick) return
+          const [x, y] = local(e)
+          update(stick.x, stick.y, x, y)
         }}
-        onPointerUp={() => setDir(null)}
-        onPointerCancel={() => setDir(null)}
+        onPointerUp={(e) => e.pointerId === pid.current && release()}
+        onPointerCancel={(e) => e.pointerId === pid.current && release()}
         role="group"
-        aria-label="Direction pad"
+        aria-label="Movement joystick"
       >
-        {(['up', 'down', 'left', 'right'] as Dir[]).map((d) => (
-          <span key={d} className={`ow-dpad-${d} ${active === d ? 'on' : ''}`} />
-        ))}
-        <span className="ow-dpad-c" />
+        <div className={`ow-stick ${stick ? 'live' : ''} ${knob >= STICK_RUN ? 'run' : ''}`} style={stick ? { left: stick.x, top: stick.y } : undefined}>
+          {(['up', 'down', 'left', 'right'] as Dir[]).map((d) => (
+            <span key={d} className={`ow-stick-tick ow-stick-${d} ${active === d ? 'on' : ''}`} />
+          ))}
+          <span className="ow-stick-knob" style={stick ? { transform: `translate(${stick.dx}px, ${stick.dy}px)` } : undefined} />
+        </div>
       </div>
       <div className="ow-ab">
         <button type="button" className={`ow-btn ow-btn-b ${run ? 'on' : ''}`} onPointerDown={(e) => (e.preventDefault(), onB())} aria-label="B (run)">
