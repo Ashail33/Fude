@@ -260,4 +260,4 @@ export const PACK: RegionData = {
 }
 
 /** Off the road until the region is finished. */
-export const DATA: RegionData | null = null
+export const DATA: RegionData | null = PACK

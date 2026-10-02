@@ -1,0 +1,42 @@
+/* The Counting Umibōzu: the tide climbs the stage as hearts are lost. */
+.umi-tide {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(155, 231, 255, 0.55) 0%, rgba(61, 165, 255, 0.45) 30%, rgba(29, 78, 122, 0.6) 100%);
+  border-top: 2px solid rgba(255, 255, 255, 0.7);
+  transition: height 0.9s ease-out;
+  animation: umi-swell 3.2s ease-in-out infinite;
+}
+
+@keyframes umi-swell {
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+.umi-pile {
+  font-size: clamp(1.8rem, 7vw, 2.6rem);
+  letter-spacing: 0.08em;
+  line-height: 1.25;
+  word-break: break-all;
+}
+
+.umi-say {
+  font-size: 1.8rem;
+  padding: 6px 18px;
+}
+
+.umi-heard {
+  margin-left: 12px;
+  font-size: 1.6rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .umi-tide {
+    animation: none;
+  }
+}

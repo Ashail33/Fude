@@ -33,7 +33,7 @@ export const SHRINE: MapSpec = {
     { at: '5', id: 's-ema', kind: 'activity', tile: 'sign', activities: ['r4-forge'], name: { jp: 'えまかけ', en: 'Ema Board' }, lines: [{ jp: 'えまに ねがいを かこう。「あかい 花は きれいです」…', en: 'Write a wish on a votive plaque. “The red flower is beautiful”…' }] },
     { at: 'U', id: 's-komainu', kind: 'activity', tile: 'statue', activities: ['r4-cross'], name: { jp: 'こまいぬ', en: 'Komainu Guardian' }, lines: [{ jp: 'こまいぬが なぞを かけてくる。', en: 'The stone lion-dog poses a riddle.' }] },
     { at: '7', id: 's-trial', kind: 'activity', tile: 'statue', activities: ['r4-mastery'], name: { jp: 'しれんの いし', en: 'Trial Stone' }, lines: [{ jp: 'やしろの しれん。えいごを にほんごに かえよ。', en: 'The shrine trial. Turn English into Japanese.' }] },
-    { at: '8', id: 's-sign', kind: 'sign', tile: 'sign', name: { jp: 'かんばん', en: 'Sign' }, lines: [{ jp: 'きた：創造の塔。しずかな ししょを たおした ものだけが のぼれる。', en: 'North: the Tower of Creation. Only those who defeat the Silent Librarian may climb.' }] },
+    { at: '8', id: 's-sign', kind: 'sign', tile: 'sign', name: { jp: 'かんばん', en: 'Sign' }, lines: [{ jp: 'きた：山を こえて みなとへ。しずかな ししょを たおした ものだけが とおれる。', en: 'North: over the mountain and down to the sea. Only those who defeat the Silent Librarian may pass.' }] },
     { at: '$', id: 's-chest-bamboo', kind: 'chest', tile: 'chest', chest: { item: 'ether', n: 2, shards: 20 } },
     { at: '?', id: 's-chest-pond', kind: 'chest', tile: 'chest', chest: { item: 'charm', n: 1, shards: 25, lock: { answer: 'しずか', jp: 'ふたに「静か」。よみを となえよ。', en: 'The lid bears 静か. Chant its reading.' } } },
     { at: '(', id: 's-fox', kind: 'npc', sprite: 'fox', wander: 2, name: { jp: 'きつね', en: 'Fox' }, lines: [{ jp: 'コン。ここの きつねは かみさまの つかいだよ。', en: 'Kon. The foxes here are messengers of the gods.' }] },

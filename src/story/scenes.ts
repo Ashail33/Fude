@@ -310,9 +310,9 @@ const S: Scene[] = [
     cast: ['you', 'fude', 'librarian'],
     steps: [
       { who: 'librarian', emote: '♪', jp: 'すばらしい。あなたは 本当に 読めるのですね。', kana: 'すばらしい。あなたは ほんとうに よめるのですね。', en: 'Wonderful. You truly can read.' },
-      { who: 'librarian', jp: 'この 本を どうぞ。塔への かぎです。', kana: 'この ほんを どうぞ。とうへの かぎです。', en: 'Please take this book. It is the key to the Tower.' },
+      { who: 'librarian', jp: 'この 本を どうぞ。いつか、塔の かぎに なります。', kana: 'この ほんを どうぞ。いつか、とうの かぎに なります。', en: 'Please take this book. One day it will be your key to the Tower.' },
       { flash: '#f7c948', jp: 'やしろの かねが なりひびいた。', en: 'The shrine bell rings out across the land.' },
-      { who: 'fude', emote: '!', jp: 'さいごは 創造の塔！', kana: 'さいごは そうぞうのとう！', en: 'Last stop: the Tower of Creation!' },
+      { who: 'fude', emote: '!', jp: '塔は まだ とおい… まずは 山を おりて、みなとへ 行きましょう！', kana: 'とうは まだ とおい… まずは やまを おりて、みなとへ いきましょう！', en: 'The Tower is still far away… First, down the mountain to the harbour!' },
     ],
   },
   {

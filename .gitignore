@@ -38,3 +38,4 @@ art-src/**/*.webp
 public/models/*.glb
 public/props/*.glb
 public/tex/*.jpg
+.claude/worktrees/
