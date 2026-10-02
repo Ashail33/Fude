@@ -1,6 +1,7 @@
 /** Pure logic for G6 Sentence Forge (order checking, furigana lookup, word detection). */
 import type { ForgeSentence } from '../data/sentences'
 import { VOCAB } from '../data/vocab'
+import { PACK_DATA } from '../regions/data'
 
 export const FORGE_PARTICLES = ['は', 'が', 'を', 'に', 'で', 'へ', 'と', 'の'] as const
 
@@ -51,6 +52,7 @@ for (const w of VOCAB) {
   }
 }
 for (const [k, v] of Object.entries(EXTRA_READINGS)) if (!READINGS.has(k)) READINGS.set(k, v)
+for (const d of PACK_DATA) for (const [k, v] of Object.entries(d.readings ?? {})) if (!READINGS.has(k)) READINGS.set(k, v)
 
 /** Kana reading for a tile if it contains kanji and the reading is known. */
 export function readingOf(token: string): string | undefined {

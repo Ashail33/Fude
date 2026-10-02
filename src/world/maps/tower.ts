@@ -12,14 +12,14 @@ export const TOWER: MapSpec = {
   tint: 'rgba(90, 70, 170, 0.18)',
   rows: LAYOUTS.tower,
   legend: { M: { g: 'stone-floor', o: 'carpet' }, S: { g: 'stone-floor', o: 'statue' } },
-  spawn: 'south',
-  inn: 'south',
+  spawn: 'west',
+  inn: 'west',
   points: {
-    q: { name: 'south', dir: 'up' },
+    q: { name: 'west', dir: 'up' },
     j: { name: 'tower', dir: 'down' },
   },
   exits: [
-    { at: '9', to: 'shrine', point: 'north' },
+    { at: '9', to: '@prev', point: 'east' },
     { at: 'd', to: 'tower-throne', point: 'door', tile: 'door' },
   ],
   entities: [

@@ -50,6 +50,8 @@ export interface RegionData {
   kanji?: Omit<KanjiEntry, 'region'>[]
   npcs?: Npc[]
   scenarios?: Scenario[]
+  /** Kana readings for forge tiles that aren't words of their own (三匹, 七時…). */
+  readings?: Record<string, string>
 }
 
 /** Cutscenes (kept apart from the tale scripts so the scene registry stays import-light). */

@@ -1,3 +1,4 @@
+import { atOrBefore, JOURNEY } from '../data/journey'
 import { describe, expect, it } from 'vitest'
 import { ENEMY_SPRITES } from '../art'
 import { item } from '../engine/items'
@@ -177,7 +178,7 @@ describe('turns', () => {
 describe('questions', () => {
   it('builds unambiguous multiple choice', () => {
     const r = rng(7)
-    for (let region = 1; region <= 5; region++) {
+    for (const region of JOURNEY) {
       for (let i = 0; i < 150; i++) {
         const q = nextQuestion(region, {}, { listen: true }, r)
         if (q.kind === 'reading') {
@@ -185,14 +186,14 @@ describe('questions', () => {
           continue
         }
         expect(q.choices[q.answer]).toBe(q.word)
-        expect(q.choices.length).toBe(region <= 1 ? 3 : 4)
+        expect(q.choices.length).toBe(region === 1 ? 3 : 4)
         const en = q.choices.map((c) => c.en.toLowerCase())
         expect(new Set(en).size).toBe(en.length)
         const kana = q.choices.map((c) => toHiragana(c.kana))
         if (q.kind === 'listen') expect(new Set(kana).size).toBe(kana.length)
         const jp = q.choices.map((c) => c.jp)
         expect(new Set(jp).size).toBe(jp.length)
-        for (const c of q.choices) expect(c.region).toBeLessThanOrEqual(region)
+        for (const c of q.choices) expect(atOrBefore(c.region, region), `${c.id} in region ${region}`).toBe(true)
       }
     }
   })

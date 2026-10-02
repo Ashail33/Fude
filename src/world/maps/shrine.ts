@@ -16,12 +16,12 @@ export const SHRINE: MapSpec = {
   inn: 'south',
   points: {
     q: { name: 'south', dir: 'up' },
-    v: { name: 'north', dir: 'down' },
+    v: { name: 'east', dir: 'down' },
     j: { name: 'library', dir: 'down' },
   },
   exits: [
     { at: '9', to: 'forest', point: 'north' },
-    { at: '0', to: 'tower', point: 'south', tile: 'stairs-up' },
+    { at: '0', to: '@next', point: 'west', tile: 'stairs-up' },
     { at: 'd', to: 'shrine-library', point: 'door', tile: 'door' },
   ],
   entities: [

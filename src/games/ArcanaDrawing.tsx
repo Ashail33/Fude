@@ -3,7 +3,7 @@ import { GameFrame, Intro, Progress, T, useBurst, useFlash } from '../components
 import { KANA_BY_CHAR } from '../data/kana'
 import { RADICAL_BY_CHAR, RECIPES } from '../data/kanji'
 import strokesJson from '../data/strokes.json'
-import { item } from '../engine/items'
+import { describeItem, item } from '../engine/items'
 import { weightedSample } from '../engine/random'
 import { sfx } from '../engine/sfx'
 import { speak } from '../engine/speech'
@@ -55,8 +55,10 @@ function charInfo(char: string): CharInfo {
   const r = RADICAL_BY_CHAR.get(char)
   const rec = RECIPES.find((x) => x.result === char)
   const x = EXTRA_KANJI[char]
-  const reading = r?.reading ?? rec?.reading ?? x?.reading ?? ''
-  const meaning = r?.meaning ?? rec?.meaning ?? x?.meaning ?? 'kanji'
+  // taught kanji and words written with one kanji (四, 百, 円…)
+  const d = r || rec || x ? undefined : describeItem(item.kanji(char))
+  const reading = r?.reading ?? rec?.reading ?? x?.reading ?? d?.reading ?? ''
+  const meaning = r?.meaning ?? rec?.meaning ?? x?.meaning ?? d?.meaning ?? 'kanji'
   return { char, kana: false, itemId: item.kanji(char), reading, meaning, say: reading || char }
 }
 

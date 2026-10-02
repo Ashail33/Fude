@@ -22,11 +22,11 @@ export interface Region {
 }
 
 const CORE_REGIONS: Region[] = [
-  { id: 1, name: 'The Village of First Words', jp: 'はじまりの村', reading: 'はじまりのむら', tagline: 'Where every mage speaks their first spell.', teaches: ['Hiragana', '30 basic words', 'Asking with ください'], color: '#ff9e6d', emoji: '🏘️', pos: { x: 18, y: 72 }, map: 'village' },
-  { id: 2, name: 'The Elemental Fields', jp: '元素の野', reading: 'げんそのの', tagline: 'Fire, water, tree, earth, stone: the roots of all kanji.', teaches: ['Katakana', 'Kanji roots', 'Combining radicals'], color: '#7ed957', emoji: '🌾', pos: { x: 40, y: 50 }, map: 'fields' },
-  { id: 3, name: 'The Forest of Sentences', jp: '文の森', reading: 'ぶんのもり', tagline: 'Words grow into sentences beneath the ancient canopy.', teaches: ['Verbs', 'Particles は・を・に・で', 'Sentence order'], color: '#3fbf9f', emoji: '🌲', pos: { x: 62, y: 70 }, map: 'forest' },
-  { id: 4, name: 'The Shrine of Reading', jp: '読みの社', reading: 'よみのやしろ', tagline: 'Ancient tablets reveal their meaning to those who read.', teaches: ['Adjectives', 'Reading comprehension', 'Listening'], color: '#c792ea', emoji: '⛩️', pos: { x: 78, y: 42 }, map: 'shrine' },
-  { id: 5, name: 'The Tower of Creation', jp: '創造の塔', reading: 'そうぞうのとう', tagline: 'Here, language is power. Speak, and the world obeys.', teaches: ['Casting sentences', 'Adjective conjugation', 'Free expression'], color: '#ffd166', emoji: '🗼', pos: { x: 55, y: 16 }, map: 'tower' },
+  { id: 1, name: 'The Village of First Words', jp: 'はじまりの村', reading: 'はじまりのむら', tagline: 'Where every mage speaks their first spell.', teaches: ['Hiragana', '30 basic words', 'Asking with ください'], color: '#ff9e6d', emoji: '🏘️', pos: { x: 10, y: 84 }, map: 'village' },
+  { id: 2, name: 'The Elemental Fields', jp: '元素の野', reading: 'げんそのの', tagline: 'Fire, water, tree, earth, stone: the roots of all kanji.', teaches: ['Katakana', 'Kanji roots', 'Combining radicals'], color: '#7ed957', emoji: '🌾', pos: { x: 25, y: 70 }, map: 'fields' },
+  { id: 3, name: 'The Forest of Sentences', jp: '文の森', reading: 'ぶんのもり', tagline: 'Words grow into sentences beneath the ancient canopy.', teaches: ['Verbs', 'Particles は・を・に・で', 'Sentence order'], color: '#3fbf9f', emoji: '🌲', pos: { x: 13, y: 52 }, map: 'forest' },
+  { id: 4, name: 'The Shrine of Reading', jp: '読みの社', reading: 'よみのやしろ', tagline: 'Ancient tablets reveal their meaning to those who read.', teaches: ['Adjectives', 'Reading comprehension', 'Listening'], color: '#c792ea', emoji: '⛩️', pos: { x: 28, y: 36 }, map: 'shrine' },
+  { id: 5, name: 'The Tower of Creation', jp: '創造の塔', reading: 'そうぞうのとう', tagline: 'Here, language is power. Speak, and the world obeys.', teaches: ['Casting sentences', 'Adjective conjugation', 'Free expression'], color: '#ffd166', emoji: '🗼', pos: { x: 46, y: 12 }, map: 'tower' },
 ]
 
 /** Every region, in journey order (see ./journey: ids are stable, the order is the road). */

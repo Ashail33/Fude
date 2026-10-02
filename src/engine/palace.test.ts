@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { GRAMMAR } from '../data/grammar'
 import { HIRAGANA, KATAKANA } from '../data/kana'
+import { JOURNEY } from '../data/journey'
+import { KANJI } from '../data/kanjiList'
 import { VOCAB } from '../data/vocab'
 import { getMap } from '../world/maps'
 import { describeItem, item } from './items'
@@ -13,6 +15,7 @@ const expected = (room: number): string[] => [
   ...(room === 2 ? KATAKANA.map((k) => item.kana(k.char)) : []),
   ...VOCAB.filter((w) => w.region === room).map((w) => item.word(w.id)),
   ...GRAMMAR.filter((g) => g.region === room).map((g) => item.grammar(g.id)),
+  ...KANJI.filter((k) => k.region === room).map((k) => item.kanji(k.char)),
 ]
 
 describe('memory palace', () => {
@@ -23,7 +26,7 @@ describe('memory palace', () => {
     expect(dup).toEqual([])
   })
 
-  describe.each([1, 2, 3, 4, 5])('room %i', (room) => {
+  describe.each([...JOURNEY])('room %i', (room) => {
     const loci = roomLoci(room)
     it('has a route of places anchored to things on its maps', () => {
       expect(loci.length).toBeGreaterThanOrEqual(6)

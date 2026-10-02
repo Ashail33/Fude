@@ -51,6 +51,12 @@ export interface EntitySpec {
 export interface ExitSpec {
   /** Marker char (may repeat for wide exits). */
   at: string
+  /**
+   * Target map id, or `@next` / `@prev` for the main map of the next or
+   * previous region on the road (see data/journey). Road exits arrive at the
+   * target's `west` point (from the region before) or `east` point (from the
+   * region after), so regions can be added without touching their neighbours.
+   */
   to: string
   /** Arrival point name in the target map. */
   point: string

@@ -1,3 +1,4 @@
+import { JOURNEY } from '../data/journey'
 import { describe, expect, it } from 'vitest'
 import { bossOf } from '../data/regions'
 import { freshState, type PlayerState } from '../engine/store'
@@ -16,7 +17,7 @@ describe('chronicle', () => {
   })
 
   it('every region has folklore spirits, each with a tale that seals it', () => {
-    for (let r = 1; r <= 5; r++) expect(YOKAI.filter((y) => y.region === r).length, `region ${r}`).toBeGreaterThanOrEqual(2)
+    for (const r of JOURNEY) expect(YOKAI.filter((y) => y.region === r).length, `region ${r}`).toBeGreaterThanOrEqual(2)
     for (const y of YOKAI) expect(TALES.some((t) => t.yokai === y.id), y.id).toBe(true)
     for (const t of TALES) if (t.yokai) expect(YOKAI.some((y) => y.id === t.yokai), t.id).toBe(true)
   })

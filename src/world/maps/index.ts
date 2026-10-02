@@ -1,4 +1,4 @@
-import { REGIONS } from '../../data/regions'
+import { nextRegion, prevRegion, regionMap, REGIONS } from '../../data/regions'
 import { PACK_MAPS } from '../../regions/maps'
 import { parseMap } from '../mapdef'
 import { CONTENT } from '../../story/tales/content'
@@ -22,6 +22,13 @@ export function getMap(id: string): GameMap | undefined {
     const spec = MAP_SPECS.find((s) => s.id === id)
     if (!spec) return undefined
     m = parseMap(spec)
+    // road exits: to the main map of the neighbouring region on the journey
+    for (const [i, ex] of m.exits) {
+      if (ex.to !== '@next' && ex.to !== '@prev') continue
+      const r = ex.to === '@next' ? nextRegion(spec.region) : prevRegion(spec.region)
+      if (r === undefined) m.exits.delete(i)
+      else m.exits.set(i, { ...ex, to: regionMap(r), point: ex.to === '@next' ? 'west' : 'east' })
+    }
     // characters and objects added by story content
     for (const c of CONTENT) for (const x of c.entities?.[id] ?? []) m.entitySpecs.push({ ...x, at: '' })
     cache.set(id, m)
