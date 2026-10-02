@@ -22,6 +22,7 @@ import { KEY_ITEM_BY_ID, taleLog } from '../story/tales/engine'
 import { ChroniclePanel } from './ChroniclePanel'
 import { PalacePanel } from './PalacePanel'
 import { uiSound } from './sound'
+import { raidDue } from '../engine/hamlet'
 import './GameMenu.css'
 
 export interface GameMenuProps {
@@ -88,6 +89,8 @@ export function GameMenu({ onClose, onTravel, onReplay }: GameMenuProps) {
         return nav('/wardrobe')
       case 'tavern':
         return nav('/tavern')
+      case 'arcade':
+        return nav('/arcade')
       case 'settings':
         return nav('/settings')
       case 'close':
@@ -106,6 +109,7 @@ export function GameMenu({ onClose, onTravel, onReplay }: GameMenuProps) {
     { id: 'wardrobe', label: <Label jp="きがえ" en="Wardrobe" /> },
     { id: 'map', label: <Label jp="ちず" en="World map" /> },
     { id: 'tavern', label: <Label jp="さかば" en="Tavern" /> },
+    { id: 'arcade', label: <Label jp="あそび" en="Games" />, hint: p.hamlet && raidDue(p.hamlet) ? <span className="gm-badge">⚔</span> : undefined },
     { id: 'settings', label: <Label jp="せってい" en="Settings" /> },
     { id: 'close', label: <Label jp="とじる" en="Close" /> },
   ]

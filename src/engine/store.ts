@@ -6,6 +6,7 @@ import { EFFECTS, levelForXp, OUTFITS } from './rewards'
 import { HIRAGANA, KATAKANA, type Kana } from '../data/kana'
 import { masteryTier, newCard, review, type Review, type SrsCard } from './srs'
 import { todayKey } from './random'
+import type { HamletState } from './hamlet'
 
 export type ImmersionLevel = 0 | 1 | 2 | 3
 
@@ -89,6 +90,10 @@ export interface PlayerState {
   episodes?: Record<string, Episode[]>
   /** Claude-written palace stories, by `item@map:anchor` (engine/palaceAI). */
   palaceStories?: Record<string, string>
+  /** The player's own village (engine/hamlet), once founded. */
+  hamlet?: HamletState
+  /** Best scores in the arcade games, by game id. */
+  arcade?: Record<string, number>
 }
 
 /** A moment in the world tied to an item: where you met it or used it. */

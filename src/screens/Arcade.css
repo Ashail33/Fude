@@ -1,0 +1,36 @@
+.ar-page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ar-page h1 [lang='ja'] {
+  color: var(--accent, #f7c948);
+  margin-right: 8px;
+}
+.ar-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ar-game {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  text-decoration: none;
+  color: inherit;
+}
+.ar-game > span:last-child {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ar-icon {
+  font-size: 2.4rem;
+}
+.ar-alert {
+  color: #ff8a9a;
+  font-weight: 700;
+}

@@ -20,6 +20,7 @@ import { canSpeak, speak } from '../engine/speech'
 import { voices } from '../engine/voice'
 import { addItem, getState, grantRewards, immersionOf, level, recordReviews, usePlayer, type ImmersionLevel } from '../engine/store'
 import Backdrop from './Backdrop'
+import { bonuses } from '../engine/hamlet'
 import { battleBackdropId, enemyHdId, FLOATING } from './hd'
 import { LivingArt, LivingScene } from '../anim/LivingArt'
 import { Ambient } from '../anim/Ambient'
@@ -160,7 +161,7 @@ export default function Battle({ region, enemies, onEnd }: BattleProps) {
   const initial = useMemo(() => {
     const s = getState()
     const ids = enemies?.length ? enemies.slice(0, 3) : rollEnemies(reg)
-    return createBattle(reg, level(s), ids, s.name || 'あなた')
+    return createBattle(reg, level(s), ids, s.name || 'あなた', bonuses(s.hamlet))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

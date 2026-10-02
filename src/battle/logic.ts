@@ -316,8 +316,10 @@ export function makeEnemies(ids: EnemySprite[], region: number): BEnemy[] {
   })
 }
 
-export function createBattle(region: number, level: number, ids: EnemySprite[], name = 'あなた'): BattleState {
-  const stats = playerStats(level)
+export function createBattle(region: number, level: number, ids: EnemySprite[], name = 'あなた', bonus?: { hp: number; mp: number; atk: number; magic: number }): BattleState {
+  const base = playerStats(level)
+  // the Hidden Village's dojo, forge and shrine (engine/hamlet)
+  const stats = bonus ? { ...base, maxHp: base.maxHp + bonus.hp, maxMp: base.maxMp + bonus.mp, atk: base.atk + bonus.atk, magic: base.magic + bonus.magic } : base
   return {
     region: clampRegion(region),
     player: { ...stats, hp: stats.maxHp, mp: stats.maxMp, shield: 0, name },

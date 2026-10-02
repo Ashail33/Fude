@@ -15,6 +15,9 @@ const Grimoire = lazy(() => import('./screens/Grimoire'))
 const Wardrobe = lazy(() => import('./screens/Wardrobe'))
 const SettingsScreen = lazy(() => import('./screens/Settings'))
 const Tavern = lazy(() => import('./screens/Tavern'))
+const Arcade = lazy(() => import('./screens/Arcade'))
+const Hamlet = lazy(() => import('./screens/Hamlet'))
+const StickNinja = lazy(() => import('./screens/StickNinja'))
 const Overworld = lazy(() => import('./world/Overworld'))
 const Battle = lazy(() => import('./battle/Battle'))
 
@@ -77,6 +80,10 @@ function BottomNav() {
       <NavLink to="/tavern">
         <span className="ico">🍶</span>
         <T en="Tavern" jp="さかば" />
+      </NavLink>
+      <NavLink to="/arcade">
+        <span className="ico">🎮</span>
+        <T en="Games" jp="あそび" />
       </NavLink>
       <NavLink to="/wardrobe">
         <span className="ico">🧙</span>
@@ -149,6 +156,9 @@ export default function App() {
             <Route path="/wardrobe" element={<Wardrobe />} />
             <Route path="/settings" element={<SettingsScreen />} />
             <Route path="/tavern" element={<Tavern />} />
+            <Route path="/arcade" element={<Arcade />} />
+            <Route path="/hamlet" element={<Hamlet />} />
+            <Route path="/stick-ninja" element={<StickNinja />} />
             <Route path="/world" element={<Navigate to="/" replace />} />
             <Route path="/battle-test/:region" element={<BattleTest />} />
             <Route path="*" element={<Navigate to="/" replace />} />
