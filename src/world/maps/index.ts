@@ -4,12 +4,41 @@ import { parseMap } from '../mapdef'
 import { CONTENT } from '../../story/tales/content'
 import type { GameMap, MapSpec } from '../types'
 import { FIELDS } from './fields'
+import { FIELDS_HILL, FIELDS_WELL } from './fields-extra'
 import { FOREST } from './forest'
+import { FOREST_HOLLOW, FOREST_LAKE } from './forest-extra'
 import { SHRINE, SHRINE_LIBRARY } from './shrine'
+import { SHRINE_GARDEN, SHRINE_TORII } from './shrine-extra'
 import { TOWER, TOWER_THRONE, TOWER_TOP } from './tower'
+import { TOWER_ARMOURY, TOWER_GARDEN, TOWER_LIBRARY } from './tower-extra'
 import { VILLAGE, VILLAGE_ELDER, VILLAGE_SCROLLS, VILLAGE_SHOP } from './village'
+import { VILLAGE_BAMBOO, VILLAGE_TERRACES } from './village-extra'
 
-export const MAP_SPECS: MapSpec[] = [VILLAGE, VILLAGE_ELDER, VILLAGE_SHOP, VILLAGE_SCROLLS, FIELDS, FOREST, SHRINE, SHRINE_LIBRARY, TOWER, TOWER_THRONE, TOWER_TOP, ...PACK_MAPS]
+export const MAP_SPECS: MapSpec[] = [
+  VILLAGE,
+  VILLAGE_ELDER,
+  VILLAGE_SHOP,
+  VILLAGE_SCROLLS,
+  VILLAGE_BAMBOO,
+  VILLAGE_TERRACES,
+  FIELDS,
+  FIELDS_HILL,
+  FIELDS_WELL,
+  FOREST,
+  FOREST_HOLLOW,
+  FOREST_LAKE,
+  SHRINE,
+  SHRINE_LIBRARY,
+  SHRINE_TORII,
+  SHRINE_GARDEN,
+  TOWER,
+  TOWER_THRONE,
+  TOWER_LIBRARY,
+  TOWER_TOP,
+  TOWER_GARDEN,
+  TOWER_ARMOURY,
+  ...PACK_MAPS,
+]
 
 /** Main outdoor map per region, in journey order. */
 export const REGION_MAPS: string[] = REGIONS.map((r) => r.map)

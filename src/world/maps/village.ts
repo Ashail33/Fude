@@ -19,12 +19,16 @@ export const VILLAGE: MapSpec = {
     j: { name: 'elder', dir: 'down' },
     m: { name: 'scrolls', dir: 'down' },
     l: { name: 'shop', dir: 'down' },
+    z: { name: 'bamboo', dir: 'right' },
+    v: { name: 'terraces', dir: 'left' },
   },
   exits: [
     { at: '0', to: 'fields', point: 'south', tile: 'gate-open' },
     { at: 'd', to: 'village-elder', point: 'door', tile: 'door' },
     { at: 'i', to: 'village-scrolls', point: 'door', tile: 'door' },
     { at: 'h', to: 'village-shop', point: 'door', tile: 'noren' },
+    { at: 'E', to: 'village-bamboo', point: 'east' },
+    { at: 'U', to: 'village-terraces', point: 'west' },
   ],
   entities: [
     { at: '1', id: 'v-teacher', kind: 'activity', sprite: 'villager-a', dir: 'down', wander: 1, activities: ['r1-words-2'], name: { jp: 'ハナせんせい', en: 'Teacher Hana' }, lines: [{ jp: 'さくらの 下で、ことばを おしえています。', en: 'I teach words under the cherry trees.' }] },
