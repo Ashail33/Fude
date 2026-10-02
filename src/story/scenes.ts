@@ -40,8 +40,8 @@ export const SPEAKERS = {
   dragon: { sprite: 'dragon', name: 'Void Dragon', jp: 'こくうのりゅう', color: '#a61e3a' },
   // Fude's memories: the girl who carried her before, and the nameless quiet
   // her name is a secret the memories reveal, so the plate never gives it away
-  scribe: { sprite: 'mage', name: 'Girl with the Brush', jp: 'ふでの しょうじょ', color: '#f2a7c3' },
-  kotone: { sprite: 'mage', name: 'Kotone', jp: 'ことね', color: '#f2a7c3' },
+  scribe: { sprite: 'scribe', name: 'Girl with the Brush', jp: 'ふでの しょうじょ', color: '#f2a7c3' },
+  kotone: { sprite: 'scribe', name: 'Kotone', jp: 'ことね', color: '#f2a7c3' },
   shadow: { sprite: 'wisp', name: '???', jp: '？？？', color: '#8a8fb8' },
 } satisfies Record<string, Speaker>
 

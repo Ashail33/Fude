@@ -128,6 +128,7 @@ export const VOICES: Record<string, VoiceProfile> = {
   // ─── Villagers
   elder: { src: 'saw', base: 112, scale: NARROW, formant: 0.92, contour: 'fall', bend: 2, len: 0.1, every: 3, vib: 70, vibRate: 5, breath: 0.35, grit: 0.12, tts: { gender: 'male', age: 'elder', pitch: 0.55, rate: 0.78 }, cry: 'elder' },
   guard: { src: 'pulse', base: 98, scale: [0, 2, 5], formant: 0.84, contour: 'fall', bend: 4, len: 0.065, every: 2, breath: 0.05, grit: 0.3, tts: { gender: 'male', age: 'adult', pitch: 0.72, rate: 0.95 }, cry: 'armor' },
+  scribe: { src: 'soft', base: 360, formant: 1.4, contour: 'arch', bend: 3, len: 0.055, every: 2, vib: 22, vibRate: 5.5, breath: 0.12, tts: { gender: 'female', age: 'young', pitch: 1.25, rate: 1.05 }, cry: 'chime' },
   merchant: { src: 'pulse', base: 300, formant: 1.3, contour: 'arch', bend: 5, len: 0.045, every: 1, vib: 18, vibRate: 6, breath: 0.08, tts: { gender: 'female', age: 'young', pitch: 1.35, rate: 1.2 }, cry: 'coins' },
   priest: { src: 'soft', base: 145, scale: IN, formant: 1, contour: 'flat', len: 0.09, every: 3, vib: 22, vibRate: 4.5, breath: 0.25, tts: { gender: 'male', age: 'adult', pitch: 0.85, rate: 0.82 }, cry: 'suzu' },
   king: { src: 'saw', base: 92, scale: [0, 4, 7], formant: 0.8, contour: 'arch', bend: 3, len: 0.09, every: 3, vib: 25, vibRate: 5, grit: 0.15, tts: { gender: 'male', age: 'adult', pitch: 0.62, rate: 0.85 }, cry: 'fanfare' },
@@ -167,8 +168,7 @@ const ALIASES: Record<string, string> = {
   guardian: 'treant',
   librarian: 'wisp',
   chimera: 'kitsune',
-  scribe: 'merchant',
-  kotone: 'merchant',
+  kotone: 'scribe',
   shadow: 'wisp',
   // Boss illustration / game ids.
   'kana-oni': 'oni',

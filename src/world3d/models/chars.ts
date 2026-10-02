@@ -58,6 +58,7 @@ const HUMANS: Record<string, Partial<Human>> = {
   jailer: { cloth: P.stoneDark, trim: P.ink, legs: P.night, hat: 'bandana', hatColor: P.ink, prop: 'keys', hair: P.night, hairStyle: 'spiky' },
   'villager-a': { cloth: P.leaf, trim: P.woodLight, legs: P.wood, hat: 'kasa', hatColor: P.sand, hair: P.woodDark },
   'villager-b': { cloth: P.water, trim: P.paper, robe: true, hair: P.night, hairStyle: 'long' },
+  scribe: { cloth: P.lilac, trim: P.paper, legs: P.navy, robe: true, hair: P.night, hairStyle: 'long', prop: 'staff' },
   child: { cloth: P.orange, trim: P.gold, legs: P.navy, hair: P.woodDark, hairStyle: 'topknot', scale: 0.78 },
   oni: { skin: P.fire, cloth: P.gold, trim: P.ink, legs: P.fire, hair: P.ink, hairStyle: 'spiky', horns: true, prop: 'club', scale: 1.45 },
 }

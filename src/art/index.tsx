@@ -21,6 +21,7 @@ export const CHARACTER_SPRITES = [
   'mage', // the player; recoloured by outfit id
   'fude', // companion brush spirit (floating, 2-frame bob)
   'merchant',
+  'scribe', // Kotone, in Fude's memories
   'guard',
   'priest',
   'king',

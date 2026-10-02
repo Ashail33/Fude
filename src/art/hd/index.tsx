@@ -173,6 +173,7 @@ export const SPRITE_TO_HD: Record<string, string> = {
   fude: 'fude',
   elder: 'elder',
   merchant: 'merchant',
+  scribe: 'scribe',
   guard: 'guard',
   priest: 'priest',
   king: 'king',

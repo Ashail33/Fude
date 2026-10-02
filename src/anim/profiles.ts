@@ -175,6 +175,8 @@ export const PROFILES: Record<string, Profile> = {
   }),
   elder: portrait({ breath: 0.005, period: 5.2, sway: 0.002, regions: { beard: { cx: 0.5, cy: 0.5, rx: 0.18, ry: 0.2, soft: 0.8, ramp: [0.5, 0.35, 0.5, 0.7] } }, extra: [{ regions: 'beard', ax: 0.003, ay: 0.001, speed: 0.3, freq: 1 }] }),
   merchant: portrait({ breath: 0.006, period: 3.9, sway: 0.003, hair: 0.003, regions: { band: { cx: 0.5, cy: 0.08, rx: 0.45, ry: 0.14, soft: 0.8 } }, extra: [{ regions: 'band', ax: 0.004, ay: 0.002, speed: 0.6, freq: 2 }] }),
+  // Kotone: long hair drifting, the brush tip trailing a little behind
+  scribe: portrait({ breath: 0.006, period: 4.4, sway: 0.003, hair: 0.005, regions: { brush: { cx: 0.72, cy: 0.18, rx: 0.2, ry: 0.22, soft: 0.85 } }, extra: [{ regions: 'brush', ax: 0.005, ay: 0.003, speed: 0.35, freq: 1.2 }] }),
   guard: portrait({ breath: 0.007, period: 4.6, sway: 0.0015, hair: 0.001 }),
   priest: portrait({ breath: 0.005, period: 5.4, sway: 0.002, regions: { streamers: { cx: 0.75, cy: 0.35, rx: 0.3, ry: 0.3, soft: 0.9 } }, extra: [{ regions: 'streamers', ax: 0.004, ay: 0.002, speed: 0.5, freq: 1.8 }] }),
   king: portrait({ breath: 0.006, period: 4.8, sway: 0.002, extra: [{ regions: ['sleeves', 'sleevesR'], ax: 0.004, ay: 0.001, speed: 0.3, freq: 1 }] }),
