@@ -44,5 +44,5 @@ await Promise.all(
 )
 console.log(`art: ${entries.length} sources, ${fetched} downloaded, ${failed} unavailable`)
 
-const r = spawnSync(process.execPath, ['--experimental-strip-types', '--no-warnings', 'scripts/process-art.mjs'], { stdio: 'inherit' })
+const r = spawnSync(process.execPath, ['--experimental-strip-types', '--no-warnings', '--import', './scripts/ts-resolve.mjs', 'scripts/process-art.mjs'], { stdio: 'inherit' })
 if (r.status !== 0) console.warn('art: processing failed; building with pixel art only')
