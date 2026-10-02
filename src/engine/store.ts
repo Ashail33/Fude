@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react'
-import { ACTIVITIES, ACTIVITY_BY_ID, activitiesFor, bossOf, REGIONS } from '../data/regions'
+import { ACTIVITIES, ACTIVITY_BY_ID, activitiesFor, bossOf, prevRegion, REGIONS } from '../data/regions'
 import { RADICALS } from '../data/kanji'
 import type { Activity, GameResult } from '../games/types'
 import { EFFECTS, levelForXp, OUTFITS } from './rewards'
@@ -308,8 +308,11 @@ export function isPassed(s: PlayerState, activityId: string): boolean {
 }
 
 export function regionUnlocked(s: PlayerState, region: number): boolean {
-  if (region <= 1) return true
-  return isPassed(s, bossOf(region - 1).id)
+  const prev = prevRegion(region)
+  if (prev === undefined) return true
+  if (isPassed(s, bossOf(prev).id)) return true
+  // a region reached before new ones were built in front of it stays open
+  return activitiesFor(region).some((a) => isPassed(s, a.id))
 }
 
 export function activityUnlocked(s: PlayerState, a: Activity): boolean {

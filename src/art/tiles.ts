@@ -33,6 +33,8 @@ export const TILE_IDS = [
   'cave', 'stairs-up', 'stairs-down', 'gate-closed', 'gate-open', 'portal', 'warp-circle', 'anvil', 'tablet', 'bookshelf', 'altar', 'throne', 'carpet', 'campfire',
   // additions (v2 art): vermilion roofs for shrines/shops, a noren shop doorway
   'roof-red', 'roof-red-edge', 'noren',
+  // additions (v3): hot springs, ice, the sky city, harbour and snow props
+  'onsen', 'ice', 'sky', 'cloud', 'snow-pine', 'boat', 'net', 'chochin', 'snowman',
 ] as const
 
 export type TileId = (typeof TILE_IDS)[number]

@@ -5,11 +5,14 @@
  */
 import { toHiragana } from 'wanakana'
 import type { EnemySprite } from '../art'
+import { atOrBefore, regionRank } from '../data/journey'
 import { ELEMENT_SPELLS, type ElementSpell } from '../data/sentences'
 import { VOCAB, type Word } from '../data/vocab'
 import { item } from '../engine/items'
 import { strength, weakness, type SrsCard } from '../engine/srs'
 import { ITEM_BY_ID } from './items'
+import { PACK_ENEMY_SPRITES } from '../regions/ids'
+import { PACK_ENEMY_STATS, PACK_POOLS } from '../regions/battle'
 
 export type Element = ElementSpell['element']
 export type Rng = () => number
@@ -43,7 +46,7 @@ export interface EnemyDef {
   drops: string[]
 }
 
-export const ENEMY_DEFS: Record<EnemySprite, EnemyDef> = {
+const CORE_DEFS: Record<CoreEnemy, EnemyDef> = {
   slime: {
     id: 'slime', jp: 'スライム', kana: 'スライム', en: 'Slime', home: 1,
     hpMul: 0.85, atkMul: 0.8, xpMul: 0.8, weak: 'fire', resist: 'water',
@@ -166,8 +169,18 @@ export const ENEMY_DEFS: Record<EnemySprite, EnemyDef> = {
   },
 }
 
+type CoreEnemy = Exclude<EnemySprite, PackEnemy>
+type PackEnemy = (typeof PACK_ENEMY_SPRITES)[number]
+
+/** Every monster's stats: the core bestiary, then the region packs' (a gentle stand-in until a pack sets its own). */
+export const ENEMY_DEFS: Record<EnemySprite, EnemyDef> = {
+  ...CORE_DEFS,
+  ...(Object.fromEntries(PACK_ENEMY_SPRITES.map((id) => [id, { ...(PACK_ENEMY_STATS[id] ?? CORE_DEFS.slime), id }])) as Record<PackEnemy, EnemyDef>),
+}
+
 /** Random-encounter pools (the dragon is the final boss, never random). */
 export const REGION_POOLS: Record<number, EnemySprite[]> = {
+  ...(PACK_POOLS as Record<number, EnemySprite[]>),
   1: ['slime', 'bat', 'mushroom', 'imp'],
   2: ['tanuki', 'kappa', 'ice-slime', 'golem'],
   3: ['kitsune', 'treant', 'wisp', 'harpy'],
@@ -175,13 +188,19 @@ export const REGION_POOLS: Record<number, EnemySprite[]> = {
   5: ['oni', 'tengu', 'skeleton', 'harpy'],
 }
 
-/** Baselines per encounter region, tuned for the level a player tends to have there. */
-const REGION_HP = [0, 18, 34, 46, 60, 76]
-const REGION_ATK = [0, 4, 6.5, 7.5, 9, 11]
-const REGION_XP = [0, 6, 11, 17, 24, 32]
-const REGION_SHARDS = [0, 2, 3, 4, 5, 6]
+/**
+ * Baselines per step along the road (see data/journey), tuned for the level
+ * a player tends to have by then. Index = region rank (1 = the village).
+ */
+const TIER_HP = [0, 18, 34, 46, 60, 72, 84, 96, 108, 120, 134]
+const TIER_ATK = [0, 4, 6.5, 7.5, 9, 10, 11, 12, 13, 14, 15]
+const TIER_XP = [0, 6, 11, 17, 24, 30, 36, 42, 48, 54, 60]
+const TIER_SHARDS = [0, 2, 3, 4, 5, 5, 6, 6, 7, 7, 8]
 
-export const clampRegion = (r: number) => Math.min(5, Math.max(1, Math.round(r) || 1))
+/** A region id that has battles (unknown ids fall back to the village). */
+export const clampRegion = (r: number) => (REGION_POOLS[Math.round(r)] ? Math.round(r) : 1)
+/** How far along the road a region's battles are (1…10), for difficulty. */
+export const tierOf = (r: number) => Math.min(TIER_HP.length - 1, Math.max(1, regionRank(clampRegion(r))))
 
 // ─── Player ──────────────────────────────────────────────────────────────
 
@@ -208,7 +227,7 @@ export const SPELL_REGION: Record<Element, number> = { fire: 1, water: 1, wood: 
  * plus the basic ones for the region.
  */
 export function availableSpells(owned: readonly string[], region: number): ElementSpell[] {
-  return ELEMENT_SPELLS.filter((e) => owned.includes(e.noun) || SPELL_REGION[e.element] <= region)
+  return ELEMENT_SPELLS.filter((e) => owned.includes(e.noun) || atOrBefore(SPELL_REGION[e.element], region))
 }
 
 // ─── Battle state ──────────────────────────────────────────────────────
@@ -258,7 +277,7 @@ const SUFFIX = ['A', 'B', 'C']
 
 export function enemyCount(rng: Rng, region: number): number {
   const r = rng()
-  const three = region >= 3 ? 0.18 : 0.1
+  const three = tierOf(region) >= 3 ? 0.18 : 0.1
   if (r < three) return 3
   if (r < three + 0.4) return 2
   return 1
@@ -271,7 +290,7 @@ export function rollEnemies(region: number, rng: Rng = Math.random): EnemySprite
 }
 
 export function makeEnemies(ids: EnemySprite[], region: number): BEnemy[] {
-  const r = clampRegion(region)
+  const r = tierOf(region)
   const counts = new Map<string, number>()
   ids.forEach((id) => counts.set(id, (counts.get(id) ?? 0) + 1))
   const seen = new Map<string, number>()
@@ -282,7 +301,7 @@ export function makeEnemies(ids: EnemySprite[], region: number): BEnemy[] {
     const k = seen.get(id) ?? 0
     seen.set(id, k + 1)
     const suffix = (counts.get(id) ?? 0) > 1 ? SUFFIX[k] : ''
-    const hp = Math.round(REGION_HP[r] * def.hpMul)
+    const hp = Math.round(TIER_HP[r] * def.hpMul)
     return {
       uid,
       def,
@@ -290,9 +309,9 @@ export function makeEnemies(ids: EnemySprite[], region: number): BEnemy[] {
       nameEn: def.en + (suffix ? ` ${suffix}` : ''),
       hp,
       maxHp: hp,
-      atk: REGION_ATK[r] * def.atkMul * group,
-      xp: Math.round(REGION_XP[r] * def.xpMul),
-      shards: Math.max(1, Math.round(REGION_SHARDS[r] * def.xpMul)),
+      atk: TIER_ATK[r] * def.atkMul * group,
+      xp: Math.round(TIER_XP[r] * def.xpMul),
+      shards: Math.max(1, Math.round(TIER_SHARDS[r] * def.xpMul)),
     }
   })
 }
@@ -545,7 +564,7 @@ const hasKanji = (s: string) => /[一-龯㐀-䶿々]/.test(s)
 
 /** Words usable as battle prompts for a region (short, unambiguous). */
 export function battlePool(region: number): Word[] {
-  return VOCAB.filter((w) => w.region <= clampRegion(region) && w.jp.length <= 6 && w.kana.length <= 7)
+  return VOCAB.filter((w) => atOrBefore(w.region, clampRegion(region)) && w.jp.length <= 6 && w.kana.length <= 7)
 }
 
 /** Pick the prompt word: weaker SRS cards and the current region's words come up more often. */
@@ -591,7 +610,7 @@ const choiceKey: Record<QuestionKind, (w: Word) => string> = {
 /** Build a question for `word` with 4 choices (3 in region 1) distinct under the kind's key. */
 export function makeQuestion(word: Word, kind: QuestionKind, pool: readonly Word[], region: number, rng: Rng = Math.random): Question {
   const key = choiceKey[kind]
-  const n = region <= 1 ? 3 : 4
+  const n = tierOf(region) <= 1 ? 3 : 4
   const taken = new Set([key(word)])
   // Also keep the English distinct in JP-choice formats so the answer is unambiguous.
   const takenEn = new Set([word.en.toLowerCase()])
@@ -612,7 +631,7 @@ export function makeQuestion(word: Word, kind: QuestionKind, pool: readonly Word
   const choices = [...distract]
   choices.splice(answer, 0, word)
   const typed = kind === 'reading'
-  const limitMs = typed ? 16000 + word.kana.length * 1000 : kind === 'listen' ? 10000 : region <= 1 ? 9000 : 8000
+  const limitMs = typed ? 16000 + word.kana.length * 1000 : kind === 'listen' ? 10000 : tierOf(region) <= 1 ? 9000 : 8000
   const critMs = typed ? 4500 + word.kana.length * 500 : kind === 'listen' ? 4000 : 2600
   return { kind, word, itemId: item.word(word.id), choices: typed ? [] : choices, answer: typed ? -1 : answer, limitMs, critMs }
 }

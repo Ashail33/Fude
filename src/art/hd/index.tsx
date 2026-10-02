@@ -6,6 +6,7 @@
 import { useEffect, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from 'react'
 import { HD_BY_ID, hdUrl } from './manifest'
 import './hd.css'
+import { PACK_BOSS_HD, PACK_ENTITY_HD, PACK_SPEAKER_HD, PACK_SPRITE_HD } from '../../regions/art'
 
 let available: Set<string> = new Set()
 let loaded = false
@@ -201,6 +202,7 @@ export const SPRITE_TO_HD: Record<string, string> = {
   oni: 'oni',
   skeleton: 'skeleton',
   dragon: 'void-dragon',
+  ...PACK_SPRITE_HD,
 }
 
 /** Boss art by story speaker / boss key. */
@@ -217,11 +219,12 @@ export const BOSS_HD: Record<string, string> = {
   'boss-librarian': 'silent-librarian',
   'boss-chimera': 'shifting-chimera',
   'boss-dragon': 'void-dragon',
+  ...PACK_BOSS_HD,
 }
 
 /** HD art for a story/dialogue speaker: boss art for boss keys, else the portrait/enemy art. */
 /** Cutscene speakers with art of their own (not their sprite's). */
-export const SPEAKER_HD: Record<string, string> = { shadow: 'shadow' }
+export const SPEAKER_HD: Record<string, string> = { shadow: 'shadow', ...PACK_SPEAKER_HD }
 
 /**
  * Characters in the world with art of their own: the folklore spirits wear
@@ -244,6 +247,7 @@ export const ENTITY_HD: Record<string, string> = {
   'fk5-kaguya': 'yokai-kaguya-hime',
   'fk5-baku': 'yokai-baku',
   'fk5-urashima': 'yokai-urashima',
+  ...PACK_ENTITY_HD,
 }
 
 export function speakerHd(sprite?: string | null, key?: string | null): string | undefined {

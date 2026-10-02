@@ -1,4 +1,5 @@
 /** Sentence content for Sentence Forge, Rune Reading, bosses and combat. */
+import { PACK_DATA } from '../regions/data'
 
 export interface ForgeSentence {
   id: string
@@ -14,7 +15,7 @@ export interface ForgeSentence {
   hint: string
 }
 
-export const FORGE_SENTENCES: ForgeSentence[] = [
+const CORE_SENTENCES: ForgeSentence[] = [
   { id: 'f1', en: 'I drink water.', tokens: ['私', 'は', '水', 'を', '飲みます'], distractors: ['が', '食べます'], region: 3, hint: 'Topic は after the speaker; object を after what you drink.' },
   { id: 'f2', en: 'I eat rice.', tokens: ['私', 'は', 'ご飯', 'を', '食べます'], distractors: ['に', '飲みます'], region: 3, hint: 'を marks the thing being eaten.' },
   { id: 'f3', en: 'There is a cat.', tokens: ['猫', 'が', 'います'], distractors: ['あります', 'を'], region: 3, hint: 'Living things use います; が marks what exists.' },
@@ -38,6 +39,8 @@ export const FORGE_SENTENCES: ForgeSentence[] = [
   { id: 'f21', en: 'I help my friend.', tokens: ['友達', 'を', '助けます'], distractors: ['に', 'が'], region: 5, hint: 'The person helped takes を.' },
   { id: 'f22', en: 'The light of the moon is beautiful.', tokens: ['月', 'の', '光', 'は', 'きれい', 'です'], distractors: ['な', 'を'], region: 5, hint: 'の links nouns: "moon\'s light".' },
 ]
+/** Every forge sentence: the core regions', then each region pack's. */
+export const FORGE_SENTENCES: ForgeSentence[] = [...CORE_SENTENCES, ...PACK_DATA.flatMap((d) => d.sentences)]
 
 export interface Rune {
   id: string
@@ -49,7 +52,7 @@ export interface Rune {
   region: number
 }
 
-export const RUNES: Rune[] = [
+const CORE_RUNES: Rune[] = [
   { id: 'r1', jp: 'ねこがいます', reading: 'ねこがいます', answer: 'There is a cat.', wrong: ['I eat a cat.', 'The cat drinks water.'], region: 3 },
   { id: 'r2', jp: '水をください', reading: 'みずをください', answer: 'Water, please.', wrong: ['The water is cold.', 'I drink water.'], region: 3 },
   { id: 'r3', jp: '私は学生です', reading: 'わたしはがくせいです', answer: 'I am a student.', wrong: ['I am a teacher.', 'I go to school.'], region: 3 },
@@ -67,6 +70,7 @@ export const RUNES: Rune[] = [
   { id: 'r15', jp: '光る剣で闇を切ります', reading: 'ひかるつるぎでやみをきります', answer: 'I cut the darkness with a shining sword.', wrong: ['The darkness breaks my sword.', 'I polish the sword in the dark.'], region: 5 },
   { id: 'r16', jp: '友達を助けたいです', reading: 'ともだちをたすけたいです', answer: 'I want to help my friend.', wrong: ['My friend helped me.', 'I cannot help my friend.'], region: 5 },
 ]
+export const RUNES: Rune[] = [...CORE_RUNES, ...PACK_DATA.flatMap((d) => d.runes)]
 
 export type Particle = 'は' | 'が' | 'を' | 'に' | 'で' | 'へ' | 'と' | 'の'
 

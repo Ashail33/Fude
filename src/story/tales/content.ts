@@ -10,6 +10,7 @@ import { FOREST_FOLK } from './folk-r3'
 import { SHRINE_FOLK } from './folk-r4'
 import { TOWER_FOLK } from './folk-r5'
 import type { TaleContent } from './types'
+import { PACK_CONTENT } from '../../regions/story'
 
 export const CONTENT: TaleContent[] = [
   VILLAGE_TALES,
@@ -20,6 +21,7 @@ export const CONTENT: TaleContent[] = [
   FOREST_FOLK,
   SHRINE_TALES,
   SHRINE_FOLK,
+  ...PACK_CONTENT,
   TOWER_TALES,
   TOWER_FOLK,
 ]

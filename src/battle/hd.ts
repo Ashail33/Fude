@@ -4,13 +4,12 @@
  */
 import type { EnemySprite } from '../art'
 import { preloadHd, SPRITE_TO_HD } from '../art/hd'
+import { regionMap } from '../data/regions'
 import { clampRegion, REGION_POOLS } from './logic'
-
-const MAPS = ['village', 'fields', 'forest', 'shrine', 'tower'] as const
 
 /** Battle backdrop id for a region (the dragon fights on the summit). */
 export function battleBackdropId(region: number, summit = false): string {
-  return summit ? 'battle-summit' : `battle-${MAPS[clampRegion(region) - 1]}`
+  return summit ? 'battle-summit' : `battle-${regionMap(clampRegion(region))}`
 }
 
 /** Monsters that hover (bob instead of breathing; smaller, fainter shadow). */

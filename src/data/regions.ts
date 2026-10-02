@@ -1,7 +1,10 @@
 import type { Activity, Stage } from '../games/types'
 import { HIRAGANA, KATAKANA } from './kana'
 import { FORGE_SENTENCES, RUNES } from './sentences'
+import { atOrBefore, JOURNEY } from './journey'
 import { VOCAB } from './vocab'
+import { PACK_ACTIVITIES } from '../regions/activities'
+import { PACK_DATA } from '../regions/data'
 
 export interface Region {
   id: number
@@ -14,15 +17,28 @@ export interface Region {
   emoji: string
   /** Map position (percent) on the world map. */
   pos: { x: number; y: number }
+  /** The region's main outdoor map (interiors and side areas hang off it). */
+  map: string
 }
 
-export const REGIONS: Region[] = [
-  { id: 1, name: 'The Village of First Words', jp: 'はじまりの村', reading: 'はじまりのむら', tagline: 'Where every mage speaks their first spell.', teaches: ['Hiragana', '30 basic words', 'Asking with ください'], color: '#ff9e6d', emoji: '🏘️', pos: { x: 18, y: 72 } },
-  { id: 2, name: 'The Elemental Fields', jp: '元素の野', reading: 'げんそのの', tagline: 'Fire, water, tree, earth, stone: the roots of all kanji.', teaches: ['Katakana', 'Kanji roots', 'Combining radicals'], color: '#7ed957', emoji: '🌾', pos: { x: 40, y: 50 } },
-  { id: 3, name: 'The Forest of Sentences', jp: '文の森', reading: 'ぶんのもり', tagline: 'Words grow into sentences beneath the ancient canopy.', teaches: ['Verbs', 'Particles は・を・に・で', 'Sentence order'], color: '#3fbf9f', emoji: '🌲', pos: { x: 62, y: 70 } },
-  { id: 4, name: 'The Shrine of Reading', jp: '読みの社', reading: 'よみのやしろ', tagline: 'Ancient tablets reveal their meaning to those who read.', teaches: ['Adjectives', 'Reading comprehension', 'Listening'], color: '#c792ea', emoji: '⛩️', pos: { x: 78, y: 42 } },
-  { id: 5, name: 'The Tower of Creation', jp: '創造の塔', reading: 'そうぞうのとう', tagline: 'Here, language is power. Speak, and the world obeys.', teaches: ['Casting sentences', 'Adjective conjugation', 'Free expression'], color: '#ffd166', emoji: '🗼', pos: { x: 55, y: 16 } },
+const CORE_REGIONS: Region[] = [
+  { id: 1, name: 'The Village of First Words', jp: 'はじまりの村', reading: 'はじまりのむら', tagline: 'Where every mage speaks their first spell.', teaches: ['Hiragana', '30 basic words', 'Asking with ください'], color: '#ff9e6d', emoji: '🏘️', pos: { x: 18, y: 72 }, map: 'village' },
+  { id: 2, name: 'The Elemental Fields', jp: '元素の野', reading: 'げんそのの', tagline: 'Fire, water, tree, earth, stone: the roots of all kanji.', teaches: ['Katakana', 'Kanji roots', 'Combining radicals'], color: '#7ed957', emoji: '🌾', pos: { x: 40, y: 50 }, map: 'fields' },
+  { id: 3, name: 'The Forest of Sentences', jp: '文の森', reading: 'ぶんのもり', tagline: 'Words grow into sentences beneath the ancient canopy.', teaches: ['Verbs', 'Particles は・を・に・で', 'Sentence order'], color: '#3fbf9f', emoji: '🌲', pos: { x: 62, y: 70 }, map: 'forest' },
+  { id: 4, name: 'The Shrine of Reading', jp: '読みの社', reading: 'よみのやしろ', tagline: 'Ancient tablets reveal their meaning to those who read.', teaches: ['Adjectives', 'Reading comprehension', 'Listening'], color: '#c792ea', emoji: '⛩️', pos: { x: 78, y: 42 }, map: 'shrine' },
+  { id: 5, name: 'The Tower of Creation', jp: '創造の塔', reading: 'そうぞうのとう', tagline: 'Here, language is power. Speak, and the world obeys.', teaches: ['Casting sentences', 'Adjective conjugation', 'Free expression'], color: '#ffd166', emoji: '🗼', pos: { x: 55, y: 16 }, map: 'tower' },
 ]
+
+/** Every region, in journey order (see ./journey: ids are stable, the order is the road). */
+const ALL_REGIONS: Region[] = [...CORE_REGIONS, ...PACK_DATA.map((d) => d.region)]
+export const REGIONS: Region[] = JOURNEY.map((id) => ALL_REGIONS.find((r) => r.id === id)!)
+export const REGION_BY_ID = new Map(REGIONS.map((r) => [r.id, r]))
+export { atOrBefore, FINAL_REGION, JOURNEY, nextRegion, prevRegion, regionRank } from './journey'
+
+/** A region's main outdoor map. */
+export function regionMap(id: number): string {
+  return REGION_BY_ID.get(id)?.map ?? REGIONS[0].map
+}
 
 const ids = (region: number, from = 0, to?: number) =>
   VOCAB.filter((w) => w.region === region)
@@ -32,9 +48,9 @@ const ids = (region: number, from = 0, to?: number) =>
 const kanaOfRows = (list: typeof HIRAGANA, rows: string[]) => list.filter((k) => rows.includes(k.row)).map((k) => k.char)
 const sentencesOf = (region: number) => FORGE_SENTENCES.filter((s) => s.region === region).map((s) => s.id)
 const runesOf = (...regions: number[]) => RUNES.filter((r) => regions.includes(r.region)).map((r) => r.id)
-const upTo = (region: number) => VOCAB.filter((w) => w.region <= region).map((w) => w.id)
+const upTo = (region: number) => VOCAB.filter((w) => atOrBefore(w.region, region)).map((w) => w.id)
 
-export const ACTIVITIES: Activity[] = [
+const CORE_ACTIVITIES: Activity[] = [
   // ─── Region 1 ─────────────────────────────────────────────────────────
   { id: 'r1-words-1', region: 1, stage: 'learn', game: 'lesson', title: 'First Words I', jp: 'はじめのことば', description: 'Meet your first 15 words of power.', params: { wordIds: ids(1, 0, 15) } },
   { id: 'r1-trace-1', region: 1, stage: 'learn', game: 'arcana', title: 'Scroll of Kana I', jp: 'かなのまきもの', description: 'Trace the faded hiragana あ to の.', params: { chars: kanaOfRows(HIRAGANA, ['a', 'ka', 'sa', 'ta', 'na']), mode: 'trace', count: 10 } },
@@ -97,6 +113,7 @@ export const ACTIVITIES: Activity[] = [
   { id: 'r5-dragon', region: 5, stage: 'mastery', game: 'boss-dragon', title: 'The Void Dragon', jp: 'こくうのりゅう', description: 'The final guardian. Everything you have learned is your weapon.', params: {} },
 ]
 
+export const ACTIVITIES: Activity[] = [...CORE_ACTIVITIES, ...PACK_ACTIVITIES]
 export const ACTIVITY_BY_ID = new Map(ACTIVITIES.map((a) => [a.id, a]))
 
 export const STAGE_ORDER: Stage[] = ['learn', 'practice', 'challenge', 'boss', 'mastery']

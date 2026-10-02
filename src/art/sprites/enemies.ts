@@ -1,5 +1,7 @@
 import type { Img, Slots } from '../raster'
 import { buildDragon } from './dragon'
+import { PACK_ENEMY_SPRITES } from '../../regions/ids'
+import { PACK_ENEMIES } from '../../regions/sprites'
 
 export type Anim = 'squash' | 'bob' | 'flicker'
 
@@ -67,7 +69,7 @@ const SLIME_BODY = [
   '....rrrrrrrrrrrr',
 ]
 
-export const ENEMIES: Record<string, EnemyDef> = {
+const CORE: Record<string, EnemyDef> = {
   slime: {
     sym: true,
     shade: 'r',
@@ -705,4 +707,10 @@ export const ENEMIES: Record<string, EnemyDef> = {
     anim: [],
     build: (f) => buildDragon(f),
   },
+}
+
+/** Every monster: the core bestiary, then the region packs' (a stand-in until a pack draws its own). */
+export const ENEMIES: Record<string, EnemyDef> = {
+  ...CORE,
+  ...Object.fromEntries(PACK_ENEMY_SPRITES.map((id) => [id, PACK_ENEMIES[id] ?? CORE.slime])),
 }

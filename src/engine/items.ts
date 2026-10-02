@@ -1,5 +1,7 @@
+import { toHiragana } from 'wanakana'
 import { GRAMMAR_BY_ID } from '../data/grammar'
 import { KANA_BY_CHAR } from '../data/kana'
+import { KANJI_BY_CHAR } from '../data/kanjiList'
 import { RADICAL_BY_CHAR, RECIPES } from '../data/kanji'
 import { FORGE_SENTENCES, PARTICLE_QUESTIONS, RUNES } from '../data/sentences'
 import { VOCAB, WORD_BY_ID } from '../data/vocab'
@@ -54,6 +56,8 @@ export function describeItem(id: string): ItemInfo | undefined {
       return k && { id, kind, front: k.char, reading: k.romaji, meaning: k.romaji }
     }
     case 'kanji': {
+      const k = KANJI_BY_CHAR.get(key)
+      if (k) return { id, kind, front: key, reading: k.kun[0] ?? (k.on[0] ? toHiragana(k.on[0]) : undefined), meaning: k.meaning, emoji: k.emoji }
       const r = RECIPES.find((x) => x.result === key)
       if (r) return { id, kind, front: key, reading: r.reading, meaning: r.meaning, emoji: r.emoji }
       const rad = RADICAL_BY_CHAR.get(key)

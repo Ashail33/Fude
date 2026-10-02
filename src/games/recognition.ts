@@ -6,6 +6,7 @@
  * unit-test (see recognition.test.ts).
  */
 import { toHiragana } from 'wanakana'
+import { atOrBefore } from '../data/journey'
 import { matchesEnglish, normaliseEn, VOCAB, WORD_BY_ID, type Word } from '../data/vocab'
 import { shuffle, weightedSample } from '../engine/random'
 
@@ -123,7 +124,7 @@ export function buildChoices(answer: Word, pool: readonly Word[], mode: ChoiceMo
     }
   }
   tryAdd(pool)
-  if (chosen.length < n) tryAdd(VOCAB.filter((w) => w.region <= Math.max(answer.region, 1)))
+  if (chosen.length < n) tryAdd(VOCAB.filter((w) => atOrBefore(w.region, answer.region)))
   if (chosen.length < n) tryAdd(VOCAB)
   return shuffle(chosen)
 }

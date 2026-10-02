@@ -3,6 +3,7 @@ import * as wanakana from 'wanakana'
 import type { GameProps, GameResult } from './types'
 import { GameFrame, Hearts, HpBar, Intro, KanaInput, SpeakButton, useAnswerTimer, useBurst, useFlash } from '../components/ui'
 import { NPC_BY_ID, SCENARIO_BY_ID, type DialogueOption, type Line, type Scenario } from '../data/npcs'
+import { regionRank } from '../data/journey'
 import {
   advance,
   choose,
@@ -314,7 +315,7 @@ function DialogueGame({
   }
 
   const canContinue = !!feedback || (!node.options?.length && !node.input && !node.end)
-  const showRomaji = p.settings.showRomaji && sc.region <= 2
+  const showRomaji = p.settings.showRomaji && regionRank(sc.region) <= 2
 
   return (
     <GameFrame title={activity.title} jp={activity.jp} onExit={onExit} right={right}>

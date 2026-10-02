@@ -24,6 +24,11 @@ const loaders: Record<GameKey, Loader> = {
   'boss-librarian': () => import('./bosses/SilentLibrarian') as Promise<{ default: ComponentType<GameProps> }>,
   'boss-chimera': () => import('./bosses/AdjectiveChimera') as Promise<{ default: ComponentType<GameProps> }>,
   'boss-dragon': () => import('./bosses/VoidDragon') as Promise<{ default: ComponentType<GameProps> }>,
+  'boss-umibozu': () => import('../regions/r6/Boss') as Promise<{ default: ComponentType<GameProps> }>,
+  'boss-yamanba': () => import('../regions/r7/Boss') as Promise<{ default: ComponentType<GameProps> }>,
+  'boss-nurarihyon': () => import('../regions/r8/Boss') as Promise<{ default: ComponentType<GameProps> }>,
+  'boss-yukionna': () => import('../regions/r9/Boss') as Promise<{ default: ComponentType<GameProps> }>,
+  'boss-raijin': () => import('../regions/r10/Boss') as Promise<{ default: ComponentType<GameProps> }>,
 }
 
 const cache = new Map<GameKey, LazyExoticComponent<ComponentType<GameProps>>>()
@@ -58,4 +63,9 @@ export const GAME_META: Record<GameKey, { name: string; jp: string; icon: string
   'boss-librarian': { name: 'Boss', jp: 'ボス', icon: '📚', skill: 'Reading & listening' },
   'boss-chimera': { name: 'Boss', jp: 'ボス', icon: '🦁', skill: 'Adjectives' },
   'boss-dragon': { name: 'Final Boss', jp: 'ラスボス', icon: '🐉', skill: 'Everything' },
+  'boss-umibozu': { name: 'Boss', jp: 'ボス', icon: '🌊', skill: 'Numbers & counters' },
+  'boss-yamanba': { name: 'Boss', jp: 'ボス', icon: '♨️', skill: 'Verb forms' },
+  'boss-nurarihyon': { name: 'Boss', jp: 'ボス', icon: '🏯', skill: 'Polite speech' },
+  'boss-yukionna': { name: 'Boss', jp: 'ボス', icon: '❄️', skill: 'Kanji' },
+  'boss-raijin': { name: 'Boss', jp: 'ボス', icon: '⚡', skill: 'Grammar' },
 }

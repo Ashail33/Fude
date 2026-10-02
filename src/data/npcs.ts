@@ -7,6 +7,7 @@
  *
  * `{name}` inside any text is replaced with the player's name.
  */
+import { PACK_DATA } from '../regions/data'
 
 export type Politeness = 'casual' | 'polite' | 'formal'
 export type Tone = 'polite' | 'casual' | 'rude'
@@ -28,7 +29,7 @@ export interface Npc {
   greeting: { jp: string; en: string }
 }
 
-export const NPCS: Npc[] = [
+const CORE_NPCS: Npc[] = [
   {
     id: 'merchant',
     name: 'Mina the Spell Merchant',
@@ -103,6 +104,7 @@ export const NPCS: Npc[] = [
   },
 ]
 
+export const NPCS: Npc[] = [...CORE_NPCS, ...PACK_DATA.flatMap((d) => d.npcs ?? [])]
 export const NPC_BY_ID = new Map(NPCS.map((n) => [n.id, n]))
 
 // ─── Scenario data ─────────────────────────────────────────────────────
@@ -574,5 +576,5 @@ const TOWER_KING: Scenario = {
   ]),
 }
 
-export const SCENARIOS: Scenario[] = [VILLAGE_SHOP, BRIDGE_GUARD, SHRINE_PRIEST, TOWER_KING]
+export const SCENARIOS: Scenario[] = [VILLAGE_SHOP, BRIDGE_GUARD, SHRINE_PRIEST, TOWER_KING, ...PACK_DATA.flatMap((d) => d.scenarios ?? [])]
 export const SCENARIO_BY_ID = new Map(SCENARIOS.map((s) => [s.id, s]))

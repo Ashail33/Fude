@@ -113,6 +113,15 @@ export const SPECS: Partial<Record<TileId, TileSpec>> = {
   throne: { under: 'carpet' },
   carpet: { nb: 'full' },
   campfire: { under: 'dirt', frames: 4, period: 110 },
+  onsen: { variants: 9, frames: 4, period: 420, nb: 'full' },
+  ice: { variants: 6 },
+  sky: { variants: 9, frames: 4, period: 900 },
+  cloud: { variants: 6, frames: 2, period: 1600, phase: true, nb: 'full' },
+  'snow-pine': { under: 'snow' },
+  boat: { under: 'water' },
+  net: { under: 'sand' },
+  chochin: { under: 'path', frames: 2, period: 520, phase: true },
+  snowman: { under: 'snow' },
 }
 
 export function specOf(id: TileId): TileSpec {
@@ -351,6 +360,92 @@ function snow(img: Img, v: number) {
   img.set(x + 1, y, C('P'))
   img.set(x + 2, y, C('P'))
   img.set(x + 1, y - 1, C('w'))
+}
+
+// ---------------------------------------------------------------------------
+// Hot springs, ice and the sky city
+
+/** Milky hot-spring water with steam curling up, ringed by rocks. */
+function onsen(img: Img, v: number, f: number, nb: number) {
+  const ox = Math.floor(v / 3) * 16
+  const oy = (v % 3) * 16
+  img.fill(C('c'))
+  for (let y = 0; y < 16; y++)
+    for (let x = 0; x < 16; x++) {
+      const wx = ox + x
+      const wy = oy + y
+      if (wy % 5 === 2 && (wx + 2 * f + wy * 3) % 10 < 3) img.set(x, y, C('C'))
+      else if (wy % 5 === 4 && (wx - 2 * f + wy * 7 + 500) % 11 < 2) img.set(x, y, C('i'))
+    }
+  // steam: soft puffs that rise a pixel per frame
+  const rnd = rng(hash2(v, 41, 3) + 5)
+  for (let i = 0; i < 3; i++) {
+    const x = 2 + Math.floor(rnd() * 12)
+    const y = (12 - Math.floor(rnd() * 10) - f * 2 + 16) % 16
+    img.set(x, y, C('w'))
+    img.set(x + 1, y, C('m'))
+    img.set(x, y - 1, C('m'))
+  }
+  if (nb === 0xff) return
+  for (let y = 0; y < 16; y++)
+    for (let x = 0; x < 16; x++) {
+      const d = edgeDist(x, y, nb, 6, 2.4)
+      if (d < 1.6) img.set(x, y, C('S'))
+      else if (d < 3.2) img.set(x, y, C((x * 3 + y * 5 + v) % 7 < 2 ? 'm' : 's'))
+      else if (d < 4) img.set(x, y, C('S'))
+    }
+}
+
+function ice(img: Img, v: number) {
+  img.fill(C('i'))
+  speckle(img, v, ['w', 'c', 'w'], 7, 9)
+  const rnd = rng(v * 17 + 3)
+  // a hairline crack
+  let x = Math.floor(rnd() * 16)
+  for (let y = 0; y < 16; y++) {
+    if (rnd() < 0.5) x += rnd() < 0.5 ? -1 : 1
+    if (v % 3 === 0) img.set(x, y, C('c'))
+  }
+  // glints
+  img.set(3 + (v % 9), 4, C('w'))
+  img.set(4 + (v % 9), 3, C('w'))
+}
+
+/** Open sky below the cloud city: pale blue with wisps drifting past. */
+function sky(img: Img, v: number, f: number) {
+  img.fill(C('c'))
+  const ox = Math.floor(v / 3) * 16
+  const oy = (v % 3) * 16
+  for (let y = 0; y < 16; y++)
+    for (let x = 0; x < 16; x++) {
+      const wx = ox + x + f * 2
+      const wy = oy + y
+      if (wy % 7 === 3 && wx % 19 < 6) img.set(x, y, C('m'))
+      else if (wy % 7 === 4 && (wx + 3) % 19 < 4) img.set(x, y, C('w'))
+      else if ((wy + wx) % 23 === 0) img.set(x, y, C('b'))
+    }
+}
+
+/** Walkable cloud: fluffy white with soft lilac shade, fraying into sky at its edges. */
+function cloud(img: Img, v: number, f: number, nb: number) {
+  img.fill(C('w'))
+  const rnd = rng(hash2(v, 19, 7) + 2)
+  for (let i = 0; i < 5; i++) {
+    const cx = 2 + Math.floor(rnd() * 12)
+    const cy = 3 + Math.floor(rnd() * 11)
+    img.set(cx, cy, C('p'))
+    img.set(cx + 1, cy, C('p'))
+    img.set(cx, cy + 1, C(f ? 'U' : 'm'))
+    img.set(cx + 1, cy + 1, C('m'))
+  }
+  if (nb === 0xff) return
+  for (let y = 0; y < 16; y++)
+    for (let x = 0; x < 16; x++) {
+      const d = edgeDist(x, y, nb, 6, 2.6)
+      if (d < 1.4) img.set(x, y, C('c'))
+      else if (d < 2.6) img.set(x, y, C((x + y + f) % 3 ? 'm' : 'c'))
+      else if (d < 3.4) img.set(x, y, C('U'))
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -951,6 +1046,18 @@ export function renderTile(id: TileId, a: RenderArgs = {}): Img {
       break
     case 'tatami':
       tatami(img, v)
+      break
+    case 'onsen':
+      onsen(img, v, f, nb)
+      break
+    case 'ice':
+      ice(img, v)
+      break
+    case 'sky':
+      sky(img, v, f)
+      break
+    case 'cloud':
+      cloud(img, v, f, nb)
       break
     case 'snow':
       snow(img, v)

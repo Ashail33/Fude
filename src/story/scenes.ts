@@ -10,8 +10,10 @@
 import type { SpriteId } from '../art'
 import type { TrackId } from '../engine/music'
 import { MEMORY_SCENES } from './memories'
+import type { PackBackdrop } from '../regions/ids'
+import { PACK_SCENES, PACK_SPEAKER_DEFS } from '../regions/scenes'
 
-export type Backdrop = 'void' | 'night-hill' | 'village' | 'fields' | 'forest' | 'shrine' | 'tower' | 'dawn'
+export type Backdrop = 'void' | 'night-hill' | 'village' | 'fields' | 'forest' | 'shrine' | 'tower' | 'dawn' | PackBackdrop
 export type Emote = '!' | '?' | '♪' | '…' | '♥' | '💢'
 
 export interface Speaker {
@@ -22,7 +24,7 @@ export interface Speaker {
   color: string
 }
 
-export const SPEAKERS = {
+const CORE_SPEAKERS = {
   fude: { sprite: 'fude', name: 'Fude', jp: 'フデ', color: '#f7c948' },
   you: { sprite: 'mage', name: '{name}', jp: '{name}', color: '#9be7ff' },
   elder: { sprite: 'elder', name: 'Elder', jp: 'ちょうろう', color: '#e6c98a' },
@@ -44,6 +46,9 @@ export const SPEAKERS = {
   kotone: { sprite: 'scribe', name: 'Kotone', jp: 'ことね', color: '#f2a7c3' },
   shadow: { sprite: 'wisp', name: '???', jp: '？？？', color: '#8a8fb8' },
 } satisfies Record<string, Speaker>
+
+/** Everyone who can speak in a cutscene: the core cast, then the region packs'. */
+export const SPEAKERS = { ...CORE_SPEAKERS, ...PACK_SPEAKER_DEFS }
 
 export type ActorId = keyof typeof SPEAKERS
 
@@ -363,10 +368,7 @@ const S: Scene[] = [
   },
 ]
 
-export const SCENES: Record<string, Scene> = Object.fromEntries([...S, ...MEMORY_SCENES].map((s) => [s.id, s]))
-
-/** Map ids in the overworld, in region order. */
-export const MAP_IDS = ['village', 'fields', 'forest', 'shrine', 'tower'] as const
+export const SCENES: Record<string, Scene> = Object.fromEntries([...S, ...MEMORY_SCENES, ...PACK_SCENES].map((s) => [s.id, s]))
 
 export function hasSceneData(id: string): boolean {
   return id in SCENES

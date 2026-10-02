@@ -1,4 +1,6 @@
 import { toRomaji } from 'wanakana'
+import { atOrBefore } from './journey'
+import { PACK_DATA } from '../regions/data'
 
 export type PartOfSpeech = 'noun' | 'verb' | 'i-adj' | 'na-adj' | 'expression' | 'pronoun' | 'number' | 'adverb'
 export type Element = 'fire' | 'water' | 'wood' | 'earth' | 'metal' | 'light' | 'wind' | 'none'
@@ -15,7 +17,7 @@ export interface Word {
   /** Other accepted English answers. */
   alt?: string[]
   pos: PartOfSpeech
-  /** Region (1–5) in which the word is introduced. */
+  /** Region (id, see ./journey) in which the word is introduced. */
   region: number
   emoji: string
   element?: Element
@@ -215,12 +217,13 @@ export const VOCAB: Word[] = [
   ...build(R3, 3),
   ...build(R4, 4),
   ...build(R5, 5),
+  ...PACK_DATA.flatMap((d) => build(d.words, d.region.id)),
 ]
 
 export const WORD_BY_ID = new Map(VOCAB.map((w) => [w.id, w]))
 
 export function wordsForRegion(region: number, includeEarlier = true): Word[] {
-  return VOCAB.filter((w) => (includeEarlier ? w.region <= region : w.region === region))
+  return VOCAB.filter((w) => (includeEarlier ? atOrBefore(w.region, region) : w.region === region))
 }
 
 export function getWord(id: string): Word {

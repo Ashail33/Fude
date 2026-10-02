@@ -13,7 +13,7 @@
  * picture, so once that happens the item moves there. Places only you have
  * used join the route next to the nearest authored place.
  */
-import { activitiesFor } from '../data/regions'
+import { activitiesFor, JOURNEY } from '../data/regions'
 import { GRAMMAR_BY_ID } from '../data/grammar'
 import { LOCI, type Locus, type Memory } from '../data/palace'
 import { shuffle } from './random'
@@ -30,7 +30,7 @@ export type Place = Locus & { personal?: boolean }
 
 export const LOCUS_BY_ITEM = new Map(LOCI.flatMap((l) => l.memories.map((m) => [m.item, l] as const)))
 export const MEMORY_BY_ITEM = new Map(LOCI.flatMap((l) => l.memories.map((m) => [m.item, m] as const)))
-export const ROOMS = [1, 2, 3, 4, 5]
+export const ROOMS: readonly number[] = JOURNEY
 
 /** The authored route of a room (before the player's own places join it). */
 export function roomLoci(room: number): Locus[] {

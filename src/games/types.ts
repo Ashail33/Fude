@@ -58,6 +58,12 @@ export interface GameParams {
   'boss-librarian': Record<string, never>
   'boss-chimera': Record<string, never>
   'boss-dragon': Record<string, never>
+  /** Region-pack bosses (src/regions/rN/Boss.tsx). */
+  'boss-umibozu': Record<string, never>
+  'boss-yamanba': Record<string, never>
+  'boss-nurarihyon': Record<string, never>
+  'boss-yukionna': Record<string, never>
+  'boss-raijin': Record<string, never>
 }
 
 export type GameKey = keyof GameParams

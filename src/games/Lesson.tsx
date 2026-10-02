@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { GameFrame, Intro, Jp, Progress, SpeakButton, T, useAnswerTimer, useBurst, useFlash } from '../components/ui'
+import { atOrBefore, regionRank } from '../data/journey'
 import { getWord, VOCAB, type Word } from '../data/vocab'
 import { item } from '../engine/items'
 import { distractors, shuffle } from '../engine/random'
@@ -25,7 +26,7 @@ export function buildSteps(words: Word[]): Step[] {
     shuffle(chunk).forEach((word, j) => {
       const dir = j % 2 === 0 ? 'jp-en' : 'en-jp'
       // Distractors from the same part of speech where possible.
-      const pool = VOCAB.filter((w) => w.pos === word.pos && w.region <= Math.max(word.region, 2))
+      const pool = VOCAB.filter((w) => w.pos === word.pos && (atOrBefore(w.region, word.region) || regionRank(w.region) <= 2))
       const options = shuffle([word, ...distractors(pool.length >= 4 ? pool : VOCAB, word, 3, (w) => w.en)])
       steps.push({ kind: 'quiz', word, dir, options })
     })
@@ -109,7 +110,7 @@ export default function Lesson({ activity, params, onFinish, onExit }: GameProps
           ]}
         >
           <div className="lesson-teacher">
-            <Portrait id={activity.region <= 2 ? 'elder' : 'fude'} scale={4} ground={activity.region <= 2 ? 'grass' : 'tatami'} />
+            <Portrait id={regionRank(activity.region) <= 2 ? 'elder' : 'fude'} scale={4} ground={regionRank(activity.region) <= 2 ? 'grass' : 'tatami'} />
             <p className="lesson-teacher-say">
               <T en="Here are today's words of power." jp="きょうの ことばは これだよ。" />
             </p>
@@ -137,7 +138,7 @@ export default function Lesson({ activity, params, onFinish, onExit }: GameProps
                 <span className="lesson-say" lang="ja">
                   みて！
                 </span>
-                <PixelSprite id={activity.region <= 2 ? 'elder' : 'fude'} scale={4} dir="right" animate />
+                <PixelSprite id={regionRank(activity.region) <= 2 ? 'elder' : 'fude'} scale={4} dir="right" animate />
               </span>
               <div className="lesson-emoji float">{step.word.emoji}</div>
             </div>

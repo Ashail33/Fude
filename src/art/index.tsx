@@ -9,6 +9,7 @@
 import { useEffect, useRef } from 'react'
 import { imgToCanvas } from './canvas'
 import { animAt, animFrameCount, buildSprite, spriteDims, type Anim, type Dir } from './sprites/build'
+import { PACK_CHARACTER_SPRITES, PACK_ENEMY_SPRITES } from '../regions/ids'
 
 export type { Anim, Dir }
 export { animAt, animFrameCount }
@@ -34,6 +35,7 @@ export const CHARACTER_SPRITES = [
   'cat',
   'dog',
   'fox',
+  ...PACK_CHARACTER_SPRITES,
 ] as const
 
 /** Battle enemies: 32×32 (dragon 64×64), 2-frame idle. */
@@ -54,6 +56,7 @@ export const ENEMY_SPRITES = [
   'oni',
   'skeleton',
   'dragon',
+  ...PACK_ENEMY_SPRITES,
 ] as const
 
 /** 16×16 icons for items and UI. */

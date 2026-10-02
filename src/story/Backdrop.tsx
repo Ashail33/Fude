@@ -42,6 +42,24 @@ const LEGEND: Record<string, TileId> = {
   k: 'tablet',
   O: 'portal',
   e: 'campfire',
+  '*': 'snow',
+  i: 'ice',
+  U: 'onsen',
+  j: 'snow-pine',
+  z: 'boat',
+  y: 'cloud',
+  Q: 'sky',
+  C: 'castle-wall',
+  A: 'roof-red',
+  N: 'noren',
+  a: 'shop-awning',
+  X: 'crate',
+  E: 'barrel',
+  M: 'stall',
+  Z: 'stone-wall',
+  m: 'chochin',
+  v: 'snowman',
+  J: 'net',
 }
 
 interface Diorama {
@@ -92,6 +110,32 @@ export const DIORAMAS: Record<Backdrop, Diorama> = {
     sky: 'linear-gradient(180deg, #120d1c 0%, #241d3a 100%)',
     rows: ['YYYYYYYYYYYYYYYYYYYY', 'YqYYLYYYYYYYYYLYYqYY', 'SSSSSSSScccSSSSSSSSS', 'SSSSSSSScccSSSSSSSSS', 'SSSSSSSScccSSSSSSSSS'],
     base: 'YYSSS',
+  },
+  harbour: {
+    sky: 'linear-gradient(180deg, #2f6fb8 0%, #7fc4f0 55%, #ffe3b0 100%)',
+    rows: ['....................', '..AAAA.......J...L..', 'ppppppppssssssssssss', 'WWWWwwwwsssWWWWWWWWW', 'WWWWWWzwwwwWWWWWzWWW'],
+    base: '..pWW',
+  },
+  onsen: {
+    sky: 'linear-gradient(180deg, #3d4a8c 0%, #b0789e 45%, #f2b48a 85%, #ffd9a8 100%)',
+    rows: ['P..b........b....PP.', 'PRRRRb..m..bRRRR.P..', 'GGhNHGGppppGGhNHGGGG', 'GGrUUUUrpprUUUUUrGGG', 'GGGrUUUUppUUUUrGGGGG'],
+    base: 'GGGGG',
+  },
+  castletown: {
+    sky: 'linear-gradient(180deg, #4a76c8 0%, #9fc8f2 60%, #f7e8c8 100%)',
+    rows: ['....AAAA....AAAA....', 'K...CCCC....CCCC..K.', 'pAAAApmppppppmpAAAAp', 'pNMNNppppppppppNaNNp', 'pppppppppppppppppppp'],
+    base: '..ppp',
+  },
+  snowtemple: {
+    sky: 'linear-gradient(180deg, #5d6f9c 0%, #a9b8d6 55%, #e9eef8 100%)',
+    stars: false,
+    rows: ['j.....RRRRRRRR.....j', 'jj....HhDDhHH.....jj', '****L**SSSSSS**L****', '**v*****SSSS*****j**', '*****iiiiSSiiii*****'],
+    base: '**S**',
+  },
+  clouds: {
+    sky: 'linear-gradient(180deg, #ffb86b 0%, #f7a8c4 30%, #c7a3f0 65%, #9fc8f2 100%)',
+    rows: ['....................', '...AAAA......AAAA...', 'QQyCCCCyyyyyyCCCCyQQ', 'QyyyyyyySSSSyyyyyyyQ', 'QQQyyyySSSSSSyyyQQQQ'],
+    base: '..yQQ',
   },
   dawn: {
     sky: 'linear-gradient(180deg, #3d4a8c 0%, #c7a3f0 35%, #f7a8c4 70%, #ffe066 100%)',

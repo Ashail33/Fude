@@ -4,7 +4,7 @@
  */
 import { Link, useNavigate } from 'react-router-dom'
 import { playerStats } from '../battle/logic'
-import { ACTIVITIES, REGIONS, STAGE_LABEL } from '../data/regions'
+import { ACTIVITIES, REGION_BY_ID, STAGE_LABEL } from '../data/regions'
 import { dueItems } from '../engine/quests'
 import { todayKey } from '../engine/random'
 import { titleFor, xpForLevel } from '../engine/rewards'
@@ -177,7 +177,7 @@ export function ContinueWindow() {
           </span>
           <br />
           <span className="muted small">
-            {REGIONS[next.region - 1].name} · {STAGE_LABEL[next.stage].en}
+            {REGION_BY_ID.get(next.region)?.name} · {STAGE_LABEL[next.stage].en}
           </span>
         </span>
       </div>

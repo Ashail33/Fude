@@ -9,6 +9,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ENEMY_SPRITES, PixelSprite } from '../art'
 import { BOSS_HD, preloadHd, speakerHd, useHdLoaded } from '../art/hd'
 import { preloadRegionHd } from '../battle/hd'
+import { REGIONS } from '../data/regions'
 import { playMusic } from '../engine/music'
 import { sfx } from '../engine/sfx'
 import { speak } from '../engine/speech'
@@ -17,7 +18,7 @@ import { getState, immersionOf, markScene, usePlayer } from '../engine/store'
 import { SceneBackdrop } from './Backdrop'
 import { KenBurns, VnBusts, type Bust } from '../ui/Hd'
 import { LivingArt } from '../anim/LivingArt'
-import { backdropAt, castAt, fill, MAP_IDS, SCENES, SPEAKERS, speechText, type ActorId, type Backdrop, type Scene } from './scenes'
+import { backdropAt, castAt, fill, SCENES, SPEAKERS, speechText, type ActorId, type Backdrop, type Scene } from './scenes'
 import './Cutscene.css'
 
 export interface CutsceneProps {
@@ -36,7 +37,7 @@ const isEnemy = (sprite: string) => (ENEMY_SPRITES as readonly string[]).include
 const SKIP_HOLD_MS = 650
 
 /** Illustrated backdrop for the story backdrops that match a region. */
-const BG_HD: Partial<Record<Backdrop, string>> = { village: 'battle-village', fields: 'battle-fields', forest: 'battle-forest', shrine: 'battle-shrine', tower: 'battle-tower', 'night-hill': 'intro-3', dawn: 'ending' }
+const BG_HD: Partial<Record<Backdrop, string>> = { village: 'battle-village', fields: 'battle-fields', forest: 'battle-forest', shrine: 'battle-shrine', tower: 'battle-tower', 'night-hill': 'intro-3', dawn: 'ending', harbour: 'battle-harbour', onsen: 'battle-onsen', castletown: 'battle-castletown', snowtemple: 'battle-snowtemple', clouds: 'battle-clouds' }
 
 /**
  * The illustration behind step `i`: a full scene still (the characters are
@@ -105,8 +106,8 @@ export function Cutscene({ id, onDone }: CutsceneProps) {
   useEffect(() => {
     if (!scene) return
     preloadHd(sceneAssets(scene))
-    const r = MAP_IDS.findIndex((m) => scene.id === `arrive-${m}`)
-    if (r >= 0) preloadRegionHd(r + 1)
+    const r = REGIONS.find((x) => scene.id === `arrive-${x.map}`)
+    if (r) preloadRegionHd(r.id)
   }, [scene])
 
   const step = scene?.steps[i]

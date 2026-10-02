@@ -4,6 +4,8 @@
  * teaches its own: kana rules in the Village and Fields, particles and verb
  * forms in the Forest, adjectives at the Shrine, polite speech in the Tower.
  */
+import { PACK_DATA } from '../regions/data'
+
 export interface GrammarPoint {
   id: string
   region: number
@@ -16,7 +18,7 @@ export interface GrammarPoint {
   example: { jp: string; en: string }
 }
 
-export const GRAMMAR: GrammarPoint[] = [
+const CORE: GrammarPoint[] = [
   // Region 1: reading and asking
   { id: 'dakuten', region: 1, jp: '゛', say: 'ten-ten', en: 'voices a kana: か→が, さ→ざ, た→だ, は→ば', example: { jp: 'かき → かぎ', en: 'persimmon → key' } },
   { id: 'handakuten', region: 1, jp: '゜', say: 'maru', en: 'turns は-row into p: は→ぱ', example: { jp: 'ぱん', en: 'bread' } },
@@ -56,4 +58,6 @@ export const GRAMMAR: GrammarPoint[] = [
   { id: 'tai', region: 5, jp: '〜たい', say: 'tai', en: 'want to ~', example: { jp: 'まもりたい', en: 'I want to protect' } },
 ]
 
+/** Every grammar point: the core regions', then each region pack's. */
+export const GRAMMAR: GrammarPoint[] = [...CORE, ...PACK_DATA.flatMap((d) => d.grammar)]
 export const GRAMMAR_BY_ID = new Map(GRAMMAR.map((g) => [g.id, g]))

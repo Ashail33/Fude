@@ -1,3 +1,5 @@
+import { REGIONS } from '../../data/regions'
+import { PACK_MAPS } from '../../regions/maps'
 import { parseMap } from '../mapdef'
 import { CONTENT } from '../../story/tales/content'
 import type { GameMap, MapSpec } from '../types'
@@ -7,10 +9,10 @@ import { SHRINE, SHRINE_LIBRARY } from './shrine'
 import { TOWER, TOWER_THRONE, TOWER_TOP } from './tower'
 import { VILLAGE, VILLAGE_ELDER, VILLAGE_SCROLLS, VILLAGE_SHOP } from './village'
 
-export const MAP_SPECS: MapSpec[] = [VILLAGE, VILLAGE_ELDER, VILLAGE_SHOP, VILLAGE_SCROLLS, FIELDS, FOREST, SHRINE, SHRINE_LIBRARY, TOWER, TOWER_THRONE, TOWER_TOP]
+export const MAP_SPECS: MapSpec[] = [VILLAGE, VILLAGE_ELDER, VILLAGE_SHOP, VILLAGE_SCROLLS, FIELDS, FOREST, SHRINE, SHRINE_LIBRARY, TOWER, TOWER_THRONE, TOWER_TOP, ...PACK_MAPS]
 
-/** Exterior map per region, in travel order. */
-export const REGION_MAPS = ['village', 'fields', 'forest', 'shrine', 'tower'] as const
+/** Main outdoor map per region, in journey order. */
+export const REGION_MAPS: string[] = REGIONS.map((r) => r.map)
 
 const cache = new Map<string, GameMap>()
 

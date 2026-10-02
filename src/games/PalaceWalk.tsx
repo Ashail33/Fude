@@ -7,8 +7,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { GameFrame, Intro, T } from '../components/ui'
 import { HdImage } from '../art/hd'
-import { REGIONS } from '../data/regions'
-import { MAP_IDS } from '../story/scenes'
+import { REGION_BY_ID, regionMap } from '../data/regions'
 import { cueOf, episodeCue, recallQuestion, roomOf, storyOf, walkMemories, type RecallQ } from '../engine/palace'
 import { ensureStories } from '../engine/palaceAI'
 import { sfx } from '../engine/sfx'
@@ -39,7 +38,7 @@ export default function PalaceWalk({ activity, params, onFinish, onExit }: GameP
     [params.room],
   )
   const total = stops.reduce((n, s) => n + s.questions.length, 0)
-  const room = REGIONS[params.room - 1]
+  const room = REGION_BY_ID.get(params.room)
   const [started, setStarted] = useState(false)
   const [si, setSi] = useState(0)
   const [qi, setQi] = useState(-1) // -1: arriving at the place
@@ -131,7 +130,7 @@ export default function PalaceWalk({ activity, params, onFinish, onExit }: GameP
       {route}
       {qi < 0 ? (
         <button type="button" className="card pw-arrive pop" key={`a${si}`} onClick={() => setQi(0)}>
-          <HdImage id={`arrive-${MAP_IDS[params.room - 1]}`} className="pw-arrive-art" />
+          <HdImage id={`arrive-${regionMap(params.room)}`} className="pw-arrive-art" />
           <span className="pw-arrive-emoji" aria-hidden>
             {stop.emoji}
           </span>

@@ -18,6 +18,9 @@
  * twist on the shared voice, and a name that is clearly male/female picks
  * that register.
  */
+import { PACK_CHARACTER_SPRITES, PACK_ENEMY_SPRITES } from '../../regions/ids'
+import { PACK_VOICES } from '../../regions/art'
+import { PACK_SPEAKER_DEFS } from '../../regions/scenes'
 
 /** Glottal source of the talk voice. */
 export type VoiceSource =
@@ -121,7 +124,7 @@ export const DEFAULT_VOICE: VoiceProfile = { src: 'soft', base: 210, scale: [0, 
 // Men are listed before the rest of their gender in rough order of
 // importance: when there are fewer system voices than characters, the
 // first ones of each gender get distinct voices (see `ttsSlot`).
-export const VOICES: Record<string, VoiceProfile> = {
+const CORE_VOICES: Record<string, VoiceProfile> = {
   // ─── Heroes
   fude: { src: 'soft', base: 640, formant: 1.6, contour: 'rise', bend: 4, len: 0.05, every: 2, vib: 45, vibRate: 7.5, breath: 0.08, tts: { gender: 'female', age: 'child', pitch: 1.75, rate: 1.22 }, cry: 'chime' },
   mage: { src: 'saw', base: 240, formant: 1.12, contour: 'arch', bend: 2, len: 0.055, every: 2, breath: 0.08, tts: { gender: 'any', age: 'young', pitch: 1.08, rate: 1 }, cry: 'staff' },
@@ -160,8 +163,29 @@ export const VOICES: Record<string, VoiceProfile> = {
   dragon: { src: 'saw', base: 50, scale: [0, 1, 6], formant: 0.55, contour: 'fall', bend: 3, len: 0.14, every: 3, vib: 25, vibRate: 4, breath: 0.35, grit: 0.8, tts: { gender: 'male', age: 'elder', pitch: 0.4, rate: 0.75 }, cry: 'growl' },
 }
 
+/**
+ * Every voice: the core cast, then the region packs'. A pack gives each new
+ * sprite a profile of its own or names an existing voice to borrow; until it
+ * does, characters borrow a villager's and monsters a slime's.
+ */
+export const VOICES: Record<string, VoiceProfile> = {
+  ...CORE_VOICES,
+  ...Object.fromEntries(
+    [...new Set([...PACK_CHARACTER_SPRITES, ...PACK_ENEMY_SPRITES, ...Object.keys(PACK_VOICES)])].map((id, i) => {
+      const v = PACK_VOICES[id] ?? ((PACK_CHARACTER_SPRITES as readonly string[]).includes(id) ? 'villager-a' : 'slime')
+      if (typeof v !== 'string') return [id, v]
+      // a borrowed voice, nudged so every character still sounds like themselves
+      const b = CORE_VOICES[v] ?? CORE_VOICES['villager-a']
+      const k = i + 1
+      return [id, { ...b, base: b.base + k * 3, tts: { ...b.tts, pitch: +(b.tts.pitch + k * 0.013).toFixed(3), rate: +(b.tts.rate + k * 0.007).toFixed(3) } }]
+    }),
+  ),
+}
+
 /** Story speaker ids (and a few aliases) → sprite ids. */
 const ALIASES: Record<string, string> = {
+  // region-pack cutscene speakers speak with their sprite's voice
+  ...Object.fromEntries(Object.entries(PACK_SPEAKER_DEFS).map(([who, sp]) => [who, sp.sprite])),
   you: 'mage',
   player: 'mage',
   farmer: 'villager-a',

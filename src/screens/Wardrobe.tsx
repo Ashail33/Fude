@@ -4,7 +4,7 @@ import { T, useBurst } from '../components/ui'
 import { EFFECTS, OUTFITS, titleFor, TITLES, xpForLevel } from '../engine/rewards'
 import { sfx } from '../engine/sfx'
 import { effectUnlocked, level, outfitUnlocked, setState, usePlayer } from '../engine/store'
-import { REGIONS } from '../data/regions'
+import { REGION_BY_ID } from '../data/regions'
 
 function unlockText(u: (typeof OUTFITS)[number]['unlock'] | (typeof EFFECTS)[number]['unlock']): string {
   switch (u.kind) {
@@ -13,9 +13,9 @@ function unlockText(u: (typeof OUTFITS)[number]['unlock'] | (typeof EFFECTS)[num
     case 'level':
       return `Reach level ${u.level}`
     case 'region':
-      return `Reach ${REGIONS[u.region - 1].name}`
+      return `Reach ${REGION_BY_ID.get(u.region)?.name}`
     case 'mastery':
-      return `Master ${REGIONS[u.region - 1].name}`
+      return `Master ${REGION_BY_ID.get(u.region)?.name}`
     case 'boss':
       return 'Defeat a boss'
   }

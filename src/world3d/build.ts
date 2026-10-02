@@ -35,7 +35,7 @@ const SOLID = new Set<TileId>(['wall', 'wall-window', 'door', 'noren', 'stone-wa
 /** Raised into sloped roofs. */
 const ROOF = new Set<TileId>(['roof', 'roof-edge', 'roof-red', 'roof-red-edge', 'shop-awning'])
 /** Cards that sway in the wind (amount at the top edge, in tiles). */
-const SWAY: Partial<Record<TileId, number>> = { tree: 0.05, pine: 0.035, sakura: 0.06, bamboo: 0.08, bush: 0.03, torii: 0 }
+const SWAY: Partial<Record<TileId, number>> = { tree: 0.05, pine: 0.035, 'snow-pine': 0.03, sakura: 0.06, bamboo: 0.08, bush: 0.03, torii: 0, chochin: 0.04 }
 
 export interface DynQuad {
   /** First vertex index in the owning geometry. */

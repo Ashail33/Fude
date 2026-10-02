@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom'
 import type { Dir, SpriteId } from '../art'
 import Battle, { type BattleOutcome } from '../battle/Battle'
 import { ITEM_BY_ID } from '../battle/items'
-import { ACTIVITY_BY_ID, bossOf, REGIONS } from '../data/regions'
+import { ACTIVITY_BY_ID, bossOf, nextRegion, prevRegion, regionMap, REGIONS } from '../data/regions'
 import { WORD_BY_ID } from '../data/vocab'
 import { item } from '../engine/items'
 import { playMusic } from '../engine/music'
@@ -32,7 +32,7 @@ import { entityAt, OPPOSITE, World } from './engine'
 import { castScript, taleLog, entityGhost, entityMoved, entityVisible, fizzle, makeCtx, mapCastScript, storyMarkers, talkScript } from '../story/tales/engine'
 import { makeEntities } from './entities'
 import { tileSolid } from './mapdef'
-import { getMap, locateActivity, REGION_MAPS } from './maps'
+import { getMap, locateActivity } from './maps'
 import { Renderer, smoothstep, type MarkerKind, type RenderInfo } from './render'
 import { CAM_MODES, canRender3D, Renderer3D, type CamMode } from '../world3d/Renderer3D'
 import { fxQuality } from '../fx/quality'
@@ -67,7 +67,7 @@ const KEY_DIR: Record<string, Dir> = {
 
 /** Exterior map of a region (interiors resolve to their region's exterior). */
 function exteriorOf(m: GameMap): GameMap {
-  return m.spec.interior ? getMap(REGION_MAPS[m.spec.region - 1])! : m
+  return m.spec.interior ? getMap(regionMap(m.spec.region))! : m
 }
 
 function ghostIds(p: PlayerState, m: GameMap): Set<string> {
@@ -344,7 +344,7 @@ export default function Overworld() {
 
       if (spec.kind === 'sign') {
         const region = Wd.current?.map.spec.region ?? 1
-        const open = region < 5 && isPassed(s, bossOf(region).id)
+        const open = nextRegion(region) !== undefined && isPassed(s, bossOf(region).id)
         steps = open ? [say({ jp: 'みちは ひらかれている。さあ、すすもう！', en: 'The road is open. Onward!' }, false)] : lines.map((l) => say(l, false))
         return { steps, speaker }
       }
@@ -513,7 +513,7 @@ export default function Overworld() {
         }
         if (t.exit) {
           const target = getMap(t.exit.to)!
-          const boss = bossOf(target.spec.region - 1)
+          const boss = bossOf(prevRegion(target.spec.region) ?? target.spec.region)
           setDialog({
             steps: [
               { kind: 'say', line: { jp: 'ふしぎな けっかいが みちを ふさいでいる…', en: 'A strange barrier seals the way…' }, voice: false },
@@ -569,7 +569,7 @@ export default function Overworld() {
 
     // Story beats owed after returning from a boss fight.
     const owed: { id: string }[] = []
-    for (let rg = 1; rg <= 5; rg++) {
+    for (const { id: rg } of REGIONS) {
       const id = `post-boss-r${rg}`
       if (isPassed(s, bossOf(rg).id) && hasScene(id) && !s.seenScenes.includes(id)) owed.push({ id })
     }

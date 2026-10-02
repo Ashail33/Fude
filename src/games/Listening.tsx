@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { GameProps } from './types'
 import type { Review } from '../engine/srs'
+import { regionRank } from '../data/journey'
 import type { Word } from '../data/vocab'
 import { GameFrame, Hearts, Intro, Progress, useAnswerTimer, useBurst, useFlash } from '../components/ui'
 import { item } from '../engine/items'
@@ -216,7 +217,7 @@ export default function Listening({ activity, params, onFinish, onExit }: GamePr
           <>
             <div className="ls-npc-row">
               <div className="ls-npc" aria-hidden>
-                <Portrait id={round.npc} scale={4} ground={activity.region >= 4 ? 'stone-floor' : 'grass'} talking={speaking} />
+                <Portrait id={round.npc} scale={4} ground={regionRank(activity.region) >= 4 ? 'stone-floor' : 'grass'} talking={speaking} />
               </div>
               <div className="ls-bubble">
                 {fallback ? (

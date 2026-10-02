@@ -67,7 +67,7 @@ export const LEGEND: Record<string, Cell> = {
 }
 
 /** Ground tiles you cannot stand on (unless an object like a bridge makes them walkable). */
-export const SOLID_GROUND = new Set<TileId>(['water', 'water-deep', 'cliff'])
+export const SOLID_GROUND = new Set<TileId>(['water', 'water-deep', 'cliff', 'onsen', 'sky'])
 
 /** Objects you can walk over. Everything else placed as an object blocks. */
 export const WALKABLE_OBJECTS = new Set<TileId>([

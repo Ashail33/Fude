@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { CHARACTER_SPRITES, ENEMY_SPRITES } from '../art'
-import { backdropAt, castAt, fill, MAP_IDS, SCENES, SPEAKERS, speechText } from './scenes'
+import { REGIONS } from '../data/regions'
+import { backdropAt, castAt, fill, SCENES, SPEAKERS, speechText } from './scenes'
 
 const REQUIRED = [
   'intro',
-  ...MAP_IDS.map((m) => `arrive-${m}`),
-  ...[1, 2, 3, 4, 5].flatMap((r) => [`pre-boss-r${r}`, `post-boss-r${r}`]),
+  ...REGIONS.map((r) => `arrive-${r.map}`),
+  ...REGIONS.flatMap((r) => [`pre-boss-r${r.id}`, `post-boss-r${r.id}`]),
   'ending',
 ]
 

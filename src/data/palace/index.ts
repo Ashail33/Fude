@@ -5,6 +5,7 @@ import { ROOM_3 } from './r3'
 import { ROOM_4 } from './r4'
 import { ROOM_5 } from './r5'
 import type { Locus } from './types'
+import { PACK_LOCI } from '../../regions/palace'
 
 export type { Locus, Memory } from './types'
-export const LOCI: Locus[] = [...ROOM_1, ...ROOM_2, ...ROOM_3, ...ROOM_4, ...ROOM_5]
+export const LOCI: Locus[] = [...ROOM_1, ...ROOM_2, ...ROOM_3, ...ROOM_4, ...PACK_LOCI, ...ROOM_5]

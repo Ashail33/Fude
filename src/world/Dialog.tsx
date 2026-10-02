@@ -8,7 +8,7 @@ import type { SpriteId } from '../art'
 import { preloadHd, SPRITE_TO_HD, useHdLoaded } from '../art/hd'
 import { CommandMenu } from '../components/CommandMenu'
 import { KanaInput } from '../components/ui'
-import { activitiesFor, bossOf, REGIONS, STAGE_LABEL } from '../data/regions'
+import { activitiesFor, bossOf, prevRegion, REGIONS, STAGE_LABEL } from '../data/regions'
 import { VOCAB, WORD_BY_ID } from '../data/vocab'
 import { item } from '../engine/items'
 import { distractors, shuffle } from '../engine/random'
@@ -187,7 +187,7 @@ function StarRow({ n }: { n: number }) {
 function lockReason(a: Activity, p: ReturnType<typeof usePlayer>): Line | null {
   if (activityUnlocked(p, a)) return null
   if (!regionUnlocked(p, a.region)) {
-    const boss = bossOf(a.region - 1)
+    const boss = bossOf(prevRegion(a.region) ?? a.region)
     return { jp: `まず『${boss.jp}』を たおそう。`, en: `Defeat ${boss.title} first.` }
   }
   const list = activitiesFor(a.region)

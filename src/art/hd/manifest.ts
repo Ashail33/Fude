@@ -9,42 +9,13 @@
  * the flat key-colour background from cut-out art and converts to WebP.
  */
 
-export type HdCategory = 'portraits' | 'enemies' | 'bosses' | 'backdrops' | 'scenes' | 'title'
+import { PACK_ASSETS } from '../../regions/art'
+import { CAST, CUTOUT, STYLE, type HdAsset } from './cast'
 
-export interface HdAsset {
-  id: string
-  category: HdCategory
-  /** Short human name. */
-  name: string
-  /** Where it appears in the game. */
-  usage: string
-  /** Generation size (px). */
-  w: number
-  h: number
-  /** Cut-out art is generated on a flat key colour that the processor removes. */
-  cutout?: { key: '#00ff00' | '#ff00ff' }
-  /** 1 = biggest visual impact, do first. */
-  priority: 1 | 2 | 3
-  /** Subject prompt (the shared STYLE prompt is appended). */
-  prompt: string
-}
+export { CAST, CUTOUT, STYLE }
+export type { HdAsset, HdCategory } from './cast'
 
-/** Shared style: append to every prompt so all art matches. */
-export const STYLE =
-  'Style: hand-painted anime fantasy illustration, soft watercolor washes over clean confident ink linework, warm cinematic lighting with gentle rim light, rich but soft colors (vermilion, indigo, sakura pink, jade green, antique gold), subtle washi paper texture, Japanese folklore setting in an Edo-era countryside, whimsical and cozy, highly detailed, consistent character design. No text, no letters, no watermark, no logo, no border.'
-
-const CUTOUT = (key: '#00ff00' | '#ff00ff') =>
-  `Full body, centered, generous empty margin on all sides, isolated on a perfectly flat solid pure ${key === '#00ff00' ? 'green (#00FF00)' : 'magenta (#FF00FF)'} background, no ground, no cast shadow, no scenery.`
-
-/** The recurring cast, described once so every image keeps them on-model. */
-export const CAST = {
-  mage: 'a young apprentice mage (age about 16, friendly, gender-neutral) with short brown hair and bright eyes, wearing a tall pointed indigo wizard hat with a gold band and a tiny gold star, an indigo robe with gold trim and a sash, holding a wooden staff topped with a glowing golden orb',
-  scribe: 'Kotone, the girl with the brush from long ago (age about 15, gentle, warm and determined): long straight black hair to her waist tied with a vermilion ribbon, a soft wisteria-lilac kimono with a white collar and a deep indigo hakama, ink smudges on her fingers and cheek, carrying a large calligraphy brush with a red-lacquered handle and a gold band, its bristles wet with glowing ink',
-  shadow: 'the Nameless Quiet: a small, soft, smoke-like shadow creature the colour of dusk, a wisp of indigo-grey mist with two faint lonely silver eyes and wispy ragged edges, half translucent, more sad than scary',
-  fude: 'Fude, a tiny floating calligraphy-brush spirit mascot: a plump round white body shaped like a soft brush tip, big shiny black eyes, rosy cheeks, a red-lacquered brush handle with a gold band on top like a little hat, and a swirling black ink-drop tail; cute, expressive, glowing faintly',
-}
-
-export const HD_ASSETS: HdAsset[] = [
+const CORE_ASSETS: HdAsset[] = [
   // ── Title ──────────────────────────────────────────────────────────
   { id: 'title-wide', category: 'title', name: 'Title key art (wide)', usage: 'Title screen background on desktop', w: 1920, h: 1080, priority: 1, prompt: `Key art for a Japanese fantasy RPG about the magic of words. Night on a grassy hill above a sleeping village with glowing paper lanterns, a huge full moon, a sky of stars where glowing hiragana-like brush strokes drift like fireflies. In the foreground, seen from behind and slightly to the side, ${CAST.mage}, looking up at the sky, with ${CAST.fude} floating beside them. Sakura petals drift on the wind. Leave the upper-middle third of the image calm and uncluttered for a logo.` },
   { id: 'title-tall', category: 'title', name: 'Title key art (tall)', usage: 'Title screen background on phones', w: 1080, h: 1920, priority: 1, prompt: `Vertical key art, same scene as the wide version: night hill above a lantern-lit village, full moon, glowing brush strokes drifting in the starry sky, ${CAST.mage} seen from behind looking up, ${CAST.fude} floating beside them, sakura petals. Keep the top third calm for a logo and the bottom quarter simple for menu buttons.` },
@@ -145,6 +116,8 @@ export const HD_ASSETS: HdAsset[] = [
   { id: 'ending', category: 'scenes', name: 'Ending: words return', usage: 'Final cutscene', w: 1920, h: 1080, priority: 2, prompt: `Triumphant sunrise over the whole land seen from the tower summit: countless glowing brush-stroke glyphs stream back across the sky into villages, forests and fields, bringing color back; ${CAST.mage} raises their staff while ${CAST.fude} cheers; villagers celebrate far below.` },
 ]
 
+/** Every illustrated asset: the core game's, then the region packs'. */
+export const HD_ASSETS: HdAsset[] = [...CORE_ASSETS, ...PACK_ASSETS]
 export const HD_BY_ID = new Map(HD_ASSETS.map((a) => [a.id, a]))
 
 /** Public URL of the processed asset (WebP). */

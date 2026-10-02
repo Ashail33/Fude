@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { ACTIVITIES } from '../data/regions'
+import { ACTIVITIES, REGIONS } from '../data/regions'
 import { START_POS } from '../engine/store'
 import { bfs, cameraFor, chooseScale, ENCOUNTER_GRACE, entityCells, rollEncounter, World } from './engine'
 import { LEGEND, parseMap, tileSolid } from './mapdef'
-import { getMap, locateActivity, MAP_SPECS, REGION_MAPS } from './maps'
+import { getMap, locateActivity, MAP_SPECS } from './maps'
 import { makeEntities } from './entities'
 import type { Entity, GameMap, MapSpec } from './types'
 
@@ -113,29 +113,31 @@ describe('map data', () => {
     for (const id of all) expect(ACTIVITIES.some((a) => a.id === id), id).toBe(true)
   })
 
-  it('chains the regions village ⇄ fields ⇄ forest ⇄ shrine ⇄ tower', () => {
-    const reach = (from: string, to: string): boolean => {
+  it('chains the regions along the road, each only through itself and its neighbours', () => {
+    /** Maps reachable from `from` without leaving the given regions. */
+    const reach = (from: string, to: string, regions: number[]): boolean => {
       const seen = new Set([from])
       const q = [from]
       while (q.length) {
         const id = q.shift()!
         if (id === to) return true
         for (const ex of getMap(id)!.exits.values())
-          if (!seen.has(ex.to) && (getMap(ex.to)!.spec.interior || REGION_MAPS.includes(ex.to as never))) {
+          if (!seen.has(ex.to) && regions.includes(getMap(ex.to)!.spec.region)) {
             seen.add(ex.to)
             q.push(ex.to)
           }
       }
       return false
     }
-    for (let i = 0; i + 1 < REGION_MAPS.length; i++) {
-      const a = getMap(REGION_MAPS[i])!
-      const b = getMap(REGION_MAPS[i + 1])!
-      expect([...a.exits.values()].some((e) => e.to === b.id), `${a.id} → ${b.id}`).toBe(true)
-      expect([...b.exits.values()].some((e) => e.to === a.id), `${b.id} → ${a.id}`).toBe(true)
-      expect(b.spec.region).toBe(a.spec.region + 1)
+    for (let i = 0; i + 1 < REGIONS.length; i++) {
+      const a = REGIONS[i]
+      const b = REGIONS[i + 1]
+      expect(getMap(a.map)!.spec.region, a.map).toBe(a.id)
+      expect(reach(a.map, b.map, [a.id, b.id]), `${a.map} → ${b.map}`).toBe(true)
+      expect(reach(b.map, a.map, [a.id, b.id]), `${b.map} → ${a.map}`).toBe(true)
     }
-    expect(reach('village', 'tower-top')).toBe(true)
+    // every map is part of the world
+    for (const spec of MAP_SPECS) expect(reach('village', spec.id, REGIONS.map((r) => r.id)), spec.id).toBe(true)
   })
 
   it('starts a new game on open ground', () => {

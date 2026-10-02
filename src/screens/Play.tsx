@@ -4,7 +4,7 @@ import { FitScreen } from '../components/FitScreen'
 import { StatBar } from '../components/Journal'
 import { useCountUp } from '../components/motion'
 import { PixelStar, T, useBurst } from '../components/ui'
-import { ACTIVITIES, ACTIVITY_BY_ID, REGIONS } from '../data/regions'
+import { ACTIVITIES, ACTIVITY_BY_ID, REGION_BY_ID } from '../data/regions'
 import { dueItems, completeQuest, featuredToday, FEATURED_MULTIPLIER, questActivity } from '../engine/quests'
 import { playJingle } from '../engine/music'
 import { levelForXp, titleFor, xpForLevel } from '../engine/rewards'
@@ -37,7 +37,7 @@ function resolveActivity(path: string): { activity?: Activity; questId?: string 
   }
   if (rest.startsWith('palace/')) {
     const room = Number(rest.slice(7))
-    const r = REGIONS[room - 1]
+    const r = REGION_BY_ID.get(room)
     if (!r) return {}
     return {
       activity: {
@@ -308,7 +308,7 @@ function Results({
         {newlyPlaced.length > 0 && <PlacedNote ids={newlyPlaced} />}
         {outcome.unlockedRegion && (
           <div className="unlock glow-text pop">
-            🗺️ <T en="New region unlocked:" jp="あたらしいちいき：" /> {REGIONS[outcome.unlockedRegion - 1].name} <span lang="ja">{REGIONS[outcome.unlockedRegion - 1].jp}</span>
+            🗺️ <T en="New region unlocked:" jp="あたらしいちいき：" /> {REGION_BY_ID.get(outcome.unlockedRegion)?.name} <span lang="ja">{REGION_BY_ID.get(outcome.unlockedRegion)?.jp}</span>
           </div>
         )}
         {outcome.unlockedActivities

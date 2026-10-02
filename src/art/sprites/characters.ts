@@ -9,6 +9,8 @@
  * 5 hair, 6 hair shade, 7 legs, 8 shoes.
  */
 import type { Slots } from '../raster'
+import { PACK_CHARACTER_SPRITES } from '../../regions/ids'
+import { PACK_CHARACTERS } from '../../regions/sprites'
 
 export interface CharDef {
   down: string[]
@@ -36,7 +38,7 @@ export interface CharDef {
 
 const HUMAN: Slots = { 5: 'night', 6: 'navy', 7: 'navy', 8: 'woodDark' }
 
-export const CHARACTERS: Record<string, CharDef> = {
+const CORE: Record<string, CharDef> = {
   mage: {
     legRows: [14, 14],
     span: [3, 12],
@@ -803,6 +805,12 @@ export const CHARACTERS: Record<string, CharDef> = {
   cat: animal('cat', { 1: 'stone', 2: 'paper', 3: 'sakuraDark', 4: 'gold', 5: 'stone' }),
   dog: animal('dog', { 1: 'woodLight', 2: 'paper', 3: 'ink', 4: 'ink', 5: 'paper' }),
   fox: animal('fox', { 1: 'orange', 2: 'paper', 3: 'crimson', 4: 'ink', 5: 'white' }),
+}
+
+/** Every walking character: the core cast, then the region packs' (a stand-in until a pack draws its own). */
+export const CHARACTERS: Record<string, CharDef> = {
+  ...CORE,
+  ...Object.fromEntries(PACK_CHARACTER_SPRITES.map((id) => [id, PACK_CHARACTERS[id] ?? CORE['villager-a']])),
 }
 
 type Kind = 'cat' | 'dog' | 'fox'

@@ -12,11 +12,11 @@ import { GhostRecall } from '../components/GhostRecall'
 import { QuestBoard, ReviewWindow, StatusWindow } from '../components/Journal'
 import { T } from '../components/ui'
 import { Weave } from '../components/Weave'
-import { activitiesFor, REGIONS } from '../data/regions'
+import { activitiesFor, regionMap, REGIONS } from '../data/regions'
+import { getMap } from '../world/maps'
 import { fading, LOCI } from '../engine/palace'
 import { dueItems } from '../engine/quests'
 import { immersionOf, level, regionMastered, regionUnlocked, usePlayer } from '../engine/store'
-import { MAP_IDS } from '../story/scenes'
 import { owedMemories } from '../story/chronicle'
 import { KEY_ITEM_BY_ID, taleLog } from '../story/tales/engine'
 import { ChroniclePanel } from './ChroniclePanel'
@@ -136,7 +136,7 @@ export function GameMenu({ onClose, onTravel, onReplay }: GameMenuProps) {
         onBack={() => setFocus('cmd')}
         onGo={(region) => {
           if (onTravel) {
-            onTravel(MAP_IDS[region - 1])
+            onTravel(regionMap(region))
             onClose()
           } else nav(`/region/${region}`)
         }}
@@ -263,7 +263,7 @@ function ItemsPanel({ active, onBack }: { active: boolean; onBack: () => void })
 
 function MapPanel({ active, onBack, onGo }: { active: boolean; onBack: () => void; onGo: (region: number) => void }) {
   const p = usePlayer()
-  const here = MAP_IDS.indexOf(p.world.map as (typeof MAP_IDS)[number]) + 1
+  const here = getMap(p.world.map)?.spec.region
   return (
     <section className="card gm-map">
       <span className="win-title">

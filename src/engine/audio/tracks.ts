@@ -13,12 +13,13 @@
  * tsuzumi, hyōshigi). Some tracks open with a one-off `intro` before the loop.
  */
 
+import type { PackTrack } from '../../regions/ids'
 import { fromChords as ch, padChords as pads, progBars as bars, rests, transpose, type TrackDef } from './sequence'
 
 /** Join sections (each a run of whole bars) into one channel string. */
 const join = (...parts: string[]) => parts.map((p) => p.trim().replace(/\|$/, '')).join(' | ')
 
-export type TrackId = 'title' | 'village' | 'fields' | 'forest' | 'shrine' | 'tower' | 'battle' | 'boss' | 'victory' | 'shop' | 'game'
+export type TrackId = 'title' | 'village' | 'fields' | 'forest' | 'shrine' | 'tower' | 'battle' | 'boss' | 'victory' | 'shop' | 'game' | PackTrack
 
 // ─── title ─ wistful and grand; D min'yō (D F G A C). A koto glissando and
 //     temple bell open; harp-like koto, then the flute (bar 5) and the chip
@@ -306,5 +307,116 @@ const game: TrackDef = {
   ],
 }
 
-export const TRACKS: Record<TrackId, TrackDef> = { title, village, fields, forest, shrine, tower, battle, boss, victory, shop, game }
+// ─── harbour ─ salty, swaying, a fishermen's work song; A yo (A B D E F#).
+//     Variation: the flute takes the tune, koto plucks the off-beats, and
+//     the hand drums pick up a rowing rhythm.
+const harbourProg = 'A D A E A D Bm E D E F#m D A D E A'
+const harbourTune = `E5:1 F#5:.5 E5:.5 D5:1 B4:1 | A4:1.5 B4:.5 D5:2 | E5:.5 F#5:.5 A5:1 F#5:1 E5:1 | B4:3 r:1 |
+  D5:1 E5:.5 D5:.5 B4:1 A4:1 | B4:.5 D5:.5 E5:1 F#5:2 | E5:1 D5:1 B4:1 D5:1 | E5:4 |
+  A5:1.5 F#5:.5 E5:1 D5:1 | E5:.5 F#5:.5 E5:.5 D5:.5 B4:2 | D5:1 E5:.5 F#5:.5 A5:1 F#5:1 | E5:3 r:1 |
+  F#5:1 E5:.5 D5:.5 B4:1 D5:1 | E5:1.5 D5:.5 B4:1 A4:1 | B4:.5 D5:.5 E5:1 D5:.5 B4:.5 A4:1 | A4:3 r:1`
+const harbour: TrackDef = {
+  bpm: 104,
+  loop: true,
+  channels: [
+    { inst: 'pulse25', vol: 0.11, vib: 10, detune: 7, gate: 0.85, seq: join(harbourTune, ch(harbourProg, 4, '1:2 2:1 1:1')), intro: 'r:2 A4:.5 B4 D5 E5' },
+    { inst: 'flute', vol: 0.13, vib: 16, pan: 0.12, seq: join(rests(16), harbourTune) },
+    { inst: 'koto', vol: 0.12, pan: -0.3, seq: join(ch(harbourProg, 4, 'r:.5 1:.5 r 2 r 1 r 2'), ch(harbourProg, 4, '0:.5 1 2 1 3 2 1 2')) },
+    { inst: 'pad', vol: 0.04, seq: join(rests(8), pads(bars(harbourProg, 9, 16), 3), pads(harbourProg, 3)) },
+    { inst: 'tri', vol: 0.24, gate: 0.75, seq: join(ch(harbourProg, 2, '0:1.5 2:.5 3:1 2:1'), ch(harbourProg, 2, '0:1.5 2:.5 3:1 2:1')), intro: 'r:3 E2:1' },
+    {
+      inst: 'noise',
+      vol: 0.11,
+      seq: join(`(k:1 h:.5 h:.5 s:1 h:.5 h:.5 |)x15 k:1 h:.5 h:.5 s:.5 s:.5 s:1/3 s s`, `x+T:1 h:.5 b:.5 s:1 h:.5 h:.5 | (T:1 h:.5 b:.5 s:1 h:.5 h:.5 |)x14 T:1 h:.5 h:.5 s:.5 s:.5 s:1/3 s s`),
+      intro: 'r:2 s:.5 s s:.25 s s s',
+    },
+  ],
+}
+
+// ─── onsen ─ warm, unhurried, steam rising; F yo (F G Bb C D).
+//     Koto and a breathy flute over soft pads; a tsuzumi taps now and then.
+const onsenProg = 'F Bb F C Dm Bb Gm C F Bb Dm C Bb C F F'
+const onsenTune = `C5:1.5 D5:.5 F5:2 | D5:1 C5:.5 Bb4:.5 C5:2 | F4:1 G4:1 Bb4:1 C5:1 | D5:3 r:1 |
+  F5:1.5 G5:.5 F5:1 D5:1 | C5:1 D5:.5 C5:.5 Bb4:2 | G4:1 Bb4:1 C5:1 D5:1 | C5:4 |
+  D5:1 F5:1 G5:1.5 F5:.5 | D5:1 C5:1 D5:2 | Bb4:1 C5:.5 D5:.5 F5:1 D5:1 | C5:3 r:1 |
+  G5:1.5 F5:.5 D5:1 C5:1 | D5:1 C5:.5 Bb4:.5 G4:2 | F4:1 G4:1 C5:1 G4:1 | F4:4`
+const onsen: TrackDef = {
+  bpm: 76,
+  loop: true,
+  channels: [
+    { inst: 'koto', vol: 0.2, pan: 0.1, echo: { beats: 0.75, vol: 0.25 }, seq: join(onsenTune, ch(onsenProg, 4, '0:.5 1 2 3 2 1 2 1')) },
+    { inst: 'flute', vol: 0.12, vib: 18, pan: -0.15, seq: join(rests(16), onsenTune) },
+    { inst: 'pad', vol: 0.045, seq: join(pads(onsenProg, 3), pads(onsenProg, 3)) },
+    { inst: 'tri', vol: 0.18, gate: 0.9, seq: join(ch(onsenProg, 2, '0:2 2:2'), ch(onsenProg, 2, '0:2 2:2')) },
+    { inst: 'bell', vol: 0.08, seq: join('F4:4', rests(7), 'C4:4', rests(7), 'F4:4', rests(7), 'Bb3:4', rests(7)) },
+    { inst: 'noise', vol: 0.06, seq: join(`(r:2 t:1 r:1 | r:4 |)x8`, `(b:2 t:1 r:1 | r:2 t:.5 t:.5 r:1 |)x8`) },
+  ],
+}
+
+// ─── castletown ─ bustling and bright, a festival street; C yo (C D F G A).
+//     Shamisen-like plucks (koto), fife on the second pass, taiko and bells.
+const castleProg = 'C F C G Am F G C F G Em Am F G C C'
+const castleTune = `G4:.5 A4:.5 C5:1 D5:1 C5:1 | A4:1 G4:.5 A4:.5 C5:2 | D5:.5 F5:.5 G5:1 F5:1 D5:1 | C5:3 r:1 |
+  G5:1 A5:.5 G5:.5 F5:1 D5:1 | C5:.5 D5:.5 F5:1 G5:2 | A5:1 G5:1 F5:1 D5:1 | G5:4 |
+  C6:1.5 A5:.5 G5:1 F5:1 | G5:.5 A5:.5 G5:.5 F5:.5 D5:2 | C5:1 D5:.5 F5:.5 G5:1 A5:1 | G5:3 r:1 |
+  A5:1 G5:.5 F5:.5 D5:1 F5:1 | G5:1.5 F5:.5 D5:1 C5:1 | D5:.5 F5:.5 G5:.5 F5:.5 D5:1 G4:1 | C5:3 r:1`
+const castletown: TrackDef = {
+  bpm: 116,
+  loop: true,
+  channels: [
+    { inst: 'pulse25', vol: 0.11, vib: 8, detune: 6, gate: 0.8, seq: join(castleTune, ch(castleProg, 4, '1:1 2:1 1:2')), intro: 'r:2 G4:.5 A4 C5 D5' },
+    { inst: 'flute', vol: 0.14, vib: 12, pan: 0.15, seq: join(rests(16), castleTune) },
+    { inst: 'koto', vol: 0.14, pan: -0.3, gate: 0.6, seq: join(ch(castleProg, 4, '0:.5 2 1 2 0 2 1 2'), ch(castleProg, 4, '0:.5 2 1 2 3 2 1 2')) },
+    { inst: 'pad', vol: 0.035, seq: join(rests(8), pads(bars(castleProg, 9, 16), 3), pads(castleProg, 3)) },
+    { inst: 'tri', vol: 0.24, gate: 0.7, seq: join(ch(castleProg, 2, '0:1 2:1 3:1 2:1'), ch(castleProg, 2, '0:1 2:1 3:1 2:1')), intro: 'r:3 G2:1' },
+    {
+      inst: 'noise',
+      vol: 0.12,
+      seq: join(`(T:.5 h:.5 s h T h s h |)x15 T:.5 h s h s:.25 s s s T:.5 s`, `(T:.5 h:.5 s o T T s h |)x15 T:.5 h s h s:.25 s s s T:.5 s`),
+      intro: 'r:2 T:.5 T T:.25 T T T',
+    },
+  ],
+}
+
+// ─── snowtemple ─ hushed and crystalline; E in scale (E F# G B C).
+//     A bell and koto in the snow; the flute enters the second time round.
+const snowProg = 'Em Em Cmaj7 B5 Em Am C B5 Am Am Em Em C B5 Em Em'
+const snowTune = `B4:1.5 C5:.5 E5:2 | F#5:1 E5:.5 C5:.5 B4:2 | G4:1 B4:1 C5:1 E5:1 | F#5:3 r:1 |
+  G5:1.5 F#5:.5 E5:1 C5:1 | B4:1 C5:1 E5:2 | F#5:1 E5:1 C5:1 B4:1 | B4:4 |
+  E5:1 G5:1 B5:2 | A5:1 G5:.5 F#5:.5 E5:2 | C5:1 E5:1 F#5:1 G5:1 | F#5:4 |
+  E5:1.5 C5:.5 B4:1 G4:1 | F#4:1 G4:1 B4:2 | C5:1 B4:.5 G4:.5 F#4:2 | E4:4`
+const snowtemple: TrackDef = {
+  bpm: 70,
+  loop: true,
+  channels: [
+    { inst: 'koto', vol: 0.2, pan: 0.15, echo: { beats: 1.5, vol: 0.3 }, seq: join(snowTune, ch(snowProg, 4, '0:1 2:1 1:1 3:1')) },
+    { inst: 'flute', vol: 0.1, vib: 16, pan: -0.2, seq: join(rests(16), snowTune) },
+    { inst: 'pad', vol: 0.035, seq: join(pads(snowProg, 3), pads(snowProg, 3)) },
+    { inst: 'tri', vol: 0.16, gate: 0.97, seq: join(ch(snowProg, 2, '0:4'), ch(snowProg, 2, '0:4')) },
+    { inst: 'bell', vol: 0.14, seq: join('E4:4', rests(3), 'B3:4', rests(3), 'E4:4', rests(3), 'G3:4', rests(3), 'E4:4', rests(3), 'B3:4', rests(3), 'C4:4', rests(3), 'E4:4', rests(3)) },
+    { inst: 'noise', vol: 0.04, seq: join(`(r:4 |)x8 (w:4 | r:4 |)x4`, `(r:4 |)x8 (w:4 | r:4 |)x4`) },
+  ],
+}
+
+// ─── clouds ─ airy and wondering, a city above the weather; D yo (D E F# A B).
+//     Harp sparkles and a high flute; thunder drums rumble far below.
+const cloudsProg = 'D G D A Bm G A D G A F#m Bm G A D D'
+const cloudsTune = `F#5:1 A5:1 B5:1.5 A5:.5 | F#5:1 E5:.5 D5:.5 E5:2 | A4:.5 B4:.5 D5:.5 E5:.5 F#5:1 A5:1 | B5:3 r:1 |
+  D6:1.5 B5:.5 A5:1 F#5:1 | E5:.5 F#5:.5 A5:1 B5:2 | A5:1 F#5:1 E5:1 D5:1 | E5:4 |
+  B5:1 A5:.5 B5:.5 D6:2 | E6:1 D6:.5 B5:.5 A5:2 | F#5:1 A5:1 B5:1 D6:1 | B5:3 r:1 |
+  A5:1.5 F#5:.5 E5:1 D5:1 | E5:1 F#5:.5 A5:.5 B5:2 | A5:1 F#5:.5 E5:.5 D5:1 E5:1 | D5:3 r:1`
+const clouds: TrackDef = {
+  bpm: 100,
+  loop: true,
+  channels: [
+    { inst: 'pulse12', vol: 0.09, vib: 14, detune: 9, pan: 0.15, echo: { beats: 0.75, vol: 0.35 }, seq: join(cloudsTune, ch(cloudsProg, 5, '1:2 2:2')) },
+    { inst: 'flute', vol: 0.13, vib: 18, pan: -0.1, seq: join(rests(16), cloudsTune) },
+    { inst: 'harp', vol: 0.08, pan: 0.4, seq: join(ch(cloudsProg, 4, '0:.5 1 2 3 2 1 2 3'), ch(cloudsProg, 5, 'r:1 0:.5 1 2:1 1:1')) },
+    { inst: 'pad', vol: 0.05, seq: join(pads(cloudsProg, 3), pads(cloudsProg, 4)) },
+    { inst: 'tri', vol: 0.2, gate: 0.85, seq: join(ch(cloudsProg, 2, '0:2 2:1 3:1'), ch(cloudsProg, 2, '0:2 2:1 3:1')) },
+    { inst: 'noise', vol: 0.08, seq: join(`(T:2 h:1 h:1 | r:1 h:1 T:1 h:1 |)x8`, `(T:1 h:.5 h:.5 s:1 h:1 | T:1 h:.5 o:.5 T:1 h:1 |)x8`) },
+  ],
+}
+
+export const TRACKS: Record<TrackId, TrackDef> = { title, village, fields, forest, shrine, tower, battle, boss, victory, shop, game, harbour, onsen, castletown, snowtemple, clouds }
 export const TRACK_IDS = Object.keys(TRACKS) as TrackId[]
