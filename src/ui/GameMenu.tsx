@@ -308,6 +308,9 @@ function MapPanel({ active, onBack, onGo }: { active: boolean; onBack: () => voi
       <p className="muted small">
         <T en="Choose a region to travel there." jp="いきたい ところを えらんでください。" />
       </p>
+      <p className="muted small">
+        ✦ <T en="In the world, cast たび (or とぶ, いく) to open the travel map anywhere." jp="せかいで「たび」と となえると、どこでも ちずが ひらくよ。" />
+      </p>
     </section>
   )
 }

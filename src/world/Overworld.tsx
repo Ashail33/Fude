@@ -29,6 +29,8 @@ import { Bi, Dialog, type Step } from './Dialog'
 import { palaceSteps } from './palaceSteps'
 import { nextActivity } from './progress'
 import { entityAt, OPPOSITE, World } from './engine'
+import { HINT_FLAG as TRAVEL_HINT, isTravelWord, TRAVEL_WORDS, travelReady, travelTaught } from './travel'
+import { TravelMap } from './TravelMap'
 import { castScript, taleLog, entityGhost, entityMoved, entityVisible, fizzle, makeCtx, mapCastScript, storyMarkers, talkScript } from '../story/tales/engine'
 import { makeEntities } from './entities'
 import { tileSolid } from './mapdef'
@@ -180,6 +182,7 @@ export default function Overworld() {
 
   const [scenes, setScenes] = useState<{ id: string; then?: () => void }[]>([])
   const [menu, setMenu] = useState(false)
+  const [travel, setTravel] = useState(false)
   const [banner, setBanner] = useState<{ jp: string; en: string; key: number } | null>(null)
   const [toast, setToast] = useState<{ line: Line; key: number } | null>(null)
   const [run, setRun] = useState(false)
@@ -199,7 +202,7 @@ export default function Overworld() {
   const [touch] = useState(() => typeof window !== 'undefined' && (window.matchMedia?.('(pointer: coarse)').matches || 'ontouchstart' in window))
 
   const map = getMap(mapId)!
-  const isModal = !!dialog || battle !== null || scenes.length > 0 || menu || encountering
+  const isModal = !!dialog || battle !== null || scenes.length > 0 || menu || travel || encountering
   modal.current = isModal
 
   // Keep render info in sync with the save.
@@ -245,7 +248,11 @@ export default function Overworld() {
       savePos(true)
       const arrive = `arrive-${id}`
       if (!m.spec.interior && hasScene(arrive) && !s.seenScenes.includes(arrive)) setScenes((q) => [...q, { id: arrive }])
-      else if (!m.spec.interior && Math.random() < 0.5) setTimeout(() => showToast(fudeHint(getState(), m, hintN.current++)), 2600)
+      else if (!m.spec.interior && travelReady(s) && !travelTaught(s)) {
+        // a second region is open: Fude teaches the travel spell, once
+        setFlag(TRAVEL_HINT)
+        setTimeout(() => showToast({ jp: 'あたらしい じゅもん！ 「たび」と となえると、ちずが ひらいて とんで いけるよ。', en: 'New spell! Cast たび (journey) and a map opens: fly to any region you have reached.' }), 2600)
+      } else if (!m.spec.interior && Math.random() < 0.5) setTimeout(() => showToast(fudeHint(getState(), m, hintN.current++)), 2600)
     },
     [savePos, showToast],
   )
@@ -399,6 +406,8 @@ export default function Overworld() {
   // ─── story (tales, word magic) ──────────────────────────────────
   /** A game a keeper sent us to, opened when the talk ends. */
   const playRoute = useRef<string | null>(null)
+  /** The travel spell was cast: unroll the map when the talk ends. */
+  const travelPending = useRef(false)
   const storyHooks = useRef({
     sparkle: (e: Entity | null, kind: 'spark' | 'leaf' | 'dust' | 'ripple') => {
       const r = R.current
@@ -433,7 +442,18 @@ export default function Overworld() {
       steps: [
         c.cast(target ? { jp: `${target.jp}に ことばを となえる…`, en: `Cast a word at the ${target.en}…` } : { jp: 'ことばを となえる…', en: 'Cast a word…' }, (k) => {
           const script = e ? castScript(e.spec.id) : mapCastScript(w.map.id)
-          return script?.(c, k) ?? fizzle(c, k)
+          const out = script?.(c, k)
+          if (out) return out
+          if (isTravelWord(k)) {
+            if (!travelReady(getState())) return [c.fude('たびの じゅもん… でも まだ ほかに いける ところが ないよ。', 'The travel spell… but there is nowhere else to go yet. Open the road to the next region first!')]
+            const vocab = TRAVEL_WORDS[k]
+            if (vocab) c.learn(vocab)
+            setFlag(TRAVEL_HINT)
+            c.sparkle('spark')
+            travelPending.current = true
+            return [c.narrate('✦ みちの ちずが ひらいた！ どこへ とんで いく？', '✦ A map of the road unrolls before you! Where will you fly?')]
+          }
+          return fizzle(c, k)
         }),
       ],
     })
@@ -828,6 +848,10 @@ export default function Overworld() {
   const closeDialog = useCallback(() => {
     setDialog(null)
     syncStory()
+    if (travelPending.current) {
+      travelPending.current = false
+      setTravel(true)
+    }
     const route = playRoute.current
     if (route) {
       playRoute.current = null
@@ -963,6 +987,18 @@ export default function Overworld() {
         </div>
       )}
 
+      {travel && (
+        <TravelMap
+          here={map.spec.region}
+          onClose={() => setTravel(false)}
+          onGo={(id) => {
+            setTravel(false)
+            fx('cast')
+            storyHooks.current.sparkle(null, 'spark')
+            onTravel(id)
+          }}
+        />
+      )}
       {menu && (
         <div className="ow-menu">
           <GameMenu
