@@ -5,6 +5,7 @@
  */
 import { toHiragana } from 'wanakana'
 import type { SpriteId } from '../../art'
+import { ENTITY_HD } from '../../art/hd'
 import { ITEM_BY_ID } from '../../battle/items'
 import { VOCAB, type Word } from '../../data/vocab'
 import { item as itemId } from '../../engine/items'
@@ -105,7 +106,8 @@ export interface Hooks {
 export function makeCtx(e: Entity | null, hooks: Hooks): Ctx {
   const speaker = e?.spec.name
   const portrait = e?.spec.sprite as SpriteId | undefined
-  const say = (jp: string, en: string, who?: Line, pic?: SpriteId): Step => ({ kind: 'say', speaker: who ?? speaker, portrait: pic ?? (who ? undefined : portrait), line: { jp, en } })
+  const hd = e ? ENTITY_HD[e.spec.id] : undefined
+  const say = (jp: string, en: string, who?: Line, pic?: SpriteId): Step => ({ kind: 'say', speaker: who ?? speaker, portrait: pic ?? (who ? undefined : portrait), line: { jp, en }, ...(hd && (!who || pic === portrait) ? { hd } : {}) })
   const narrate = (jp: string, en: string): Step => ({ kind: 'say', line: { jp, en }, voice: false })
   const c: Ctx = {
     s: getState,

@@ -21,6 +21,7 @@ import { addItem, getState, grantRewards, isPassed, level, markOpened, markScene
 import type { Activity } from '../games/types'
 import { fadingAnchors, fadingIn, placeAt } from '../engine/palace'
 import { ensureStories, placesOf } from '../engine/palaceAI'
+import { ENTITY_HD } from '../art/hd'
 import { owedMemories } from '../story/chronicle'
 import { Cutscene, hasScene } from '../story/Cutscene'
 import { GameMenu } from '../ui/GameMenu'
@@ -311,7 +312,8 @@ export default function Overworld() {
       const speaker = spec.name
       const portrait: SpriteId | undefined = spec.sprite
       const lines = spec.lines ?? []
-      const say = (line: Line, voice = true): Step => ({ kind: 'say', speaker, portrait, line, voice })
+      const hd = ENTITY_HD[spec.id]
+      const say = (line: Line, voice = true): Step => ({ kind: 'say', speaker, portrait, line, voice, ...(hd ? { hd } : {}) })
       let steps: Step[] = []
 
       const story = talkScript(spec.id)?.(makeCtx(e, storyHooks.current))

@@ -102,3 +102,22 @@
   color: var(--gold, #f7c948);
   font-size: 0.95rem;
 }
+.pw-arrive {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.pw-arrive-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: -1;
+  opacity: 0.45;
+  filter: saturate(0.85);
+}
+.pw-arrive .pw-arrive-name,
+.pw-arrive .muted {
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}

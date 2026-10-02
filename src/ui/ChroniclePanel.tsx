@@ -3,6 +3,7 @@
  * Locked entries stay visible as silhouettes and hints: the point is to
  * show how much story is still out there.
  */
+import { HdImage } from '../art/hd'
 import { T } from '../components/ui'
 import { REGIONS } from '../data/regions'
 import { WORD_BY_ID } from '../data/vocab'
@@ -25,7 +26,11 @@ export function ChroniclePanel({ onReplay }: { onReplay?: (scene: string) => voi
             const hint = pageHint(p, pg)
             return (
               <li key={pg.n} className={seen ? 'seen' : ready ? 'ready' : 'locked'}>
-                <span className="gm-page-n">{pg.kind === 'core' ? '📖' : '🌸'}</span>
+                {seen ? (
+                  <HdImage id={pg.scene} className="gm-page-art" fallback={<span className="gm-page-n">{pg.kind === 'core' ? '📖' : '🌸'}</span>} />
+                ) : (
+                  <span className="gm-page-n">{pg.kind === 'core' ? '📖' : '🌸'}</span>
+                )}
                 <span className="gm-page-body">
                   {seen ? (
                     <span className="bi">
@@ -73,9 +78,7 @@ export function ChroniclePanel({ onReplay }: { onReplay?: (scene: string) => voi
                 {list.map((y) =>
                   sealed(p, y.id) ? (
                     <li key={y.id} className="sealed">
-                      <span className="gm-yokai-emoji" aria-hidden>
-                        {y.emoji}
-                      </span>
+                      <HdImage id={`yokai-${y.id}`} className="gm-yokai-art" alt={y.name} fallback={<span className="gm-yokai-emoji">{y.emoji}</span>} />
                       <span>
                         <span className="bi">
                           <span lang="ja">{y.jp}</span>
@@ -97,8 +100,8 @@ export function ChroniclePanel({ onReplay }: { onReplay?: (scene: string) => voi
                     </li>
                   ) : (
                     <li key={y.id} className="locked">
-                      <span className="gm-yokai-emoji silhouette" aria-hidden>
-                        {y.emoji}
+                      <span className="silhouette" aria-hidden>
+                        <HdImage id={`yokai-${y.id}`} className="gm-yokai-art" fallback={<span className="gm-yokai-emoji">{y.emoji}</span>} />
                       </span>
                       <span>
                         <span className="muted">？？？</span>

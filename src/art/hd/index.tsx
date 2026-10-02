@@ -174,6 +174,10 @@ export const SPRITE_TO_HD: Record<string, string> = {
   elder: 'elder',
   merchant: 'merchant',
   scribe: 'scribe',
+  'villager-b': 'villager',
+  cat: 'cat',
+  dog: 'dog',
+  fox: 'fox',
   guard: 'guard',
   priest: 'priest',
   king: 'king',
@@ -216,8 +220,35 @@ export const BOSS_HD: Record<string, string> = {
 }
 
 /** HD art for a story/dialogue speaker: boss art for boss keys, else the portrait/enemy art. */
+/** Cutscene speakers with art of their own (not their sprite's). */
+export const SPEAKER_HD: Record<string, string> = { shadow: 'shadow' }
+
+/**
+ * Characters in the world with art of their own: the folklore spirits wear
+ * a stand-in sprite on the map, but talk with their real portrait.
+ */
+export const ENTITY_HD: Record<string, string> = {
+  'fk1-warashi': 'yokai-zashiki-warashi',
+  'fk1-kasa': 'yokai-kasa-obake',
+  'fk1-suzume': 'yokai-shitakiri-suzume',
+  'fk2-kappa': 'yokai-kappa',
+  'fk2-crane': 'yokai-tsuru',
+  'fk2-tsuu': 'yokai-tsuru',
+  'fk3-tengu': 'yokai-tengu',
+  'fk3-chagama': 'yokai-bunbuku',
+  'fk3-yamabiko': 'yokai-yamabiko',
+  'fk4-usagi': 'yokai-tsuki-usagi',
+  'fk4-noppera': 'yokai-noppera-bo',
+  'fk4-orihime': 'yokai-tanabata',
+  'fk4-hikoboshi': 'yokai-tanabata',
+  'fk5-kaguya': 'yokai-kaguya-hime',
+  'fk5-baku': 'yokai-baku',
+  'fk5-urashima': 'yokai-urashima',
+}
+
 export function speakerHd(sprite?: string | null, key?: string | null): string | undefined {
   if (key && BOSS_HD[key]) return BOSS_HD[key]
+  if (key && SPEAKER_HD[key]) return SPEAKER_HD[key]
   return sprite ? SPRITE_TO_HD[sprite] : undefined
 }
 

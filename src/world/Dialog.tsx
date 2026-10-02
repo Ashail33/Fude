@@ -25,7 +25,7 @@ import { Sprite } from './Sprite'
 import type { Line } from './types'
 
 export type Step =
-  | { kind: 'say'; speaker?: Line; portrait?: SpriteId; line: Line; voice?: boolean }
+  | { kind: 'say'; speaker?: Line; portrait?: SpriteId; line: Line; voice?: boolean; /** Illustrated portrait of its own (folklore spirits), over the sprite's. */ hd?: string }
   | { kind: 'activity'; activity: Activity; speaker?: Line; portrait?: SpriteId }
   | { kind: 'choice'; prompt: Line; options: { id: string; label: Line }[]; onPick: (id: string) => Step[] | void }
   | { kind: 'kana'; prompt: Line; answer: string; onResult: (ok: boolean) => Step[] | void }
@@ -410,20 +410,23 @@ export function Dialog({ steps, speaker, onClose, onStart }: { steps: Step[]; sp
     return a?.kind === 'activity' ? BOSS_ACTIVITY_HD[a.activity.id] : undefined
   }, [queue])
   const hdOf = (sp: SpriteId | undefined) => (!sp ? undefined : bossId && !HEROES.has(sp) ? bossId : SPRITE_TO_HD[sp])
+  const hdOfStep = (s: Step | undefined) => (s?.kind === 'say' && s.hd) || hdOf(portraitOf(s))
   useEffect(() => {
-    preloadHd(queue.map((s) => hdOf(portraitOf(s))))
+    preloadHd(queue.map((s) => hdOfStep(s)))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queue])
   let bustSprite: SpriteId | undefined
+  let bustId: string | undefined
   for (let k = Math.min(i, queue.length - 1); k >= 0; k--) {
     const sp = portraitOf(queue[k])
-    if (sp && hdOf(sp)) {
+    const id = hdOfStep(queue[k])
+    if (sp && id) {
       bustSprite = sp
+      bustId = id
       break
     }
   }
   const curPortrait = portraitOf(step)
-  const bustId = hdOf(bustSprite)
   const bustActive = !(step?.kind === 'say' && curPortrait !== bustSprite)
   const busts: Bust[] = bustId ? [{ id: bustId, side: HEROES.has(bustSprite!) ? 'left' : 'right', active: bustActive, talking: talking && step?.kind === 'say' }] : []
 
@@ -453,7 +456,7 @@ export function Dialog({ steps, speaker, onClose, onStart }: { steps: Step[]; sp
   let body: ReactNode
   switch (step.kind) {
     case 'say':
-      body = <SayStep key={i} step={step} onNext={() => next()} bust={hdOf(step.portrait)} onTalking={setTalking} voice={stepVoice} cried={cries} />
+      body = <SayStep key={i} step={step} onNext={() => next()} bust={hdOfStep(step)} onTalking={setTalking} voice={stepVoice} cried={cries} />
       break
     case 'activity':
       body = <ActivityStep key={i} step={step} onStart={onStart} onNext={() => next()} />

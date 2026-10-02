@@ -46,6 +46,8 @@ export function sceneArt(scene: Scene, i: number): { id: string; still: boolean 
   const bg = backdropAt(scene, i)
   if (scene.id === 'intro') return { id: bg !== 'void' ? 'intro-3' : i <= 2 ? 'intro-1' : 'intro-2', still: true }
   if (scene.id.startsWith('arrive-')) return { id: scene.id, still: true }
+  // Fude's memories and the true ending are painted scenes; the void between memories stays dark
+  if (scene.memory || scene.id === 'true-ending') return bg === 'void' ? null : { id: scene.id, still: true }
   if (scene.id === 'ending') return bg === 'dawn' ? { id: 'ending', still: true } : { id: 'battle-summit', still: false }
   if (bg === 'void') return /-r5$/.test(scene.id) ? { id: 'battle-summit', still: false } : null
   const id = BG_HD[bg]
@@ -66,7 +68,7 @@ function sceneAssets(scene: Scene): string[] {
       if (b) ids.add(b)
     })
   })
-  for (const st of scene.steps) if (st.who) ids.add(speakerHd(SPEAKERS[st.who].sprite, bossHd(st.who) ? st.who : null) ?? '')
+  for (const st of scene.steps) if (st.who) ids.add(speakerHd(SPEAKERS[st.who].sprite, st.who) ?? '')
   ids.delete('')
   return [...ids]
 }
@@ -239,7 +241,7 @@ export function Cutscene({ id, onDone }: CutsceneProps) {
       }
     return { hero, other }
   }, [scene, i])
-  const bustOf = (a: ActorId | undefined) => (a ? speakerHd(SPEAKERS[a].sprite, bossHd(a) ? a : null) : undefined)
+  const bustOf = (a: ActorId | undefined) => (a ? speakerHd(SPEAKERS[a].sprite, a) : undefined)
   const busts: Bust[] = []
   if (speakers.hero) {
     const id = bustOf(speakers.hero)

@@ -490,3 +490,22 @@
   color: var(--gold, #f7c948);
   font-size: 0.85rem;
 }
+.gm-yokai-art {
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+  object-fit: contain;
+  display: block;
+}
+.gm-yokai .silhouette {
+  filter: brightness(0) opacity(0.45);
+  flex-shrink: 0;
+}
+.gm-page-art {
+  width: 96px;
+  height: 54px;
+  object-fit: cover;
+  border-radius: 4px;
+  flex-shrink: 0;
+  filter: sepia(0.5);
+}
