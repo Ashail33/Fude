@@ -1,0 +1,99 @@
+/* Palace Walk: a route of places, then the image stored at each. */
+.pw-route {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+}
+.pw-route li {
+  font-size: 1.2rem;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 2px dashed rgba(155, 231, 255, 0.35);
+  opacity: 0.55;
+  position: relative;
+}
+.pw-route li.past {
+  opacity: 0.9;
+  border-style: solid;
+  border-color: rgba(155, 231, 255, 0.6);
+}
+.pw-route li.here {
+  opacity: 1;
+  border: 3px solid var(--gold, #f7c948);
+  box-shadow: 0 0 10px rgba(247, 201, 72, 0.5);
+}
+.pw-arrive {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  text-align: center;
+}
+.pw-arrive-emoji {
+  font-size: 4rem;
+  line-height: 1;
+}
+.pw-arrive-name {
+  display: flex;
+  flex-direction: column;
+  font-size: 1.4rem;
+}
+.pw-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.pw-place {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.pw-cue {
+  margin: 0;
+  font-size: 1.12rem;
+  line-height: 1.55;
+}
+.pw-answer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 2px solid var(--good, #7bd389);
+  background: rgba(31, 92, 58, 0.35);
+}
+.pw-answer.bad {
+  border-color: var(--bad, #ff6b6b);
+  background: rgba(120, 30, 40, 0.3);
+}
+.pw-answer-front {
+  font-size: 2.2rem;
+  font-family: var(--font-jp);
+  font-weight: 700;
+}
+.pw-opt-reading {
+  display: block;
+  font-size: 0.75em;
+  opacity: 0.75;
+}
+.pw-next {
+  align-self: center;
+}
+@media (orientation: landscape) and (max-height: 540px) {
+  .pw-arrive-emoji {
+    font-size: 2.6rem;
+  }
+  .pw-cue {
+    font-size: 1rem;
+  }
+}

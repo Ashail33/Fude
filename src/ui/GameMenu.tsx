@@ -13,12 +13,14 @@ import { QuestBoard, ReviewWindow, StatusWindow } from '../components/Journal'
 import { T } from '../components/ui'
 import { Weave } from '../components/Weave'
 import { activitiesFor, REGIONS } from '../data/regions'
+import { fading, LOCI } from '../engine/palace'
 import { dueItems } from '../engine/quests'
 import { immersionOf, level, regionMastered, regionUnlocked, usePlayer } from '../engine/store'
 import { MAP_IDS } from '../story/scenes'
 import { owedMemories } from '../story/chronicle'
 import { KEY_ITEM_BY_ID, taleLog } from '../story/tales/engine'
 import { ChroniclePanel } from './ChroniclePanel'
+import { PalacePanel } from './PalacePanel'
 import { uiSound } from './sound'
 import './GameMenu.css'
 
@@ -30,7 +32,7 @@ export interface GameMenuProps {
   onReplay?: (scene: string) => void
 }
 
-type Panel = 'status' | 'story' | 'chronicle' | 'items' | 'quests' | 'map'
+type Panel = 'status' | 'story' | 'chronicle' | 'palace' | 'items' | 'quests' | 'map'
 
 function Label({ jp, en }: { jp: string; en: string }) {
   const p = usePlayer()
@@ -51,6 +53,7 @@ export function GameMenu({ onClose, onTravel, onReplay }: GameMenuProps) {
   const questsLeft = p.quests.list.filter((q) => !q.done).length
   const bagCount = Object.values(p.bag).reduce((a, b) => a + b, 0) + (p.keyItems?.length ?? 0)
   const activeTales = taleLog(p).filter((t) => !t.done).length
+  const palaceFading = LOCI.flatMap((l) => l.memories).filter((m) => fading(p, m)).length
 
   // Panels without their own list: X/Esc returns to the command window.
   useEffect(() => {
@@ -72,6 +75,7 @@ export function GameMenu({ onClose, onTravel, onReplay }: GameMenuProps) {
       case 'status':
       case 'story':
       case 'chronicle':
+      case 'palace':
       case 'items':
       case 'quests':
       case 'map':
@@ -95,6 +99,7 @@ export function GameMenu({ onClose, onTravel, onReplay }: GameMenuProps) {
     { id: 'status', label: <Label jp="つよさ" en="Status" /> },
     { id: 'story', label: <Label jp="ものがたり" en="Story" />, hint: activeTales > 0 ? <span className="gm-badge">{activeTales}</span> : undefined },
     { id: 'chronicle', label: <Label jp="きおく" en="Memories" />, hint: owedMemories(p).length ? <span className="gm-badge">!</span> : undefined },
+    { id: 'palace', label: <Label jp="やかた" en="Palace" />, hint: palaceFading ? <span className="gm-badge">{palaceFading}</span> : undefined },
     { id: 'items', label: <Label jp="どうぐ" en="Items" />, hint: bagCount || undefined },
     { id: 'grimoire', label: <Label jp="まどうしょ" en="Grimoire" /> },
     { id: 'quests', label: <Label jp="クエスト" en="Quests" />, hint: due + questsLeft > 0 ? <span className="gm-badge">{due + questsLeft}</span> : undefined },
@@ -109,6 +114,7 @@ export function GameMenu({ onClose, onTravel, onReplay }: GameMenuProps) {
   if (panel === 'status') body = <StatusWindow big />
   else if (panel === 'story') body = <StoryPanel />
   else if (panel === 'chronicle') body = <ChroniclePanel onReplay={onReplay} />
+  else if (panel === 'palace') body = <PalacePanel />
   else if (panel === 'items') body = <ItemsPanel active={focus === 'panel'} onBack={() => setFocus('cmd')} />
   else if (panel === 'quests')
     body = (

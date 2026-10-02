@@ -62,12 +62,15 @@ import { PostFX, type FxFrame } from '../fx/PostFX'
 import { gradeFor, GRADES, type Grade } from '../fx/grades'
 import { mapLights, tileLight, type Light } from '../fx/lights'
 
+/** Over-head markers: next trial, finished, story “!”, fading memory-palace place. */
+export type MarkerKind = 'next' | 'done' | 'tale' | 'palace'
+
 export interface RenderInfo {
   outfit: string
   /** Entity ids drawn as fading ghosts. */
   ghosts: Set<string>
   /** Entity id → marker. */
-  markers: Map<string, 'next' | 'done' | 'tale'>
+  markers: Map<string, MarkerKind>
   opened: Set<string>
   exitLocked: (e: Exit) => boolean
 }
@@ -755,11 +758,26 @@ export class Renderer {
     this.b.drawImage(bub, cx - (w >> 1), bottom - h, w, h)
   }
 
-  protected drawMarker(e: Entity, kind: 'next' | 'done' | 'tale', now: number) {
+  protected drawMarker(e: Entity, kind: MarkerKind, now: number) {
     const b = this.b
     const hp = this.headOf(e, this.p1)
     const cx = hp.x
     const top = hp.y
+    if (kind === 'palace') {
+      // a memory stored here is fading: a soft blue lantern-light breathes above it
+      const t = (Math.sin(now / 420 + e.x * 1.7) + 1) / 2
+      const y = top - 6 + Math.round(Math.sin(now / 600 + e.y) * 1.5)
+      b.globalAlpha = 0.25 + t * 0.25
+      b.fillStyle = '#9be7ff'
+      b.fillRect(cx - 3, y - 1, 7, 3)
+      b.fillRect(cx - 1, y - 3, 3, 7)
+      b.globalAlpha = 0.7 + t * 0.3
+      b.fillRect(cx - 1, y - 1, 3, 3)
+      b.fillStyle = PAL.white
+      b.fillRect(cx, y, 1, 1)
+      b.globalAlpha = 1
+      return
+    }
     if (kind === 'next' || kind === 'tale') {
       let since = this.markerSince.get(e.spec.id)
       if (since === undefined) {

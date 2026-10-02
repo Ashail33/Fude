@@ -9,9 +9,10 @@ import { dueItems, completeQuest, featuredToday, FEATURED_MULTIPLIER, questActiv
 import { playJingle } from '../engine/music'
 import { levelForXp, titleFor, xpForLevel } from '../engine/rewards'
 import { sfx } from '../engine/sfx'
-import { activityUnlocked, getState, recordResult, setState, usePlayer, type Outcome } from '../engine/store'
+import { activityUnlocked, getState, recordResult, setState, usePlayer, type Outcome, type PlayerState } from '../engine/store'
 import { gameComponent } from '../games/registry'
 import { owedMemories } from '../story/chronicle'
+import { info, LOCI, LOCUS_BY_ITEM, placed } from '../engine/palace'
 import { isChunkError, reloadForNewBuild } from '../engine/staleBuild'
 import type { Activity, GameResult } from '../games/types'
 
@@ -29,6 +30,23 @@ function resolveActivity(path: string): { activity?: Activity; questId?: string 
         jp: 'まどうしょのふくしゅう',
         description: 'Re-ink fading words.',
         params: { itemIds: ids },
+      },
+    }
+  }
+  if (rest.startsWith('palace/')) {
+    const room = Number(rest.slice(7))
+    const r = REGIONS[room - 1]
+    if (!r) return {}
+    return {
+      activity: {
+        id: `palace-r${room}`,
+        region: room,
+        stage: 'practice',
+        game: 'palace',
+        title: `Palace Walk: ${r.name.replace(/^The /, '')}`,
+        jp: `きおくの やかた・${r.jp}`,
+        description: 'Walk the memory palace and recall what lives at each place.',
+        params: { room },
       },
     }
   }
@@ -73,6 +91,8 @@ export default function Play() {
   const [run, setRun] = useState(0)
   const [outcome, setOutcome] = useState<{ o: Outcome; r: GameResult; questXp: number } | null>(null)
   const startedAt = useRef(Date.now())
+  // memory-palace items already placed when the game began (to show what's new)
+  const placedBefore = useRef(new Set(placedItems(getState())))
   const finished = useRef(false)
 
   // Back to the overworld, where the player is standing next to the trial.
@@ -119,7 +139,9 @@ export default function Play() {
         outcome={outcome.o}
         result={outcome.r}
         questXp={outcome.questXp}
+        newlyPlaced={placedItems(getState()).filter((id) => !placedBefore.current.has(id))}
         onRetry={() => {
+          placedBefore.current = new Set(placedItems(getState()))
           finished.current = false
           startedAt.current = Date.now()
           setOutcome(null)
@@ -150,6 +172,7 @@ function Results({
   questXp,
   onRetry,
   onBack,
+  newlyPlaced = [],
 }: {
   activity: Activity
   outcome: Outcome
@@ -157,6 +180,7 @@ function Results({
   questXp: number
   onRetry: () => void
   onBack: () => void
+  newlyPlaced?: string[]
 }) {
   const p = usePlayer()
   const nav = useNavigate()
@@ -271,6 +295,7 @@ function Results({
           </div>
         )}
         {questXp > 0 && <div className="unlock pop">⏳ Quest complete! +{questXp} XP</div>}
+        {newlyPlaced.length > 0 && <PlacedNote ids={newlyPlaced} />}
         {outcome.unlockedRegion && (
           <div className="unlock glow-text pop">
             🗺️ <T en="New region unlocked:" jp="あたらしいちいき：" /> {REGIONS[outcome.unlockedRegion - 1].name} <span lang="ja">{REGIONS[outcome.unlockedRegion - 1].jp}</span>
@@ -312,6 +337,37 @@ function Results({
           </button>
         )}
       </div>
+    </div>
+  )
+}
+
+/** Every memory-palace item the player has placed so far. */
+function placedItems(s: PlayerState): string[] {
+  return LOCI.flatMap((l) => l.memories.filter((m) => placed(s, m)).map((m) => m.item))
+}
+
+/** “📍 あ → the Inn”: where this game’s new items now live in the palace. */
+function PlacedNote({ ids }: { ids: string[] }) {
+  const byPlace = new Map<string, string[]>()
+  for (const id of ids) {
+    const l = LOCUS_BY_ITEM.get(id)
+    const m = l?.memories.find((x) => x.item === id)
+    if (!l || !m) continue
+    byPlace.set(l.id, [...(byPlace.get(l.id) ?? []), info(m)?.front ?? ''])
+  }
+  const rows = [...byPlace].slice(0, 4)
+  return (
+    <div className="unlock pop">
+      🏯 <T en="Placed in your Memory Palace:" jp="きおくの やかたに しまった：" />
+      {rows.map(([lid, fronts]) => {
+        const l = LOCI.find((x) => x.id === lid)!
+        return (
+          <div key={lid} className="small">
+            <span lang="ja">{fronts.join(' ')}</span> → {l.emoji} {l.name.en}
+          </div>
+        )
+      })}
+      {byPlace.size > rows.length && <div className="small muted">+{byPlace.size - rows.length} more places</div>}
     </div>
   )
 }

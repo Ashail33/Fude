@@ -47,6 +47,8 @@ export interface GameParams {
   combat: { enemyIds: string[]; input: 'choose' | 'type' }
   /** G9 – Speed Spell Casting. */
   speedcast: { wordIds: string[]; /** jp→en: word shown in Japanese, pick English. en→jp: reverse. */ direction: 'jp-en' | 'en-jp' | 'mixed'; durationSec: number }
+  /** Memory-palace walk through one room (region) of the palace, in route order. */
+  palace: { room: number }
   /** NPC dialogue scenario (see data/npcs.ts). */
   dialogue: { scenarioId: string }
   /** Bosses. */

@@ -19,17 +19,19 @@ import { speak } from '../engine/speech'
 import { strength } from '../engine/srs'
 import { addItem, getState, grantRewards, isPassed, level, markOpened, markScene, regionUnlocked, setFlag, setWorldPos, usePlayer, type PlayerState } from '../engine/store'
 import type { Activity } from '../games/types'
+import { fadingAnchors, fadingIn, LOCUS_BY_ANCHOR } from '../engine/palace'
 import { owedMemories } from '../story/chronicle'
 import { Cutscene, hasScene } from '../story/Cutscene'
 import { GameMenu } from '../ui/GameMenu'
 import { Bi, Dialog, type Step } from './Dialog'
+import { palaceSteps } from './palaceSteps'
 import { nextActivity } from './progress'
 import { entityAt, OPPOSITE, World } from './engine'
 import { castScript, taleLog, entityGhost, entityMoved, entityVisible, fizzle, makeCtx, mapCastScript, storyMarkers, talkScript } from '../story/tales/engine'
 import { makeEntities } from './entities'
 import { tileSolid } from './mapdef'
 import { getMap, locateActivity, REGION_MAPS } from './maps'
-import { Renderer, smoothstep, type RenderInfo } from './render'
+import { Renderer, smoothstep, type MarkerKind, type RenderInfo } from './render'
 import { CAM_MODES, canRender3D, Renderer3D, type CamMode } from '../world3d/Renderer3D'
 import { fxQuality } from '../fx/quality'
 import type { Entity, Exit, GameMap, Line } from './types'
@@ -78,8 +80,8 @@ function ghostIds(p: PlayerState, m: GameMap): Set<string> {
   return out
 }
 
-function markerMap(p: PlayerState, m: GameMap): Map<string, 'next' | 'done' | 'tale'> {
-  const out = new Map<string, 'next' | 'done' | 'tale'>()
+function markerMap(p: PlayerState, m: GameMap): Map<string, MarkerKind> {
+  const out = new Map<string, MarkerKind>()
   const story = storyMarkers(p)
   for (const e of m.entitySpecs) if (story.has(e.id)) out.set(e.id, 'tale')
   const next = nextActivity(p, m.spec.region)
@@ -90,6 +92,8 @@ function markerMap(p: PlayerState, m: GameMap): Map<string, 'next' | 'done' | 't
     if (next && acts.includes(next.id)) out.set(e.id, 'next')
     else if (acts.every((id) => isPassed(p, id))) out.set(e.id, 'done')
   }
+  // memory-palace places whose memories are fading call you back
+  for (const id of fadingAnchors(p, m.spec.id)) if (!out.has(id) || out.get(id) === 'done') out.set(id, 'palace')
   return out
 }
 
@@ -502,7 +506,15 @@ export default function Overworld() {
         const e = t.entity!
         if (e.spec.sprite && !e.big) e.dir = OPPOSITE[wd.player.dir]
         wd.talking = e
-        setDialog(interactSteps(e))
+        const d = interactSteps(e)
+        // a memory-palace place: offer its memories after its usual lines
+        const locus = LOCUS_BY_ANCHOR.get(`${wd.map.spec.id}:${e.spec.id}`)
+        const extra = locus ? palaceSteps(locus) : []
+        // hosts with a trial or a question ask theirs last; they only offer memories when some are fading
+        const ask = d.steps.findIndex((x) => x.kind === 'activity' || x.kind === 'choice' || x.kind === 'cast' || x.kind === 'kana' || x.kind === 'recall')
+        if (!extra.length || (ask >= 0 && !fadingIn(getState(), locus!).length)) setDialog(d)
+        else if (ask < 0) setDialog({ ...d, steps: [...d.steps, ...extra] })
+        else setDialog({ ...d, steps: [...d.steps.slice(0, ask), ...extra, ...d.steps.slice(ask)] })
       },
       onEncounter: () => {
         busy.current = true

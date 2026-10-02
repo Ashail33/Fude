@@ -367,3 +367,118 @@
   margin: 4px 0 6px;
   font-size: 1rem;
 }
+
+/* Memory palace */
+.gm-palace-rooms {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 6px 0;
+}
+.gm-palace-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.gm-palace-fade {
+  color: #9be7ff;
+}
+.gm-loci,
+.gm-memories {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.gm-loci > li {
+  border: 1px solid rgba(155, 231, 255, 0.3);
+  border-radius: 6px;
+  background: rgba(16, 22, 52, 0.4);
+}
+.gm-loci > li.fading {
+  border-color: #9be7ff;
+  box-shadow: 0 0 8px rgba(155, 231, 255, 0.35);
+}
+.gm-loci > li.empty {
+  opacity: 0.6;
+  border-style: dashed;
+}
+.gm-locus {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  grid-template-areas: 'n e name' 'n e chips';
+  align-items: center;
+  column-gap: 8px;
+  width: 100%;
+  padding: 6px 10px;
+  background: none;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.gm-locus-n {
+  grid-area: n;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.gm-locus-emoji {
+  grid-area: e;
+  font-size: 1.5rem;
+}
+.gm-locus-name {
+  grid-area: name;
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+}
+.gm-locus-chips {
+  grid-area: chips;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  font-size: 1rem;
+  color: var(--gold, #f7c948);
+}
+.gm-locus-chips .fading {
+  color: #9be7ff;
+  animation: gm-fade 1.6s ease-in-out infinite;
+}
+.gm-locus-chips .slot {
+  color: var(--muted);
+}
+@keyframes gm-fade {
+  50% {
+    opacity: 0.4;
+  }
+}
+.gm-memories {
+  padding: 0 10px 10px;
+}
+.gm-memories li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.gm-memory-front {
+  font-size: 1.6rem;
+  font-family: var(--font-jp);
+  min-width: 2.2em;
+  text-align: center;
+  color: var(--gold, #f7c948);
+}
+.gm-memory-gloss {
+  display: block;
+  color: var(--gold, #f7c948);
+}
+.gm-memory-story {
+  display: block;
+  line-height: 1.45;
+  font-size: 0.92rem;
+}

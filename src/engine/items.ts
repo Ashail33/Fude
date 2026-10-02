@@ -1,3 +1,4 @@
+import { GRAMMAR_BY_ID } from '../data/grammar'
 import { KANA_BY_CHAR } from '../data/kana'
 import { RADICAL_BY_CHAR, RECIPES } from '../data/kanji'
 import { FORGE_SENTENCES, PARTICLE_QUESTIONS, RUNES } from '../data/sentences'
@@ -12,6 +13,7 @@ import { VOCAB, WORD_BY_ID } from '../data/vocab'
  *   r:<id>       rune (reading)
  *   p:<index>    particle question
  *   a:<base>     adjective conjugation
+ *   g:<id>       grammar point / kana rule (data/grammar)
  */
 export const item = {
   word: (id: string) => `w:${id}`,
@@ -21,9 +23,10 @@ export const item = {
   rune: (id: string) => `r:${id}`,
   particle: (i: number) => `p:${i}`,
   adjective: (base: string) => `a:${base}`,
+  grammar: (id: string) => `g:${id}`,
 }
 
-export type ItemKind = 'word' | 'kana' | 'kanji' | 'sentence' | 'rune' | 'particle' | 'adjective'
+export type ItemKind = 'word' | 'kana' | 'kanji' | 'sentence' | 'rune' | 'particle' | 'adjective' | 'grammar'
 
 export interface ItemInfo {
   id: string
@@ -34,7 +37,7 @@ export interface ItemInfo {
   emoji?: string
 }
 
-const KIND: Record<string, ItemKind> = { w: 'word', k: 'kana', j: 'kanji', s: 'sentence', r: 'rune', p: 'particle', a: 'adjective' }
+const KIND: Record<string, ItemKind> = { w: 'word', k: 'kana', j: 'kanji', s: 'sentence', r: 'rune', p: 'particle', a: 'adjective', g: 'grammar' }
 
 export function describeItem(id: string): ItemInfo | undefined {
   const [prefix, ...rest] = id.split(':')
@@ -72,5 +75,9 @@ export function describeItem(id: string): ItemInfo | undefined {
     }
     case 'adjective':
       return { id, kind, front: key, meaning: 'adjective conjugation' }
+    case 'grammar': {
+      const g = GRAMMAR_BY_ID.get(key)
+      return g && { id, kind, front: g.jp, reading: g.say, meaning: g.en }
+    }
   }
 }
