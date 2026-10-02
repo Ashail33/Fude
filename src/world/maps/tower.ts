@@ -17,10 +17,14 @@ export const TOWER: MapSpec = {
   points: {
     q: { name: 'west', dir: 'up' },
     j: { name: 'tower', dir: 'down' },
+    l: { name: 'garden', dir: 'right' },
+    y: { name: 'armoury', dir: 'down' },
   },
   exits: [
     { at: '9', to: '@prev', point: 'east' },
     { at: 'd', to: 'tower-throne', point: 'door', tile: 'door' },
+    { at: 'h', to: 'tower-garden', point: 'east' },
+    { at: 'm', to: 'tower-armoury', point: 'door', tile: 'door' },
   ],
   entities: [
     { at: '5', id: 't-wizard', kind: 'activity', sprite: 'elder', dir: 'down', wander: 1, activities: ['r5-words-1'], name: { jp: 'きゅうてい まじゅつし', en: 'Court Wizard' }, lines: [{ jp: 'まほう、つるぎ、りゅう… ちからの ことばを おしえよう。', en: 'Magic, sword, dragon… I will teach you words of power.' }] },
@@ -54,7 +58,7 @@ export const TOWER_THRONE: MapSpec = {
   points: { v: { name: 'door', dir: 'up' }, z: { name: 'stairs', dir: 'down' } },
   exits: [
     { at: '0', to: 'tower', point: 'tower', tile: 'carpet' },
-    { at: '2', to: 'tower-top', point: 'stairs', tile: 'stairs-up' },
+    { at: '2', to: 'tower-library', point: 'down', tile: 'stairs-up' },
   ],
   entities: [
     { at: '1', id: 'tt-king', kind: 'activity', sprite: 'king', tile: 'throne', dir: 'down', activities: ['r5-king'], name: { jp: 'おうさま', en: 'The King' }, lines: [{ jp: 'よくぞ まいった、まほうつかいよ。ていねいに もうしてみよ。', en: 'Well met, mage. Speak, and speak politely.' }] },
@@ -77,7 +81,7 @@ export const TOWER_TOP: MapSpec = {
   legend: { O: { g: 'stone-floor', o: 'warp-circle' } },
   spawn: 'stairs',
   points: { v: { name: 'stairs', dir: 'up' } },
-  exits: [{ at: '0', to: 'tower-throne', point: 'stairs', tile: 'stairs-down' }],
+  exits: [{ at: '0', to: 'tower-library', point: 'up', tile: 'stairs-down' }],
   entities: [
     { at: '1', id: 'tp-chimera', kind: 'boss', sprite: 'kitsune', activities: ['r5-chimera'], name: { jp: 'かわる キメラ', en: 'The Shifting Chimera' }, lines: [{ jp: 'わが すがたは かわりつづける。ことばで いいあらわしてみよ！', en: 'My form never stops changing. Describe it in words, if you can!' }] },
     { at: '2', id: 'tp-dragon', kind: 'boss', sprite: 'dragon', activities: ['r5-dragon'], name: { jp: 'こくうの りゅう', en: 'The Void Dragon' }, lines: [{ jp: 'ちいさき まほうつかいよ。おまえの ことばの すべてを みせよ。', en: 'Little mage. Show me every word you have.' }] },

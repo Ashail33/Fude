@@ -18,11 +18,15 @@ export const SHRINE: MapSpec = {
     q: { name: 'south', dir: 'up' },
     v: { name: 'east', dir: 'down' },
     j: { name: 'library', dir: 'down' },
+    l: { name: 'torii', dir: 'down' },
+    y: { name: 'garden', dir: 'left' },
   },
   exits: [
     { at: '9', to: 'forest', point: 'north' },
     { at: '0', to: '@next', point: 'west', tile: 'stairs-up' },
     { at: 'd', to: 'shrine-library', point: 'door', tile: 'door' },
+    { at: 'h', to: 'shrine-torii', point: 'south', tile: 'stairs-up' },
+    { at: 'm', to: 'shrine-garden', point: 'west' },
   ],
   entities: [
     { at: '!', id: 's-miko', kind: 'activity', sprite: 'villager-b', dir: 'down', wander: 1, activities: ['r4-words-1'], name: { jp: 'みこ', en: 'Shrine Maiden' }, lines: [{ jp: 'あつい、つめたい、はやい… かたちの ことばを おしえますね。', en: 'Hot, cold, fast… let me teach you words that describe.' }] },

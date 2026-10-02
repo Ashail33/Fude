@@ -16,10 +16,14 @@ export const FIELDS: MapSpec = {
   points: {
     q: { name: 'south', dir: 'up' },
     v: { name: 'east', dir: 'left' },
+    j: { name: 'hill', dir: 'down' },
+    l: { name: 'well', dir: 'right' },
   },
   exits: [
     { at: '9', to: 'village', point: 'gate' },
     { at: '0', to: 'forest', point: 'west' },
+    { at: 'h', to: 'fields-hill', point: 'south' },
+    { at: 'U', to: 'fields-well', point: 'rope', tile: 'well' },
   ],
   entities: [
     { at: '1', id: 'f-farmer', kind: 'activity', sprite: 'villager-a', dir: 'down', activities: ['r2-words-1'], name: { jp: 'たんぼの おじいさん', en: 'Old Rice Farmer' }, lines: [{ jp: 'つち、いし、た… だいちの ことばを おしえよう。', en: 'Earth, stone, rice paddy… let me teach you the words of the land.' }] },

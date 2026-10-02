@@ -27,10 +27,14 @@ export const FOREST: MapSpec = {
   points: {
     q: { name: 'west', dir: 'right' },
     v: { name: 'north', dir: 'down' },
+    j: { name: 'hollow', dir: 'down' },
+    l: { name: 'lake', dir: 'left' },
   },
   exits: [
     { at: '9', to: 'fields', point: 'east' },
     { at: '0', to: 'shrine', point: 'south' },
+    { at: 'h', to: 'forest-hollow', point: 'south' },
+    { at: 'm', to: 'forest-lake', point: 'west' },
   ],
   entities: [
     { at: '5', id: 'fo-hermit', kind: 'activity', sprite: 'elder', dir: 'down', activities: ['r3-words-1'], name: { jp: 'もりの せんにん', en: 'Forest Hermit' }, lines: [{ jp: 'たべる、のむ、みる… うごく ことばを おしえよう。', en: 'Eat, drink, see… I shall teach you words that move.' }] },
