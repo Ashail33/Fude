@@ -33,6 +33,20 @@ export default function Arcade() {
             <b>
               <span lang="ja">ぼうにんじゃ</span> Stick Ninja
             </b>
+            <small>A sword-fighting adventure: cut through five worlds of foes, level up, buy legendary swords and defeat the five bosses.</small>
+            {p.ninja && (
+              <small>
+                ⚔️ Lv {p.ninja.level} · {p.ninja.cleared}/25 stages
+              </small>
+            )}
+          </span>
+        </Link>
+        <Link to="/bamboo-bridge" className="card ar-game">
+          <span className="ar-icon">🎋</span>
+          <span>
+            <b>
+              <span lang="ja">ぼうわたり</span> Bamboo Bridge
+            </b>
             <small>Hold to stretch the pole, let go to cross. Hit the red centre for a bonus; flip under the pole for shards.</small>
             {(p.arcade?.stick ?? 0) > 0 && <small>🏆 Best: {p.arcade!.stick}</small>}
           </span>

@@ -1,335 +1,529 @@
 /**
- * Stick Ninja (ぼうにんじゃ): a one-button arcade break from studying.
- * Hold to stretch a pole, let go to drop it across the gap; land the tip on
- * the next pillar to cross, hit the red centre for a bonus. While running
- * across, tap to flip under the pole and grab spirit shards, but flip back
- * before you reach the pillar or down you go. Shards collected are kept.
+ * Stick Ninja (ぼうにんじゃ): a side-on sword fighter for a break from
+ * studying. Fight through five worlds of bandits, spearmen, shinobi and
+ * brutes; level up, buy better swords with the ryō you win, and beat the
+ * five bosses. First clears also bring spirit shards back to the journey.
+ *
+ * The fight engine is in ../arcade/ninja (sim + draw); this screen is the
+ * dojo (stages, armoury), the fight view with its controls, and results.
  */
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { spriteCanvas } from '../art'
+import {
+  buySword,
+  canBuy,
+  clearBonus,
+  FOES,
+  freshNinja,
+  heroStats,
+  settleStage,
+  stageAt,
+  stageUnlocked,
+  STAGE_COUNT,
+  STAGES_PER_WORLD,
+  SWORD_BY_ID,
+  SWORDS,
+  WORLDS,
+  xpToNext,
+  type NinjaSave,
+  type StageResult,
+  type SwordId,
+} from '../arcade/ninja/data'
+import { draw, resetCamera } from '../arcade/ninja/draw'
+import { createSim, noInput, step, type Input, type Sim } from '../arcade/ninja/sim'
 import { sfx } from '../engine/sfx'
-import { getState, grantRewards, setState, usePlayer } from '../engine/store'
+import { grantRewards, setState, usePlayer } from '../engine/store'
 import './StickNinja.css'
 
-const H = 240
-const W = 270
-const GROUND = 165
-const HERO = 20
-const GROW = 160 // px per second
-const WALK = 120
-const PERFECT = 3
+type View = { k: 'dojo' } | { k: 'fight'; stage: number; run: number } | { k: 'result'; stage: number; won: boolean; r: StageResult; kills: number; chain: number }
 
-interface Pillar {
-  x: number
-  w: number
-}
-interface Shard {
-  x: number
-  taken: boolean
-}
-type Phase = 'ready' | 'grow' | 'turn' | 'walk' | 'scroll' | 'fall' | 'over'
-
-interface Game {
-  pillars: Pillar[]
-  /** Index of the pillar the ninja stands on. */
-  at: number
-  stick: number
-  angle: number
-  heroX: number
-  flipped: boolean
-  camera: number
-  cameraTo: number
-  phase: Phase
-  score: number
-  shards: number
-  perfect: number
-  combo: number
-  fallY: number
-  shard: Shard | null
-  t: number
-}
-
-function rnd(min: number, max: number) {
-  return min + Math.random() * (max - min)
-}
-
-function nextPillar(prev: Pillar, score: number): Pillar {
-  const hard = Math.min(1, score / 30)
-  const w = Math.round(rnd(12, 42 - hard * 18))
-  const gap = Math.round(rnd(24, 80 + hard * 45))
-  return { x: prev.x + prev.w + gap, w }
-}
-
-function newGame(): Game {
-  const first = { x: 0, w: 48 }
-  const second = nextPillar(first, 0)
-  return { pillars: [first, second], at: 0, stick: 0, angle: 0, heroX: first.w - HERO, flipped: false, camera: 0, cameraTo: 0, phase: 'ready', score: 0, shards: 0, perfect: 0, combo: 0, fallY: 0, shard: makeShard(first, second), t: 0 }
-}
-
-/** Sometimes a shard hangs under the gap. */
-function makeShard(a: Pillar, b: Pillar): Shard | null {
-  const gap = b.x - (a.x + a.w)
-  if (gap < 50 || Math.random() < 0.45) return null
-  return { x: a.x + a.w + rnd(14, gap - 14), taken: false }
-}
+const saveOf = (n: NinjaSave | undefined) => n ?? freshNinja()
 
 export default function StickNinja() {
   const p = usePlayer()
-  const canvas = useRef<HTMLCanvasElement>(null)
-  const game = useRef<Game>(newGame())
-  const holding = useRef(false)
-  const [hud, setHud] = useState({ score: 0, shards: 0, phase: 'ready' as Phase, perfect: false })
-  const best = p.arcade?.stick ?? 0
+  const save = saveOf(p.ninja)
+  const [view, setView] = useState<View>({ k: 'dojo' })
+  const [tab, setTab] = useState<'stages' | 'armory' | 'how'>('stages')
 
-  useEffect(() => {
-    const c = canvas.current!
-    const ctx = c.getContext('2d')!
-    let raf = 0
-    let last = performance.now()
-    const outfit = getState().outfit
+  const start = (stage: number) => setView({ k: 'fight', stage, run: Date.now() })
 
-    const finish = (g: Game) => {
-      g.phase = 'over'
-      sfx.wrong()
-      const reward = g.shards + Math.floor(g.score / 5)
-      if (reward) grantRewards(0, reward)
-      setState((s) => ({ ...s, arcade: { ...s.arcade, stick: Math.max(s.arcade?.stick ?? 0, g.score) } }))
-    }
-
-    const step = (now: number) => {
-      const dt = Math.min(0.05, (now - last) / 1000)
-      last = now
-      const g = game.current
-      g.t += dt
-      const cur = g.pillars[g.at]
-      const nxt = g.pillars[g.at + 1]
-      const edge = cur.x + cur.w
-      let perfectHit = false
-      if (g.phase === 'grow') {
-        g.stick += GROW * dt
-        if (!holding.current) g.phase = 'turn'
-      } else if (g.phase === 'turn') {
-        g.angle = Math.min(90, g.angle + 300 * dt)
-        if (g.angle >= 90) {
-          g.phase = 'walk'
-          sfx.confirm()
-        }
-      } else if (g.phase === 'walk') {
-        const tip = edge + g.stick
-        const lands = tip >= nxt.x && tip <= nxt.x + nxt.w
-        const target = lands ? nxt.x + nxt.w - HERO : tip
-        g.heroX = Math.min(target, g.heroX + WALK * dt)
-        // flipped under the pole: grab shards, but crash into the pillar
-        if (g.flipped && g.heroX + HERO >= nxt.x && lands) {
-          g.phase = 'fall'
-        } else if (g.shard && !g.shard.taken && g.flipped && Math.abs(g.heroX + HERO / 2 - g.shard.x) < 10) {
-          g.shard.taken = true
-          g.shards += 1
-          sfx.correct()
-        }
-        if (g.phase === 'walk' && g.heroX >= target) {
-          if (!lands) g.phase = 'fall'
-          else {
-            const centre = nxt.x + nxt.w / 2
-            perfectHit = Math.abs(tip - centre) <= PERFECT
-            g.combo = perfectHit ? g.combo + 1 : 0
-            g.score += perfectHit ? 1 + g.combo : 1
-            if (perfectHit) g.perfect++
-            sfx.correct()
-            g.at += 1
-            g.pillars.push(nextPillar(g.pillars[g.pillars.length - 1], g.score))
-            g.shard = makeShard(g.pillars[g.at], g.pillars[g.at + 1])
-            g.cameraTo = g.pillars[g.at].x + g.pillars[g.at].w - 54
-            g.phase = 'scroll'
-          }
-        }
-      } else if (g.phase === 'scroll') {
-        g.camera += (g.cameraTo - g.camera) * Math.min(1, dt * 8)
-        if (Math.abs(g.cameraTo - g.camera) < 0.5) {
-          g.camera = g.cameraTo
-          g.stick = 0
-          g.angle = 0
-          g.phase = 'ready'
-        }
-      } else if (g.phase === 'fall') {
-        g.angle = Math.min(180, g.angle + 300 * dt)
-        g.fallY += 420 * dt
-        if (g.fallY > H) finish(g)
-      }
-      draw(ctx, g, outfit)
-      setHud((h) => (h.score !== g.score || h.shards !== g.shards || h.phase !== g.phase || (perfectHit && !h.perfect) ? { score: g.score, shards: g.shards, phase: g.phase, perfect: perfectHit || (h.perfect && g.phase === 'scroll') } : h))
-      raf = requestAnimationFrame(step)
-    }
-    raf = requestAnimationFrame(step)
-    return () => cancelAnimationFrame(raf)
-  }, [])
-
-  const press = () => {
-    const g = game.current
-    if (g.phase === 'ready') {
-      holding.current = true
-      g.phase = 'grow'
-    } else if (g.phase === 'walk') {
-      g.flipped = !g.flipped
-    }
-  }
-  const release = () => {
-    holding.current = false
-  }
-  const restart = () => {
-    game.current = newGame()
-    holding.current = false
-    setHud({ score: 0, shards: 0, phase: 'ready', perfect: false })
+  const finish = (stage: number, s: Sim) => {
+    const won = s.outcome === 'win'
+    const r = settleStage(save, stageAt(stage), won, s.xp, s.ryo)
+    setState((st) => ({ ...st, ninja: r.save }))
+    if (r.shards) grantRewards(0, r.shards)
+    if (r.levelsGained) sfx.levelUp()
+    setView({ k: 'result', stage, won, r, kills: s.kills, chain: s.bestChain })
   }
 
-  useEffect(() => {
-    const down = (e: KeyboardEvent) => {
-      if (e.key !== ' ' && e.key !== 'Enter') return
-      e.preventDefault()
-      if (e.repeat) return
-      if (game.current.phase === 'over') restart()
-      else press()
-    }
-    const up = (e: KeyboardEvent) => (e.key === ' ' || e.key === 'Enter') && release()
-    window.addEventListener('keydown', down)
-    window.addEventListener('keyup', up)
-    return () => {
-      window.removeEventListener('keydown', down)
-      window.removeEventListener('keyup', up)
-    }
-  }, [])
+  if (view.k === 'fight') return <Fight key={view.run} stage={view.stage} save={save} onEnd={(s) => finish(view.stage, s)} onQuit={() => setView({ k: 'dojo' })} />
+  if (view.k === 'result') return <Result view={view} save={save} onNext={start} onDojo={() => setView({ k: 'dojo' })} />
 
-  const over = hud.phase === 'over'
+  const st = heroStats(save.level)
+  const sword = SWORD_BY_ID[save.sword]
+  const affordable = SWORDS.filter((s) => canBuy(save, s.id) === 'ok').length
   return (
-    <main className="sn-page">
-      <header className="sn-head">
+    <main className="nj-page">
+      <header className="nj-head">
         <Link to="/arcade" className="btn btn-sm">
-          ← あそび
+          ← Games
         </Link>
-        <span className="sn-title">
+        <h1>
           <span lang="ja">ぼうにんじゃ</span> Stick Ninja
-        </span>
-        <span className="sn-best">🏆 {Math.max(best, hud.score)}</span>
+        </h1>
       </header>
-      <div className="sn-stage">
-        <canvas
-          ref={canvas}
-          width={W}
-          height={H}
-          className="sn-canvas"
-          onPointerDown={(e) => {
-            e.preventDefault()
-            if (over) restart()
-            else press()
-          }}
-          onPointerUp={release}
-          onPointerLeave={release}
-          onPointerCancel={release}
-          aria-label="Stick Ninja: hold to stretch the pole, let go to drop it"
-        />
-        <div className="sn-score" aria-live="polite">
-          {hud.score}
-          {hud.shards > 0 && <small> ✦{hud.shards}</small>}
-        </div>
-        {hud.perfect && hud.phase === 'scroll' && <div className="sn-perfect">PERFECT!</div>}
-        {hud.phase === 'ready' && hud.score === 0 && <div className="sn-tip">Hold to stretch the pole · let go to drop it · tap while running to flip for ✦</div>}
-        {over && (
-          <div className="sn-over">
-            <strong>Score {hud.score}</strong>
-            <span>
-              +{hud.shards + Math.floor(hud.score / 5)} ✦ shards {hud.score > best && best > 0 ? '· New best!' : ''}
-            </span>
-            <button type="button" className="btn btn-primary" onClick={restart}>
-              もう いちど · Again
-            </button>
+      <section className="card nj-stats">
+        <div className="nj-lv">
+          <b>Lv {save.level}</b>
+          <div className="nj-xp" title={`${save.xp} / ${xpToNext(save.level)} XP`}>
+            <i style={{ width: `${(save.xp / xpToNext(save.level)) * 100}%` }} />
           </div>
-        )}
-      </div>
+          <small>
+            {save.xp} / {xpToNext(save.level)} XP
+          </small>
+        </div>
+        <div className="nj-nums">
+          <span title="Health">❤️ {st.hp}</span>
+          <span title="Attack">⚔️ {Math.round(sword.dmg * st.atkMul)}</span>
+          <span title="Ryō (coins)">💰 {save.ryo}</span>
+        </div>
+        <div className="nj-sword">
+          <span lang="ja">{sword.jp}</span> {sword.name} · ✨ {sword.specialName}
+        </div>
+      </section>
+      <nav className="nj-tabs" role="tablist">
+        <button role="tab" aria-selected={tab === 'stages'} className={tab === 'stages' ? 'on' : ''} onClick={() => setTab('stages')}>
+          ⛩️ Stages
+        </button>
+        <button role="tab" aria-selected={tab === 'armory'} className={tab === 'armory' ? 'on' : ''} onClick={() => setTab('armory')}>
+          🗡️ Armoury{affordable > 0 && <em className="nj-dot">{affordable}</em>}
+        </button>
+        <button role="tab" aria-selected={tab === 'how'} className={tab === 'how' ? 'on' : ''} onClick={() => setTab('how')}>
+          📜 How to play
+        </button>
+      </nav>
+      {tab === 'stages' && <Stages save={save} onStart={start} />}
+      {tab === 'armory' && <Armory save={save} />}
+      {tab === 'how' && <HowTo />}
     </main>
   )
 }
 
-function draw(ctx: CanvasRenderingContext2D, g: Game, outfit: string) {
-  ctx.imageSmoothingEnabled = false
-  // dusk sky, a far mountain, drifting petals
-  const sky = ctx.createLinearGradient(0, 0, 0, H)
-  sky.addColorStop(0, '#2b2f5e')
-  sky.addColorStop(0.55, '#c86b8a')
-  sky.addColorStop(1, '#f7b267')
-  ctx.fillStyle = sky
-  ctx.fillRect(0, 0, W, H)
-  ctx.fillStyle = 'rgba(255,240,200,0.85)'
-  ctx.beginPath()
-  ctx.arc(200, 52, 17, 0, Math.PI * 2)
-  ctx.fill()
-  const par = (g.camera * 0.15) % 300
-  ctx.fillStyle = '#5a4a7a'
-  for (let i = -1; i < 3; i++) {
-    const bx = i * 300 - par
-    ctx.beginPath()
-    ctx.moveTo(bx, GROUND)
-    ctx.lineTo(bx + 90, GROUND - 90)
-    ctx.lineTo(bx + 112, GROUND - 95)
-    ctx.lineTo(bx + 135, GROUND - 88)
-    ctx.lineTo(bx + 240, GROUND)
-    ctx.fill()
-    ctx.fillStyle = '#f2eef8'
-    ctx.beginPath()
-    ctx.moveTo(bx + 90, GROUND - 90)
-    ctx.lineTo(bx + 112, GROUND - 95)
-    ctx.lineTo(bx + 135, GROUND - 88)
-    ctx.lineTo(bx + 122, GROUND - 75)
-    ctx.lineTo(bx + 105, GROUND - 80)
-    ctx.fill()
-    ctx.fillStyle = '#5a4a7a'
+function Stages({ save, onStart }: { save: NinjaSave; onStart: (i: number) => void }) {
+  return (
+    <div className="nj-worlds">
+      {WORLDS.map((w, wi) => {
+        const first = wi * STAGES_PER_WORLD
+        const open = stageUnlocked(save, first)
+        const boss = FOES[w.boss]
+        return (
+          <section key={w.name} className={`card nj-world nj-w${wi}${open ? '' : ' locked'}`}>
+            <h2>
+              <span lang="ja">{w.jp}</span> {w.name}
+            </h2>
+            <small className="muted">
+              Boss: {boss.name} <span lang="ja">{boss.jp}</span>
+            </small>
+            <div className="nj-stage-row">
+              {Array.from({ length: STAGES_PER_WORLD }, (_, k) => {
+                const i = first + k
+                const isBoss = k === STAGES_PER_WORLD - 1
+                const done = i < save.cleared
+                const unlocked = stageUnlocked(save, i)
+                return (
+                  <button
+                    key={i}
+                    className={`nj-stage${isBoss ? ' boss' : ''}${done ? ' done' : ''}${i === save.cleared ? ' next' : ''}`}
+                    disabled={!unlocked}
+                    onClick={() => onStart(i)}
+                    aria-label={`Stage ${wi + 1}-${k + 1}${isBoss ? ', boss' : ''}${done ? ', cleared' : unlocked ? '' : ', locked'}`}
+                  >
+                    {!unlocked ? '🔒' : isBoss ? '👹' : `${wi + 1}-${k + 1}`}
+                    {done && <i>✓</i>}
+                  </button>
+                )
+              })}
+            </div>
+          </section>
+        )
+      })}
+      {save.cleared >= STAGE_COUNT && <p className="card nj-done">🏆 You have beaten every boss. Replay any stage to grind ryō and XP.</p>}
+    </div>
+  )
+}
+
+function Armory({ save }: { save: NinjaSave }) {
+  const set = (fn: (n: NinjaSave) => NinjaSave | null) =>
+    setState((s) => {
+      const next = fn(saveOf(s.ninja))
+      return next ? { ...s, ninja: next } : s
+    })
+  const buy = (id: SwordId) => {
+    sfx.coin()
+    set((n) => buySword(n, id))
   }
-  const sx = (x: number) => Math.round(x - g.camera)
-  // pillars
-  for (const p of g.pillars) {
-    const x = sx(p.x)
-    if (x > W || x + p.w < 0) continue
-    ctx.fillStyle = '#1b1430'
-    ctx.fillRect(x, GROUND, p.w, H - GROUND)
-    ctx.fillStyle = '#3f8f4f'
-    ctx.fillRect(x, GROUND, p.w, 4)
-    ctx.fillStyle = '#e2432f'
-    ctx.fillRect(x + Math.round(p.w / 2) - 2, GROUND, 4, 3)
+  const equip = (id: SwordId) => {
+    sfx.confirm()
+    set((n) => ({ ...n, sword: id }))
   }
-  // shard under the gap
-  if (g.shard && !g.shard.taken) {
-    const x = sx(g.shard.x)
-    const y = GROUND + 14 + Math.sin(g.t * 4) * 2
-    ctx.fillStyle = '#c7a3f0'
-    ctx.beginPath()
-    ctx.moveTo(x, y - 6)
-    ctx.lineTo(x + 4, y)
-    ctx.lineTo(x, y + 6)
-    ctx.lineTo(x - 4, y)
-    ctx.fill()
-    ctx.fillStyle = '#fff'
-    ctx.fillRect(x - 1, y - 3, 2, 2)
+  const top = { dmg: 34, speed: 1.6, reach: 80 }
+  return (
+    <div className="nj-swords">
+      {SWORDS.map((sw) => {
+        const check = canBuy(save, sw.id)
+        const owned = check === 'owned'
+        const on = save.sword === sw.id
+        return (
+          <article key={sw.id} className={`card nj-blade${on ? ' on' : ''}${owned ? '' : ' unowned'}`} style={{ '--blade': sw.color } as React.CSSProperties}>
+            <div className="nj-blade-art" aria-hidden>
+              <svg viewBox="0 0 120 20">
+                <rect x="2" y="8" width="22" height="4" rx="1" fill="#2b2b2b" />
+                <rect x="23" y="4" width="3" height="12" rx="1" fill="#c9a227" />
+                <path d={`M26 8 L${26 + (sw.reach / 80) * 90} 9 L${22 + (sw.reach / 80) * 90} 12 L26 12 Z`} fill={sw.color} />
+                {sw.twin && <path d={`M26 2 L${26 + (sw.reach / 80) * 70} 3 L${22 + (sw.reach / 80) * 70} 5 L26 5 Z`} fill={sw.color} opacity="0.7" />}
+              </svg>
+            </div>
+            <h3>
+              <span lang="ja">{sw.jp}</span> {sw.name}
+            </h3>
+            <p className="muted">{sw.blurb}</p>
+            <dl className="nj-bars">
+              <dt>Power</dt>
+              <dd>
+                <i style={{ width: `${(sw.dmg / top.dmg) * 100}%` }} />
+              </dd>
+              <dt>Speed</dt>
+              <dd>
+                <i style={{ width: `${(sw.speed / top.speed) * 100}%` }} />
+              </dd>
+              <dt>Reach</dt>
+              <dd>
+                <i style={{ width: `${(sw.reach / top.reach) * 100}%` }} />
+              </dd>
+            </dl>
+            <p className="nj-special">
+              ✨ {sw.specialName}
+              {sw.burn && ' · 🔥 burns'}
+              {sw.lifesteal && ' · 🌙 drains life'}
+            </p>
+            {on ? (
+              <span className="nj-equipped">✓ Equipped</span>
+            ) : owned ? (
+              <button className="btn btn-sm" onClick={() => equip(sw.id)}>
+                Equip
+              </button>
+            ) : (
+              <button className="btn btn-sm btn-primary" disabled={check !== 'ok'} onClick={() => buy(sw.id)}>
+                {check === 'level' ? `🔒 Lv ${sw.level}` : `💰 ${sw.cost}`}
+              </button>
+            )}
+          </article>
+        )
+      })}
+    </div>
+  )
+}
+
+function HowTo() {
+  return (
+    <section className="card nj-how">
+      <h2>How to fight</h2>
+      <table>
+        <tbody>
+          <tr>
+            <td>Move</td>
+            <td>
+              <kbd>←</kbd> <kbd>→</kbd> / <kbd>A</kbd> <kbd>D</kbd> · ◀ ▶
+            </td>
+          </tr>
+          <tr>
+            <td>Jump (twice in the air)</td>
+            <td>
+              <kbd>↑</kbd> / <kbd>W</kbd> / <kbd>Space</kbd> · ⤒
+            </td>
+          </tr>
+          <tr>
+            <td>Attack (tap 3× to combo)</td>
+            <td>
+              <kbd>J</kbd> / <kbd>Z</kbd> · ⚔️
+            </td>
+          </tr>
+          <tr>
+            <td>Guard (hold)</td>
+            <td>
+              <kbd>K</kbd> / <kbd>X</kbd> · 🛡️
+            </td>
+          </tr>
+          <tr>
+            <td>Dash (dodge through attacks)</td>
+            <td>
+              <kbd>L</kbd> / <kbd>C</kbd> / <kbd>Shift</kbd> · 💨
+            </td>
+          </tr>
+          <tr>
+            <td>Special (when the blue bar is full)</td>
+            <td>
+              <kbd>I</kbd> / <kbd>V</kbd> · ✨
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <ul>
+        <li>
+          <b>Parry:</b> raise your guard just before a hit lands to stun the attacker. Parried shuriken fly back.
+        </li>
+        <li>
+          <b>Combos:</b> the third cut knocks foes flying. Landing hits fills your special bar.
+        </li>
+        <li>
+          <b>Jump</b> over the Oni’s shockwaves; <b>dash</b> through attacks you cannot block (they glow orange).
+        </li>
+        <li>Lost a fight? You keep the XP and half the ryō, so you come back stronger.</li>
+        <li>First clears bring spirit shards ✦ back to your journey.</li>
+      </ul>
+    </section>
+  )
+}
+
+// ─── The fight ─────────────────────────────────────────────────────────
+
+const KEYS: Record<string, keyof Input> = {
+  ArrowLeft: 'left',
+  KeyA: 'left',
+  ArrowRight: 'right',
+  KeyD: 'right',
+  ArrowUp: 'jump',
+  KeyW: 'jump',
+  Space: 'jump',
+  KeyJ: 'attack',
+  KeyZ: 'attack',
+  KeyK: 'block',
+  KeyX: 'block',
+  ArrowDown: 'block',
+  KeyS: 'block',
+  KeyL: 'dash',
+  KeyC: 'dash',
+  ShiftLeft: 'dash',
+  ShiftRight: 'dash',
+  KeyI: 'special',
+  KeyV: 'special',
+  KeyE: 'special',
+}
+const EDGES: (keyof Input)[] = ['jump', 'attack', 'dash', 'special']
+
+const SOUNDS: Record<string, () => void> = {
+  hit: sfx.hit,
+  hurt: sfx.hurt,
+  parry: sfx.crit,
+  block: sfx.click,
+  special: sfx.cast,
+  thunder: sfx.crit,
+  kill: sfx.coin,
+  boss: sfx.encounter,
+  bossDown: sfx.levelUp,
+  win: sfx.win,
+  dead: sfx.lose,
+  slam: sfx.hurt,
+  throw: sfx.stroke,
+  dash: sfx.stroke,
+}
+
+function Fight({ stage, save, onEnd, onQuit }: { stage: number; save: NinjaSave; onEnd: (s: Sim) => void; onQuit: () => void }) {
+  const canvas = useRef<HTMLCanvasElement>(null)
+  const input = useRef<Input>(noInput())
+  const paused = useRef(false)
+  const [isPaused, setPaused] = useState(false)
+  const [ready, setReady] = useState(false)
+  const endRef = useRef(onEnd)
+  endRef.current = onEnd
+
+  useEffect(() => {
+    const c = canvas.current!
+    const ctx = c.getContext('2d')!
+    const sim = createSim(stageAt(stage), save.level, SWORD_BY_ID[save.sword])
+    resetCamera()
+    let raf = 0
+    let last = performance.now()
+    let ended = false
+    let lastSound = 0
+    let wasReady = false
+    const loop = (now: number) => {
+      const dt = Math.min(0.05, (now - last) / 1000)
+      last = now
+      if (!paused.current) {
+        let rem = dt
+        while (rem > 1e-4) {
+          const d = Math.min(1 / 60, rem)
+          rem -= d
+          if (step(sim, input.current, d)) for (const k of EDGES) input.current[k] = false
+        }
+        for (const e of sim.events) {
+          if ((e === 'hit' || e === 'block') && now - lastSound < 60) continue
+          lastSound = now
+          SOUNDS[e]?.()
+        }
+        sim.events = []
+      }
+      const dpr = Math.min(2, window.devicePixelRatio || 1)
+      const pw = Math.round(c.clientWidth * dpr)
+      const ph = Math.round(c.clientHeight * dpr)
+      if (c.width !== pw || c.height !== ph) {
+        c.width = pw
+        c.height = ph
+      }
+      draw(ctx, sim, save.level, c.width, c.height, dt)
+      const full = sim.meter >= 100
+      if (full !== wasReady) {
+        wasReady = full
+        setReady(full)
+      }
+      if (sim.outcome && sim.outcomeT > 1.8 && !ended) {
+        ended = true
+        endRef.current(sim)
+        return
+      }
+      raf = requestAnimationFrame(loop)
+    }
+    raf = requestAnimationFrame(loop)
+    return () => cancelAnimationFrame(raf)
+    // The fight runs once per mount (a retry remounts it).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.code === 'Escape' || e.code === 'KeyP') {
+        paused.current = !paused.current
+        setPaused(paused.current)
+        return
+      }
+      const k = KEYS[e.code]
+      if (!k) return
+      e.preventDefault()
+      if (EDGES.includes(k) && e.repeat) return
+      input.current[k] = true
+    }
+    const up = (e: KeyboardEvent) => {
+      const k = KEYS[e.code]
+      if (k && !EDGES.includes(k)) input.current[k] = false
+    }
+    const blur = () => (input.current = noInput())
+    window.addEventListener('keydown', down)
+    window.addEventListener('keyup', up)
+    window.addEventListener('blur', blur)
+    return () => {
+      window.removeEventListener('keydown', down)
+      window.removeEventListener('keyup', up)
+      window.removeEventListener('blur', blur)
+    }
+  }, [])
+
+  const pad = (k: keyof Input, label: string, cls = '') => (
+    <button
+      className={`nj-pad ${cls}`}
+      aria-label={k}
+      onPointerDown={(e) => {
+        e.preventDefault()
+        ;(e.target as HTMLElement).setPointerCapture?.(e.pointerId)
+        input.current[k] = true
+      }}
+      onPointerUp={() => {
+        if (!EDGES.includes(k)) input.current[k] = false
+      }}
+      onPointerCancel={() => (input.current[k] = false)}
+      onContextMenu={(e) => e.preventDefault()}
+    >
+      {label}
+    </button>
+  )
+
+  const togglePause = () => {
+    paused.current = !paused.current
+    setPaused(paused.current)
   }
-  // the pole
-  const cur = g.pillars[g.at]
-  const ex = sx(cur.x + cur.w)
-  ctx.save()
-  ctx.translate(ex, GROUND)
-  ctx.rotate((g.angle * Math.PI) / 180)
-  ctx.fillStyle = '#8a5a2b'
-  ctx.fillRect(-2, -g.stick, 3, g.stick)
-  ctx.restore()
-  // the ninja (the player's mage, running)
-  const run = g.phase === 'walk'
-  const frame = run ? Math.floor(g.t * 12) % 4 : 0
-  const sprite = spriteCanvas('mage', { dir: 'right', anim: run ? 'run' : 'idle', frame, outfit })
-  const hx = sx(g.heroX)
-  const hy = GROUND - HERO + g.fallY
-  if (g.flipped && g.phase !== 'fall') {
-    ctx.save()
-    ctx.translate(hx, GROUND + HERO)
-    ctx.scale(1, -1)
-    ctx.drawImage(sprite, 0, 0, HERO, HERO)
-    ctx.restore()
-  } else ctx.drawImage(sprite, hx, hy, HERO, HERO)
+
+  return (
+    <div className="nj-fight">
+      <div className="nj-screen">
+        <canvas ref={canvas} className="nj-canvas" />
+        <button className="nj-pause" onClick={togglePause} aria-label="Pause">
+          <span aria-hidden>II</span>
+        </button>
+        {isPaused && (
+          <div className="nj-paused">
+            <h2>Paused</h2>
+            <button className="btn btn-primary" onClick={togglePause}>
+              ▶ Resume
+            </button>
+            <button className="btn" onClick={onQuit}>
+              🏳️ Leave the fight
+            </button>
+          </div>
+        )}
+      </div>
+      <div className="nj-controls">
+        <div className="nj-dpad">
+          {pad('left', '◀')}
+          {pad('right', '▶')}
+        </div>
+        <div className="nj-actions">
+          {pad('block', '🛡️', 'block')}
+          {pad('dash', '💨', 'dash')}
+          {pad('special', '✨', `special${ready ? ' ready' : ''}`)}
+          {pad('jump', '⤒', 'jump')}
+          {pad('attack', '⚔️', 'attack')}
+        </div>
+      </div>
+      <p className="nj-keys muted">
+        <kbd>A</kbd>/<kbd>D</kbd> move · <kbd>W</kbd> jump · <kbd>J</kbd> attack · <kbd>K</kbd> guard · <kbd>L</kbd> dash · <kbd>I</kbd> special · <kbd>Esc</kbd> pause
+      </p>
+    </div>
+  )
+}
+
+function Result({ view, save, onNext, onDojo }: { view: Extract<View, { k: 'result' }>; save: NinjaSave; onNext: (i: number) => void; onDojo: () => void }) {
+  const { r, won, stage } = view
+  const st = stageAt(stage)
+  const w = WORLDS[st.world]
+  const next = stage + 1 < STAGE_COUNT && stageUnlocked(save, stage + 1) ? stage + 1 : null
+  const nowAffordable = SWORDS.filter((s) => canBuy(save, s.id) === 'ok')
+  return (
+    <main className="nj-page nj-result">
+      <section className={`card nj-res ${won ? 'won' : 'lost'}`}>
+        <h1>{won ? (st.boss ? '👹 Boss defeated!' : '⛩️ Stage clear!') : '💀 Defeated…'}</h1>
+        <p className="muted">
+          <span lang="ja">{w.jp}</span> {w.name} · {st.world + 1}-{st.n}
+        </p>
+        <ul className="nj-res-list">
+          <li>⚔️ {view.kills} foes cut down</li>
+          {view.chain >= 3 && <li>🔥 Best combo: {view.chain} hits</li>}
+          <li>✨ +{r.xp} XP</li>
+          <li>
+            💰 +{r.ryo} ryō{won && <small> (incl. {clearBonus(st)} clear bonus)</small>}
+            {!won && <small> (half kept)</small>}
+          </li>
+          {r.levelsGained > 0 && (
+            <li className="nj-up">
+              ⬆️ Level up! Now Lv {r.save.level} (❤️ {heroStats(r.save.level).hp})
+            </li>
+          )}
+          {r.shards > 0 && <li className="nj-up">✦ +{r.shards} spirit shards for your journey</li>}
+          {nowAffordable.length > 0 && <li>🗡️ You can afford {nowAffordable.map((s) => s.name).join(', ')} in the Armoury!</li>}
+        </ul>
+        <div className="nj-res-btns">
+          {won && next !== null && (
+            <button className="btn btn-primary" onClick={() => onNext(next)}>
+              Next stage ▶
+            </button>
+          )}
+          <button className={`btn${won ? '' : ' btn-primary'}`} onClick={() => onNext(stage)}>
+            ↻ {won ? 'Play again' : 'Try again'}
+          </button>
+          <button className="btn" onClick={onDojo}>
+            ⛩️ Dojo
+          </button>
+        </div>
+      </section>
+    </main>
+  )
 }

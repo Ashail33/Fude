@@ -7,6 +7,7 @@ import { HIRAGANA, KATAKANA, type Kana } from '../data/kana'
 import { masteryTier, newCard, review, type Review, type SrsCard } from './srs'
 import { todayKey } from './random'
 import type { HamletState } from './hamlet'
+import type { NinjaSave } from '../arcade/ninja/data'
 
 export type ImmersionLevel = 0 | 1 | 2 | 3
 
@@ -94,6 +95,8 @@ export interface PlayerState {
   hamlet?: HamletState
   /** Best scores in the arcade games, by game id. */
   arcade?: Record<string, number>
+  /** Stick Ninja progress: level, ryō, swords, stages cleared. */
+  ninja?: NinjaSave
 }
 
 /** A moment in the world tied to an item: where you met it or used it. */

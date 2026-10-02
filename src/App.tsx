@@ -18,6 +18,7 @@ const Tavern = lazy(() => import('./screens/Tavern'))
 const Arcade = lazy(() => import('./screens/Arcade'))
 const Hamlet = lazy(() => import('./screens/Hamlet'))
 const StickNinja = lazy(() => import('./screens/StickNinja'))
+const PoleBridge = lazy(() => import('./screens/PoleBridge'))
 const Overworld = lazy(() => import('./world/Overworld'))
 const Battle = lazy(() => import('./battle/Battle'))
 
@@ -159,6 +160,7 @@ export default function App() {
             <Route path="/arcade" element={<Arcade />} />
             <Route path="/hamlet" element={<Hamlet />} />
             <Route path="/stick-ninja" element={<StickNinja />} />
+            <Route path="/bamboo-bridge" element={<PoleBridge />} />
             <Route path="/world" element={<Navigate to="/" replace />} />
             <Route path="/battle-test/:region" element={<BattleTest />} />
             <Route path="*" element={<Navigate to="/" replace />} />
