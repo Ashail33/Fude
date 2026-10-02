@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { HIRAGANA, KATAKANA } from '../data/kana'
 import { item } from './items'
 import { xpForLevel } from './rewards'
 import { freshState, type PlayerState } from './store'
@@ -6,8 +7,10 @@ import { UI_LEARNING_CAP, UI_STAGE_AT, UI_TERMS, weave, type Segment } from './w
 
 const card = (interval: number) => ({ id: '', ease: 2.5, interval, due: 0, reps: 2, lapses: 0, seen: 3, correct: 3, wrong: 0, avgMs: 2000, lastSeen: Date.now() })
 
+/** Every kana learned, so the weave isn't held back by reading. */
+const ALL_KANA = Object.fromEntries([...HIRAGANA, ...KATAKANA].map((k) => [item.kana(k.char), card(10)]))
 function player(over: Partial<PlayerState> = {}): PlayerState {
-  return { ...freshState(), ...over }
+  return { ...freshState(), ...over, srs: { ...ALL_KANA, ...over.srs } }
 }
 const woven = (segs: Segment[]) => segs.filter((s) => typeof s !== 'string') as Exclude<Segment, string>[]
 
@@ -46,6 +49,16 @@ describe('language weave', () => {
   it('keeps sentences readable: at most two hints', () => {
     const srs = Object.fromEntries(['hi', 'mizu', 'ki', 'inu', 'neko'].map((w) => [item.word(w), card(3)]))
     expect(woven(weave(player({ srs }), 'fire, water, tree, dog and cat'))).toHaveLength(2)
+  })
+
+  it('keeps a word English (with its kana hint) until every kana in it can be read', () => {
+    const word = { [item.word('sakana')]: card(30) }
+    const noKana = { ...freshState(), srs: word }
+    expect(woven(weave(noKana, 'A fish!'))[0]).toMatchObject({ stage: 1 })
+    const someKana = { ...noKana, srs: { ...word, [item.kana('さ')]: card(10), [item.kana('か')]: card(10) } }
+    expect(woven(weave(someKana, 'A fish!'))[0]).toMatchObject({ stage: 1 })
+    const allKana = { ...someKana, srs: { ...someKana.srs, [item.kana('な')]: card(10) } }
+    expect(woven(weave(allKana, 'A fish!'))[0]).toMatchObject({ stage: 3 })
   })
 
   it('can be switched off', () => {

@@ -3,7 +3,8 @@ import { ACTIVITIES, ACTIVITY_BY_ID, activitiesFor, bossOf, REGIONS } from '../d
 import { RADICALS } from '../data/kanji'
 import type { Activity, GameResult } from '../games/types'
 import { EFFECTS, levelForXp, OUTFITS } from './rewards'
-import { newCard, review, type Review, type SrsCard } from './srs'
+import { HIRAGANA, KATAKANA, type Kana } from '../data/kana'
+import { masteryTier, newCard, review, type Review, type SrsCard } from './srs'
 import { todayKey } from './random'
 
 export type ImmersionLevel = 0 | 1 | 2 | 3
@@ -14,6 +15,8 @@ export interface Settings {
   showRomaji: boolean
   /** Blend learned Japanese words into English instructions, little by little. */
   weave: boolean
+  /** Let Claude (with the API key) write memory-palace stories for the player's own places. */
+  aiStories: boolean
   sound: boolean
   voice: boolean
   speechRate: number
@@ -84,6 +87,8 @@ export interface PlayerState {
   weave?: Record<string, number>
   /** Where things happened to each learnable item: the player's own memory palace (engine/palace). */
   episodes?: Record<string, Episode[]>
+  /** Claude-written palace stories, by `item@map:anchor` (engine/palaceAI). */
+  palaceStories?: Record<string, string>
 }
 
 /** A moment in the world tied to an item: where you met it or used it. */
@@ -129,6 +134,7 @@ export const DEFAULT_SETTINGS: Settings = {
   immersion: 'auto',
   showRomaji: true,
   weave: true,
+  aiStories: true,
   sound: true,
   voice: true,
   speechRate: 0.9,
@@ -233,13 +239,68 @@ export function level(s: PlayerState = state): number {
 
 export function immersionOf(s: PlayerState = state): ImmersionLevel {
   if (s.settings.immersion !== 'auto') return s.settings.immersion
+  return Math.min(levelStage(s), kanaStage(s)) as ImmersionLevel
+}
+
+/** What the player's level alone would allow: whole sentences switch late and slowly. */
+function levelStage(s: PlayerState): ImmersionLevel {
   const l = level(s)
-  // whole sentences switch late and slowly; until then single learned words
-  // are woven into the English (engine/weave)
   if (l < 6) return 0
   if (l < 12) return 1
   if (l < 18) return 2
   return 3
+}
+
+export interface KanaProgress {
+  total: number
+  /** Reviewed correctly at least once (familiar or better). */
+  known: number
+  /** Held for a week or more (strong or mastered). */
+  strong: number
+}
+
+function scriptProgress(s: PlayerState, list: Kana[]): KanaProgress {
+  let known = 0
+  let strong = 0
+  for (const k of list) {
+    const tier = masteryTier(s.srs[`k:${k.char}`])
+    if (tier >= 2) known++
+    if (tier >= 3) strong++
+  }
+  return { total: list.length, known, strong }
+}
+
+export function kanaProgress(s: PlayerState = state): { hira: KanaProgress; kata: KanaProgress } {
+  return { hira: scriptProgress(s, HIRAGANA), kata: scriptProgress(s, KATAKANA) }
+}
+
+/** Share of a script needed before each step (90%: a few stragglers don't hold you back). */
+export const KANA_GATE = 0.9
+const enough = (p: KanaProgress, k: 'known' | 'strong') => p[k] >= Math.ceil(p.total * KANA_GATE)
+
+/**
+ * Japanese only takes over once the player can read it. Japanese with
+ * English beside it needs hiragana; Japanese first needs hiragana held
+ * strongly and katakana known; Japanese only needs both held strongly.
+ */
+export function kanaStage(s: PlayerState = state): ImmersionLevel {
+  const { hira, kata } = kanaProgress(s)
+  if (!enough(hira, 'known')) return 0
+  if (!enough(hira, 'strong') || !enough(kata, 'known')) return 1
+  if (!enough(kata, 'strong')) return 2
+  return 3
+}
+
+/** Why the language mix is held back (null when kana aren't the limit). */
+export function kanaHold(s: PlayerState = state): { en: string; jp: string } | null {
+  if (s.settings.immersion !== 'auto' || kanaStage(s) >= levelStage(s)) return null
+  const { hira, kata } = kanaProgress(s)
+  const need = Math.ceil(hira.total * KANA_GATE)
+  const st = kanaStage(s)
+  if (st === 0) return { en: `Learn hiragana to unlock more Japanese: ${hira.known}/${need}`, jp: `ひらがなを おぼえよう：${hira.known}/${need}` }
+  if (hira.strong < need) return { en: `Keep reviewing hiragana until it sticks: ${hira.strong}/${need} strong`, jp: `ひらがなを ふくしゅうしよう：${hira.strong}/${need}` }
+  if (st === 1) return { en: `Learn katakana to unlock more Japanese: ${kata.known}/${Math.ceil(kata.total * KANA_GATE)}`, jp: `カタカナを おぼえよう：${kata.known}/${Math.ceil(kata.total * KANA_GATE)}` }
+  return { en: `Keep reviewing katakana until it sticks: ${kata.strong}/${Math.ceil(kata.total * KANA_GATE)} strong`, jp: `カタカナを ふくしゅうしよう：${kata.strong}/${Math.ceil(kata.total * KANA_GATE)}` }
 }
 
 export function isPassed(s: PlayerState, activityId: string): boolean {

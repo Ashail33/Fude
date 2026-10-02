@@ -7,7 +7,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { GameFrame, Intro, T } from '../components/ui'
 import { REGIONS } from '../data/regions'
-import { cueOf, episodeCue, recallQuestion, storyOf, walkMemories, type RecallQ } from '../engine/palace'
+import { cueOf, episodeCue, recallQuestion, roomOf, storyOf, walkMemories, type RecallQ } from '../engine/palace'
+import { ensureStories } from '../engine/palaceAI'
 import { sfx } from '../engine/sfx'
 import { speak } from '../engine/speech'
 import type { Review } from '../engine/srs'
@@ -42,6 +43,11 @@ export default function PalaceWalk({ activity, params, onFinish, onExit }: GameP
   const [qi, setQi] = useState(-1) // -1: arriving at the place
   const [picked, setPicked] = useState<string | null>(null)
   const [reviews, setReviews] = useState<Review[]>([])
+
+  // while the intro is read, Claude can write stories for the player's own places
+  useEffect(() => {
+    void ensureStories(roomOf(getState(), params.room), 6)
+  }, [params.room])
 
   useEffect(() => {
     if (!total) onFinish({ score: 0, maxScore: 0, reviews: [], passed: true, notes: ['Nothing is placed in this room yet. Learn some words here first, and they’ll appear in the palace.'] })

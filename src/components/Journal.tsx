@@ -8,7 +8,7 @@ import { ACTIVITIES, REGIONS, STAGE_LABEL } from '../data/regions'
 import { dueItems } from '../engine/quests'
 import { todayKey } from '../engine/random'
 import { titleFor, xpForLevel } from '../engine/rewards'
-import { activityUnlocked, isPassed, level, usePlayer } from '../engine/store'
+import { activityUnlocked, isPassed, kanaHold, kanaProgress, level, usePlayer } from '../engine/store'
 import { GAME_META } from '../games/registry'
 import { Avatar } from './Avatar'
 import { T } from './ui'
@@ -65,6 +65,7 @@ export function StatusWindow({ big }: { big?: boolean }) {
         <StatBar label="HP" value={st.maxHp} max={st.maxHp} kind="hp" />
         <StatBar label="MP" value={st.maxMp} max={st.maxMp} kind="mp" />
         <StatBar label="EX" value={p.xp - cur} max={nxt - cur} kind="xp" />
+        <KanaMeter />
       </div>
       <dl className="status-stats">
         <div>
@@ -220,6 +221,24 @@ export function QuestBoard({ compact }: { compact?: boolean }) {
           </div>
         </article>
       ))}
+    </div>
+  )
+}
+
+/** Hiragana and katakana learned: Japanese takes over only as these fill up. */
+export function KanaMeter() {
+  const p = usePlayer()
+  const { hira, kata } = kanaProgress(p)
+  const hold = kanaHold(p)
+  return (
+    <div className="kana-meter">
+      <StatBar label="あ" value={hira.known} max={hira.total} kind="xp" />
+      <StatBar label="ア" value={kata.known} max={kata.total} kind="xp" />
+      {hold && (
+        <p className="muted small kana-hold">
+          🔒 <T en={hold.en} jp={hold.jp} />
+        </p>
+      )}
     </div>
   )
 }

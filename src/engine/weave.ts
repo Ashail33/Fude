@@ -136,16 +136,40 @@ const uiCache = new WeakMap<PlayerState, Map<string, WeaveStage>>()
 
 /** The stage a term is at for this player. */
 export function termStage(s: PlayerState, t: Term): WeaveStage {
+  let stage: WeaveStage
   if (t.word) {
     const tier = masteryTier(s.srs[item.word(t.word)])
-    return tier >= 4 ? 3 : tier === 3 ? 2 : tier === 2 ? 1 : 0
+    stage = tier >= 4 ? 3 : tier === 3 ? 2 : tier === 2 ? 1 : 0
+  } else {
+    let m = uiCache.get(s)
+    if (!m) {
+      m = uiStages(s)
+      uiCache.set(s, m)
+    }
+    stage = m.get(t.id) ?? 0
   }
-  let m = uiCache.get(s)
-  if (!m) {
-    m = uiStages(s)
-    uiCache.set(s, m)
+  // Japanese only replaces the English once every kana in it can be read;
+  // until then the word stays English with the kana as a hint (practice).
+  return stage >= 2 && !canRead(s, t) ? 1 : stage
+}
+
+const SMALL: Record<string, string> = { ぁ: 'あ', ぃ: 'い', ぅ: 'う', ぇ: 'え', ぉ: 'お', ゃ: 'や', ゅ: 'ゆ', ょ: 'よ', っ: 'つ', ゎ: 'わ', ァ: 'ア', ィ: 'イ', ゥ: 'ウ', ェ: 'エ', ォ: 'オ', ャ: 'ヤ', ュ: 'ユ', ョ: 'ヨ', ッ: 'ツ', ヮ: 'ワ' }
+
+/** The base kana a word is written with (voicing marks and small forms folded in). */
+export function kanaOf(t: Term): string[] {
+  const kata = /[\u30a1-\u30fa]/.test(t.jp)
+  const src = kata ? t.jp : t.kana
+  const out = new Set<string>()
+  for (const ch of src.normalize('NFD').replace(/[\u3099\u309a]/g, '')) {
+    const c = SMALL[ch] ?? ch
+    if (kata ? /[\u30a1-\u30fa]/.test(c) : /[\u3041-\u3096]/.test(c)) out.add(c)
   }
-  return m.get(t.id) ?? 0
+  return [...out]
+}
+
+/** Every kana in the word has been learned (familiar or better). */
+export function canRead(s: PlayerState, t: Term): boolean {
+  return kanaOf(t).every((c) => masteryTier(s.srs[item.kana(c)]) >= 2)
 }
 
 export type Segment = string | { term: Term; stage: WeaveStage; text: string }

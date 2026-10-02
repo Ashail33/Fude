@@ -14,6 +14,7 @@ import { gameComponent } from '../games/registry'
 import { owedMemories } from '../story/chronicle'
 import { homeOf, info, LOCI, MEMORY_BY_ITEM, placed } from '../engine/palace'
 import { locateActivity } from '../world/maps'
+import { ensureStories, placesOf } from '../engine/palaceAI'
 import { isChunkError, reloadForNewBuild } from '../engine/staleBuild'
 import type { Activity, GameResult } from '../games/types'
 
@@ -112,6 +113,7 @@ export default function Play() {
         const after = getState()
         const items = [...new Set(r.reviews.map((x) => x.itemId))].filter((id) => MEMORY_BY_ITEM.has(id) && !after.episodes?.[id]?.length && placed(after, MEMORY_BY_ITEM.get(id)!))
         recordEpisodes(items, { map: host.map.spec.id, anchor: host.entityId, how: 'learned', what: activity.title })
+        void ensureStories(placesOf(getState(), items))
       }
       let questXp = 0
       if (questId && o.stars > 0) {

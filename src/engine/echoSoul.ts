@@ -153,10 +153,14 @@ export interface RequestInput {
   model: string
   system: string
   messages: ApiMessage[]
+  /** Structured-output schema (defaults to the NPC reply). */
+  schema?: object
+  /** Thinking effort (defaults to low: short replies, low latency). */
+  effort?: 'low' | 'medium' | 'high'
 }
 
 /** Build the fetch() init for a Messages API call (exported for tests). */
-export function buildRequest({ apiKey, model, system, messages }: RequestInput): { url: string; init: RequestInit } {
+export function buildRequest({ apiKey, model, system, messages, schema, effort }: RequestInput): { url: string; init: RequestInit } {
   const m = model.trim() || DEFAULT_MODEL
   const caps = modelCaps(m)
   const headers: Record<string, string> = {
@@ -167,9 +171,9 @@ export function buildRequest({ apiKey, model, system, messages }: RequestInput):
   }
   const body: Record<string, unknown> = { model: m, max_tokens: 16000, system, messages }
   const outputConfig: Record<string, unknown> = {}
-  if (caps.structured) outputConfig.format = { type: 'json_schema', schema: ECHO_SCHEMA }
+  if (caps.structured) outputConfig.format = { type: 'json_schema', schema: schema ?? ECHO_SCHEMA }
   // Short conversational replies: low effort keeps latency down.
-  if (caps.effort) outputConfig.effort = 'low'
+  if (caps.effort) outputConfig.effort = effort ?? 'low'
   if (Object.keys(outputConfig).length) body.output_config = outputConfig
   if (caps.fallbacks) {
     headers['anthropic-beta'] = 'server-side-fallback-2026-07-01'
@@ -238,6 +242,11 @@ export function parseEchoReply(text: string): EchoReply {
 
 /** Call Claude and return the NPC's structured reply. Throws EchoError. */
 export async function askClaude(input: RequestInput, opts: { signal?: AbortSignal; fetchImpl?: typeof fetch; timeoutMs?: number } = {}): Promise<EchoReply> {
+  return parseEchoReply(await requestText(input, opts))
+}
+
+/** Call Claude and return the reply text (JSON when a schema is given). Throws EchoError. */
+export async function requestText(input: RequestInput, opts: { signal?: AbortSignal; fetchImpl?: typeof fetch; timeoutMs?: number } = {}): Promise<string> {
   const { url, init } = buildRequest(input)
   const doFetch = opts.fetchImpl ?? fetch
   const ctrl = new AbortController()
@@ -272,7 +281,7 @@ export async function askClaude(input: RequestInput, opts: { signal?: AbortSigna
     .map((c) => c.text)
     .join('')
   if (!text.trim()) throw new EchoError('parse', 'The NPC gave no reply.')
-  return parseEchoReply(text)
+  return text
 }
 
 // ─── Offline, rule-based NPC ───────────────────────────────────────────

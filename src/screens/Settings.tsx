@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { KanaMeter } from '../components/Journal'
 import { T } from '../components/ui'
 import { getMusicVolume, setMusicVolume } from '../engine/music'
 import { fxQuality, setFxQuality, type FxQuality } from '../fx/quality'
@@ -52,8 +53,11 @@ export default function Settings() {
           <T en="Language immersion" jp="ことばのレベル" />
         </span>
         <p className="muted small">
-          The game moves from English → mixed → mostly Japanese → fully Japanese. Currently: level {immersionOf(p)}.
+          The game moves from English → mixed → mostly Japanese → fully Japanese, but only as fast as you can read it: Japanese
+          with English needs hiragana, Japanese first needs katakana too, and Japanese only needs both held for a week or more.
+          Currently: level {immersionOf(p)}.
         </p>
+        <KanaMeter />
         <div className="radio-list">
           {IMMERSION.map(([v, label, desc]) => (
             <label key={String(v)} className={`radio ${s.immersion === v ? 'on' : ''}`}>
@@ -156,7 +160,9 @@ export default function Settings() {
           <T en="Echo-Soul AI (optional)" jp="エコーソウル" />
         </span>
         <p className="muted small">
-          Add an Anthropic API key to let Tavern NPCs hold free conversations with you in Japanese. The key is stored only in this browser and sent only to api.anthropic.com. Without a key, NPCs use a simpler offline brain.
+          Add an Anthropic API key to let Tavern NPCs hold free conversations with you in Japanese, and to have Claude write your memory-palace stories for
+          the places you made by playing. The key is stored only in this browser and sent only to api.anthropic.com. Without a key, NPCs use a simpler
+          offline brain and palace stories use built-in templates.
         </p>
         <label className="field">
           <span>API key</span>
@@ -181,6 +187,10 @@ export default function Settings() {
             <option value="claude-sonnet-5-5">Claude Sonnet 5.5 (balanced)</option>
             <option value="claude-opus-5-5">Claude Opus 5.5 (most capable)</option>
           </select>
+        </label>
+        <label className="toggle">
+          <input type="checkbox" checked={s.aiStories !== false} onChange={(e) => updateSettings({ aiStories: e.target.checked })} />
+          <span>Let Claude write memory-palace stories for the places you made (each is written once and kept)</span>
         </label>
       </section>
 

@@ -237,9 +237,16 @@ export function retell(m: Memory, place: { map: string; anchor: string; name: { 
 /** The picture as this player should see it: the authored story at home, retold anywhere else. */
 export function storyOf(s: PlayerState, m: Memory): string {
   const home = homeOf(s, m.item)
+  if (!home || !retellNeeded(s, m)) return m.story
+  // a story Claude wrote for this very place, if there is one (engine/palaceAI)
+  return s.palaceStories?.[`${m.item}@${home.map}:${home.anchor}`] ?? retell(m, home)
+}
+
+/** Has the item moved away from the place its hand-written story is set in? */
+export function retellNeeded(s: PlayerState, m: Memory): boolean {
+  const home = homeOf(s, m.item)
   const authored = LOCUS_BY_ITEM.get(m.item)
-  if (!home || !authored || (home.map === authored.map && home.anchor === authored.anchor)) return m.story
-  return retell(m, home)
+  return !!home && !!authored && (home.map !== authored.map || home.anchor !== authored.anchor)
 }
 
 /** Hide the item's own writing (and reading) inside a cue, just in case. */

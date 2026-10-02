@@ -3,12 +3,13 @@
  * route order, what's been placed at each (and what's fading), the image
  * stories, and a button to walk the room.
  */
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { T } from '../components/ui'
 import { REGIONS } from '../data/regions'
 import { episodeCue, fading, info, placed, roomOf, storyOf } from '../engine/palace'
-import { regionUnlocked, usePlayer } from '../engine/store'
+import { ensureStories } from '../engine/palaceAI'
+import { getState, regionUnlocked, usePlayer } from '../engine/store'
 
 export function PalacePanel() {
   const p = usePlayer()
@@ -17,6 +18,10 @@ export function PalacePanel() {
   const [room, setRoom] = useState(rooms[rooms.length - 1]?.id ?? 1)
   const [open, setOpen] = useState<string | null>(null)
   const loci = roomOf(p, room).filter((l) => l.memories.length)
+  // with an API key, Claude writes the stories for places the player made
+  useEffect(() => {
+    void ensureStories(roomOf(getState(), room))
+  }, [room])
   const all = loci.flatMap((l) => l.memories)
   const have = all.filter((m) => placed(p, m)).length
   const fade = all.filter((m) => fading(p, m)).length

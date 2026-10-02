@@ -20,6 +20,7 @@ import { strength } from '../engine/srs'
 import { addItem, getState, grantRewards, isPassed, level, markOpened, markScene, recordEpisodes, regionUnlocked, setFlag, setWorldPos, usePlayer, type PlayerState } from '../engine/store'
 import type { Activity } from '../games/types'
 import { fadingAnchors, fadingIn, placeAt } from '../engine/palace'
+import { ensureStories, placesOf } from '../engine/palaceAI'
 import { owedMemories } from '../story/chronicle'
 import { Cutscene, hasScene } from '../story/Cutscene'
 import { GameMenu } from '../ui/GameMenu'
@@ -165,6 +166,17 @@ export default function Overworld() {
   const [dialog, setDialogRaw] = useState<DialogState | null>(null)
   const setDialog = useCallback((d: DialogState | null) => setDialogRaw(d ? { ...d, key: Date.now() + Math.random() } : null), [])
   const [battle, setBattle] = useState<number | null>(null)
+  // words used in the world move into the player's palace; Claude retells their stories there
+  const episodesRef = useRef(p.episodes)
+  useEffect(() => {
+    const prev = episodesRef.current ?? {}
+    episodesRef.current = p.episodes
+    const changed = Object.keys(p.episodes ?? {}).filter((k) => prev[k] !== p.episodes?.[k])
+    if (!changed.length) return
+    const t = setTimeout(() => void ensureStories(placesOf(getState(), changed)), 2500)
+    return () => clearTimeout(t)
+  }, [p.episodes])
+
   const [scenes, setScenes] = useState<{ id: string; then?: () => void }[]>([])
   const [menu, setMenu] = useState(false)
   const [banner, setBanner] = useState<{ jp: string; en: string; key: number } | null>(null)
