@@ -167,6 +167,9 @@ const ALIASES: Record<string, string> = {
   guardian: 'treant',
   librarian: 'wisp',
   chimera: 'kitsune',
+  scribe: 'merchant',
+  kotone: 'merchant',
+  shadow: 'wisp',
   // Boss illustration / game ids.
   'kana-oni': 'oni',
   'radical-golem': 'golem',

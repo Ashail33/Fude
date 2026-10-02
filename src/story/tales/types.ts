@@ -17,6 +17,26 @@ export interface KeyItem {
   desc: string
 }
 
+/**
+ * A spirit from Japanese folklore. Helping one ends with it signing your
+ * Spirit Scroll (百鬼の まきもの); the scroll shows locked entries as
+ * silhouettes so there's always another legend to find.
+ */
+export interface Yokai {
+  id: string
+  region: number
+  name: string
+  jp: string
+  kana: string
+  emoji: string
+  /** Short retelling of the real legend (2–3 sentences, English). */
+  lore: string
+  /** One-line hint shown while the entry is still locked. */
+  hint: string
+  /** Vocabulary ids the tale practises (shown on the scroll page). */
+  words?: string[]
+}
+
 export interface TaleStage {
   /** Objective shown in the story log. */
   en: string
@@ -41,6 +61,8 @@ export interface Tale {
   stages: TaleStage[]
   /** Main story tales are listed first in the log. */
   main?: boolean
+  /** Folklore tales: the spirit whose seal finishing it earns. */
+  yokai?: string
 }
 
 /** What a script can do. Every helper returns dialog steps or mutates the save. */
@@ -84,6 +106,8 @@ export interface Ctx {
   sfx(name: 'chest' | 'confirm' | 'correct' | 'wrong' | 'levelUp' | 'door'): void
   /** Play a cutscene after the dialog closes. */
   scene(id: string): void
+  /** A spirit signs the Spirit Scroll (announcement + any memory it unlocks). */
+  seal(yokai: string): Step[]
 }
 
 /** Talking to an entity: return steps, or null for its default behaviour. */
@@ -97,6 +121,8 @@ export type ExtraEntity = Omit<EntitySpec, 'at'> & { x: number; y: number }
 export interface TaleContent {
   tales: Tale[]
   items: KeyItem[]
+  /** Folklore spirits introduced by this content. */
+  yokai?: Yokai[]
   talk: Record<string, TalkScript>
   cast: Record<string, CastScript>
   /** Casting with nothing in front of you, per map. */

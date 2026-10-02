@@ -551,3 +551,15 @@
     animation: none;
   }
 }
+
+/* Fude's memories: an old, faded picture. */
+.cutscene.memory .cs-stage {
+  filter: sepia(0.55) saturate(0.8) brightness(0.95);
+}
+.cutscene.memory .cs-stage::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 55%, rgba(40, 24, 8, 0.55));
+}

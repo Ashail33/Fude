@@ -11,6 +11,7 @@ import { item as itemId } from '../../engine/items'
 import { addItem, flagOf, getState, giveKeyItem, grantRewards, hasKeyItem, recordReviews, setFlag, takeKeyItem, type PlayerState } from '../../engine/store'
 import type { Step } from '../../world/Dialog'
 import type { Entity, Line } from '../../world/types'
+import { pageUnlockedBySeal, sealCount, YOKAI, YOKAI_BY_ID } from '../chronicle'
 import { CONTENT } from './content'
 import type { CastScript, Ctx, KeyItem, Tale, TalkScript } from './types'
 
@@ -161,6 +162,23 @@ export function makeCtx(e: Entity | null, hooks: Hooks): Ctx {
     sparkle: (kind = 'spark') => hooks.sparkle(e, kind),
     sfx: (name) => hooks.sfx(name),
     scene: (id) => hooks.scene(id),
+    seal(id) {
+      const y = YOKAI_BY_ID.get(id)
+      if (!y || flagOf(getState(), `seal.${id}`) > 0) return []
+      const before = getState()
+      setFlag(`seal.${id}`, 1)
+      const after = getState()
+      hooks.sfx('levelUp')
+      hooks.sparkle(e, 'spark')
+      const n = sealCount(after)
+      const out: Step[] = [
+        narrate(`🖌️ ${y.kana}が「ひゃっきの まきもの」に はんこを おした！（${n}/${YOKAI.length}）`, `🖌️ ${y.name} signed your Spirit Scroll! (${n}/${YOKAI.length})`),
+      ]
+      // the spirit's own memories come first; Fude's plays when the talk ends
+      const page = pageUnlockedBySeal(before, after)
+      if (page) hooks.scene(page.scene)
+      return out
+    },
   }
   return c
 }

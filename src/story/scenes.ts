@@ -9,6 +9,7 @@
  */
 import type { SpriteId } from '../art'
 import type { TrackId } from '../engine/music'
+import { MEMORY_SCENES } from './memories'
 
 export type Backdrop = 'void' | 'night-hill' | 'village' | 'fields' | 'forest' | 'shrine' | 'tower' | 'dawn'
 export type Emote = '!' | '?' | '♪' | '…' | '♥' | '💢'
@@ -37,6 +38,11 @@ export const SPEAKERS = {
   librarian: { sprite: 'wisp', name: 'Silent Librarian', jp: 'しずかなししょ', color: '#9be7ff' },
   chimera: { sprite: 'kitsune', name: 'Shifting Chimera', jp: 'かわるキメラ', color: '#c7a3f0' },
   dragon: { sprite: 'dragon', name: 'Void Dragon', jp: 'こくうのりゅう', color: '#a61e3a' },
+  // Fude's memories: the girl who carried her before, and the nameless quiet
+  // her name is a secret the memories reveal, so the plate never gives it away
+  scribe: { sprite: 'mage', name: 'Girl with the Brush', jp: 'ふでの しょうじょ', color: '#f2a7c3' },
+  kotone: { sprite: 'mage', name: 'Kotone', jp: 'ことね', color: '#f2a7c3' },
+  shadow: { sprite: 'wisp', name: '???', jp: '？？？', color: '#8a8fb8' },
 } satisfies Record<string, Speaker>
 
 export type ActorId = keyof typeof SPEAKERS
@@ -74,6 +80,8 @@ export interface Scene {
   /** Actors on stage when the scene opens (left → right). */
   cast: ActorId[]
   steps: SceneStep[]
+  /** One of Fude's memories: drawn in faded sepia. */
+  memory?: boolean
 }
 
 const S: Scene[] = [
@@ -355,7 +363,7 @@ const S: Scene[] = [
   },
 ]
 
-export const SCENES: Record<string, Scene> = Object.fromEntries(S.map((s) => [s.id, s]))
+export const SCENES: Record<string, Scene> = Object.fromEntries([...S, ...MEMORY_SCENES].map((s) => [s.id, s]))
 
 /** Map ids in the overworld, in region order. */
 export const MAP_IDS = ['village', 'fields', 'forest', 'shrine', 'tower'] as const

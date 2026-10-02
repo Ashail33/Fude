@@ -6,6 +6,7 @@ import { level, usePlayer } from './engine/store'
 import { levelForXp, xpForLevel } from './engine/rewards'
 import Title from './screens/Title'
 import { AppErrorBoundary } from './components/AppErrorBoundary'
+import { WeaveNotice } from './components/Weave'
 
 const Home = lazy(() => import('./screens/Home'))
 const RegionScreen = lazy(() => import('./screens/RegionScreen'))
@@ -135,6 +136,7 @@ export default function App() {
   return (
     <div className={`app ${fullscreen ? 'in-game' : ''} ${loc.pathname.startsWith('/play') ? 'in-play' : ''}`}>
       {!fullscreen && <TopBar />}
+      <WeaveNotice />
       <AppErrorBoundary key={loc.pathname}>
         <Suspense fallback={<Loading />}>
           <Routes>

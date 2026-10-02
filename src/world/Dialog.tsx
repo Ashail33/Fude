@@ -16,6 +16,7 @@ import { isQuestion, voiceId } from '../engine/audio/voices'
 import { sfx } from '../engine/sfx'
 import { speak } from '../engine/speech'
 import { voices } from '../engine/voice'
+import { Weave } from '../components/Weave'
 import { activityUnlocked, immersionOf, recordReviews, regionUnlocked, usePlayer } from '../engine/store'
 import type { Activity } from '../games/types'
 import { VnBusts, type Bust } from '../ui/Hd'
@@ -42,7 +43,11 @@ export function Bi({ line, className }: { line: Line; className?: string }) {
       <span lang="ja" className="bi-jp">
         {line.jp}
       </span>
-      {(lvl <= 1 || (lvl === 2 && show)) && line.en && <span className={`bi-en ${lvl >= 1 ? 'small' : ''}`}>{line.en}</span>}
+      {(lvl <= 1 || (lvl === 2 && show)) && line.en && (
+        <span className={`bi-en ${lvl >= 1 ? 'small' : ''}`}>
+          <Weave text={line.en} />
+        </span>
+      )}
     </span>
   )
 }
@@ -146,7 +151,11 @@ function SayStep({
       )}
       <div className="dq-text">
         <Typewriter text={step.line.jp} onDone={() => setTyped(true)} skip={skip} voice={voice} delay={lead} />
-        {typed && (lvl <= 1 || (lvl === 2 && showEn)) && step.line.en && <span className={`bi-en ${lvl >= 1 ? 'small' : ''}`}>{step.line.en}</span>}
+        {typed && (lvl <= 1 || (lvl === 2 && showEn)) && step.line.en && (
+          <span className={`bi-en ${lvl >= 1 ? 'small' : ''}`}>
+            <Weave text={step.line.en} />
+          </span>
+        )}
         {typed && lvl === 2 && !showEn && step.line.en && (
           <button
             type="button"

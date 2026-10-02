@@ -67,6 +67,10 @@ export default function Settings() {
           <input type="checkbox" checked={s.showRomaji} onChange={(e) => updateSettings({ showRomaji: e.target.checked })} />
           <span>Show romaji hints under Japanese</span>
         </label>
+        <label className="toggle">
+          <input type="checkbox" checked={s.weave !== false} onChange={(e) => updateSettings({ weave: e.target.checked })} />
+          <span>Blend the Japanese words I’ve learned into instructions, a few at a time (tap one to hear it)</span>
+        </label>
       </section>
 
       <section className="card settings-section">

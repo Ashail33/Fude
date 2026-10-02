@@ -4,6 +4,7 @@
  * typewriter text. Tap / Z / Enter / Space advances; hold SKIP (or Esc) to
  * skip the scene. Scenes are data in ./scenes.ts.
  */
+import { Weave } from '../components/Weave'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ENEMY_SPRITES, PixelSprite } from '../art'
 import { BOSS_HD, preloadHd, speakerHd, useHdLoaded } from '../art/hd'
@@ -270,7 +271,7 @@ export function Cutscene({ id, onDone }: CutsceneProps) {
   const enShown = !!secondary && !typing && (imm <= 2 || showEn)
 
   return (
-    <div className="cutscene" role="dialog" aria-label={scene.title} onClick={advance}>
+    <div className={`cutscene ${scene.memory ? 'memory' : ''}`} role="dialog" aria-label={scene.title} onClick={advance}>
       <div className="cs-bar cs-bar-top" />
       <div ref={stageRef} className={`cs-stage ${illustrated ? 'illustrated' : ''}`}>
         <SceneBackdrop key={bg} bg={bg} className="cs-fade-in" />
@@ -344,7 +345,9 @@ export function Cutscene({ id, onDone }: CutsceneProps) {
             </p>
             {secondary &&
               (enShown ? (
-                <p className={`cs-secondary ${imm === 2 ? 'dim' : ''}`}>{secondary}</p>
+                <p className={`cs-secondary ${imm === 2 ? 'dim' : ''}`}>
+                  <Weave text={secondary} />
+                </p>
               ) : (
                 !typing && (
                   <button

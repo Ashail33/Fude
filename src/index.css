@@ -1513,3 +1513,81 @@ input[type='radio'] {
     padding: 6px 12px;
   }
 }
+
+/* ─── Language weave: Japanese woven into English (components/Weave) ─── */
+.wv {
+  cursor: pointer;
+  border-radius: 3px;
+}
+.wv-1 {
+  text-decoration: underline dotted rgba(247, 201, 72, 0.7);
+  text-underline-offset: 3px;
+}
+.wv-hint {
+  font-size: 0.72em;
+  color: var(--gold, #f7c948);
+  margin-left: 2px;
+  vertical-align: 0.35em;
+}
+.wv-2,
+.wv-3 {
+  color: var(--gold, #f7c948);
+  font-weight: 700;
+}
+.wv-2 rt {
+  font-size: 0.6em;
+  font-weight: 400;
+  color: inherit;
+  opacity: 0.85;
+  font-family: var(--font-ui, inherit);
+}
+.wv-3 rt {
+  font-size: 0.55em;
+  font-weight: 400;
+}
+.wv-peek {
+  font-size: 0.75em;
+  font-weight: 400;
+  margin-left: 3px;
+  opacity: 0.85;
+}
+.wv-notice {
+  position: fixed;
+  left: 50%;
+  top: max(64px, calc(env(safe-area-inset-top) + 56px));
+  transform: translateX(-50%);
+  z-index: 3000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 3px solid var(--win-border);
+  background: var(--win-fill);
+  box-shadow: var(--win-shadow);
+  animation: wv-in 0.35s var(--ease-spring, ease-out);
+  max-width: calc(100vw - 32px);
+  text-align: center;
+}
+.wv-notice-tag {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.wv-notice-word {
+  font-size: 1.15rem;
+}
+.wv-notice-word [lang='ja'] {
+  color: var(--gold, #f7c948);
+  font-weight: 700;
+}
+.wv-notice-word small {
+  margin: 0 4px;
+  font-size: 0.75em;
+}
+@keyframes wv-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -8px);
+  }
+}

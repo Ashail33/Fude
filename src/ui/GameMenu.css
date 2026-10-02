@@ -287,3 +287,83 @@
 .gm-key-ico {
   font-size: 1.5rem;
 }
+
+/* Fude's memories + the Spirit Scroll */
+.gm-chronicle {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.gm-pages,
+.gm-yokai {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.gm-pages li,
+.gm-yokai li {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 6px 10px;
+  border: 1px solid rgba(247, 201, 72, 0.3);
+  border-radius: 6px;
+  background: rgba(16, 22, 52, 0.4);
+}
+.gm-pages li.locked,
+.gm-yokai li.locked {
+  border-style: dashed;
+  opacity: 0.75;
+}
+.gm-pages li.ready {
+  border-color: var(--gold, #f7c948);
+  box-shadow: 0 0 10px rgba(247, 201, 72, 0.35);
+}
+.gm-page-n,
+.gm-yokai-emoji {
+  font-size: 1.4rem;
+  flex-shrink: 0;
+}
+.gm-yokai-emoji.silhouette {
+  filter: brightness(0) opacity(0.5);
+}
+.gm-page-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.gm-page-body .bi,
+.gm-yokai .bi {
+  display: flex;
+  flex-direction: column;
+}
+.gm-page-hint {
+  color: var(--gold, #f7c948);
+}
+.gm-yokai li {
+  align-items: flex-start;
+}
+.gm-yokai li > span:last-child {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.gm-yokai-lore {
+  opacity: 0.85;
+  line-height: 1.4;
+}
+.gm-yokai-words {
+  color: var(--gold, #f7c948);
+}
+.gm-scroll-region + .gm-scroll-region {
+  margin-top: 10px;
+}
+.gm-scroll-region h4 {
+  margin: 4px 0 6px;
+  font-size: 1rem;
+}

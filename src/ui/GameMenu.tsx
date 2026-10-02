@@ -11,11 +11,14 @@ import { CommandMenu } from '../components/CommandMenu'
 import { GhostRecall } from '../components/GhostRecall'
 import { QuestBoard, ReviewWindow, StatusWindow } from '../components/Journal'
 import { T } from '../components/ui'
+import { Weave } from '../components/Weave'
 import { activitiesFor, REGIONS } from '../data/regions'
 import { dueItems } from '../engine/quests'
 import { immersionOf, level, regionMastered, regionUnlocked, usePlayer } from '../engine/store'
 import { MAP_IDS } from '../story/scenes'
+import { owedMemories } from '../story/chronicle'
 import { KEY_ITEM_BY_ID, taleLog } from '../story/tales/engine'
+import { ChroniclePanel } from './ChroniclePanel'
 import { uiSound } from './sound'
 import './GameMenu.css'
 
@@ -23,9 +26,11 @@ export interface GameMenuProps {
   onClose: () => void
   /** Fast travel: teleport the player to a map's entrance. */
   onTravel?: (mapId: string) => void
+  /** Replay one of Fude's memories (a cutscene id). */
+  onReplay?: (scene: string) => void
 }
 
-type Panel = 'status' | 'story' | 'items' | 'quests' | 'map'
+type Panel = 'status' | 'story' | 'chronicle' | 'items' | 'quests' | 'map'
 
 function Label({ jp, en }: { jp: string; en: string }) {
   const p = usePlayer()
@@ -37,7 +42,7 @@ function Label({ jp, en }: { jp: string; en: string }) {
   )
 }
 
-export function GameMenu({ onClose, onTravel }: GameMenuProps) {
+export function GameMenu({ onClose, onTravel, onReplay }: GameMenuProps) {
   const p = usePlayer()
   const nav = useNavigate()
   const [panel, setPanel] = useState<Panel>('status')
@@ -66,6 +71,7 @@ export function GameMenu({ onClose, onTravel }: GameMenuProps) {
     switch (id) {
       case 'status':
       case 'story':
+      case 'chronicle':
       case 'items':
       case 'quests':
       case 'map':
@@ -88,6 +94,7 @@ export function GameMenu({ onClose, onTravel }: GameMenuProps) {
   const commands = [
     { id: 'status', label: <Label jp="つよさ" en="Status" /> },
     { id: 'story', label: <Label jp="ものがたり" en="Story" />, hint: activeTales > 0 ? <span className="gm-badge">{activeTales}</span> : undefined },
+    { id: 'chronicle', label: <Label jp="きおく" en="Memories" />, hint: owedMemories(p).length ? <span className="gm-badge">!</span> : undefined },
     { id: 'items', label: <Label jp="どうぐ" en="Items" />, hint: bagCount || undefined },
     { id: 'grimoire', label: <Label jp="まどうしょ" en="Grimoire" /> },
     { id: 'quests', label: <Label jp="クエスト" en="Quests" />, hint: due + questsLeft > 0 ? <span className="gm-badge">{due + questsLeft}</span> : undefined },
@@ -101,6 +108,7 @@ export function GameMenu({ onClose, onTravel }: GameMenuProps) {
   let body: ReactNode
   if (panel === 'status') body = <StatusWindow big />
   else if (panel === 'story') body = <StoryPanel />
+  else if (panel === 'chronicle') body = <ChroniclePanel onReplay={onReplay} />
   else if (panel === 'items') body = <ItemsPanel active={focus === 'panel'} onBack={() => setFocus('cmd')} />
   else if (panel === 'quests')
     body = (
@@ -324,10 +332,16 @@ function StoryPanel() {
                 </p>
               ) : (
                 <>
-                  <p className="small muted">{tale.summary}</p>
+                  <p className="small muted">
+                    <Weave text={tale.summary} />
+                  </p>
                   <p className="gm-objective">
                     ▶ <span lang="ja">{tale.stages[stage].jp}</span>
-                    {immersionOf(p) < 3 && <small>{tale.stages[stage].en}</small>}
+                    {immersionOf(p) < 3 && (
+                      <small>
+                        <Weave text={tale.stages[stage].en} />
+                      </small>
+                    )}
                   </p>
                 </>
               )}

@@ -19,6 +19,7 @@ import { speak } from '../engine/speech'
 import { strength } from '../engine/srs'
 import { addItem, getState, grantRewards, isPassed, level, markOpened, markScene, regionUnlocked, setFlag, setWorldPos, usePlayer, type PlayerState } from '../engine/store'
 import type { Activity } from '../games/types'
+import { owedMemories } from '../story/chronicle'
 import { Cutscene, hasScene } from '../story/Cutscene'
 import { GameMenu } from '../ui/GameMenu'
 import { Bi, Dialog, type Step } from './Dialog'
@@ -385,7 +386,7 @@ export default function Overworld() {
     },
     sfx: (name: string) => fx(name),
     scene: (id: string) => {
-      if (hasScene(id)) setScenes((q) => [...q, { id }])
+      if (hasScene(id)) setScenes((q) => (q.some((x) => x.id === id) ? q : [...q, { id }]))
     },
   })
 
@@ -541,6 +542,8 @@ export default function Overworld() {
       if (isPassed(s, bossOf(rg).id) && hasScene(id) && !s.seenScenes.includes(id)) owed.push({ id })
     }
     if (isPassed(s, 'r5-dragon') && hasScene('ending') && !s.seenScenes.includes('ending')) owed.push({ id: 'ending' })
+    // Fude's memories the player has earned but not yet seen
+    for (const id of owedMemories(s)) if (hasScene(id)) owed.push({ id })
     if (owed.length) setScenes((q) => [...owed, ...q])
 
     let raf = 0
@@ -905,7 +908,12 @@ export default function Overworld() {
             id={scene.id}
             onDone={() => {
               markScene(scene.id)
-              setScenes((q) => q.slice(1))
+              // finishing one memory (or the ending) can open the next page
+              const next = owedMemories(getState()).filter((id) => hasScene(id))
+              setScenes((q) => {
+                const rest = q.slice(1)
+                return [...rest, ...next.filter((id) => !rest.some((x) => x.id === id)).map((id) => ({ id }))]
+              })
               scene.then?.()
             }}
           />
@@ -914,7 +922,14 @@ export default function Overworld() {
 
       {menu && (
         <div className="ow-menu">
-          <GameMenu onClose={() => setMenu(false)} onTravel={onTravel} />
+          <GameMenu
+            onClose={() => setMenu(false)}
+            onTravel={onTravel}
+            onReplay={(id) => {
+              setMenu(false)
+              if (hasScene(id)) setScenes((q) => [...q, { id }])
+            }}
+          />
         </div>
       )}
     </div>

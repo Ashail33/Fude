@@ -7,10 +7,11 @@ import { PixelStar, T, useBurst } from '../components/ui'
 import { ACTIVITIES, ACTIVITY_BY_ID, REGIONS } from '../data/regions'
 import { dueItems, completeQuest, featuredToday, FEATURED_MULTIPLIER, questActivity } from '../engine/quests'
 import { playJingle } from '../engine/music'
-import { levelForXp, xpForLevel } from '../engine/rewards'
+import { levelForXp, titleFor, xpForLevel } from '../engine/rewards'
 import { sfx } from '../engine/sfx'
 import { activityUnlocked, getState, recordResult, setState, usePlayer, type Outcome } from '../engine/store'
 import { gameComponent } from '../games/registry'
+import { owedMemories } from '../story/chronicle'
 import { isChunkError, reloadForNewBuild } from '../engine/staleBuild'
 import type { Activity, GameResult } from '../games/types'
 
@@ -257,6 +258,16 @@ function Results({
         {outcome.levelAfter > outcome.levelBefore && (
           <div className="unlock glow-text pop">
             ⬆️ <T en={`Level up! You are now level ${outcome.levelAfter}`} jp={`レベルアップ！レベル${outcome.levelAfter}`} />
+          </div>
+        )}
+        {titleFor(outcome.levelAfter)[0] !== titleFor(outcome.levelBefore)[0] && (
+          <div className="unlock glow-text pop">
+            🎓 <T en={`New title: ${titleFor(outcome.levelAfter)[0]}`} jp={`あたらしい しょうごう：${titleFor(outcome.levelAfter)[1]}`} /> <span lang="ja">{titleFor(outcome.levelAfter)[1]}</span>
+          </div>
+        )}
+        {owedMemories(p).length > 0 && (
+          <div className="unlock glow-text pop">
+            📖 <T en="Fude’s brush is trembling… a memory is waiting in the world." jp="フデの ふでが ふるえている… きおくが まっている。" />
           </div>
         )}
         {questXp > 0 && <div className="unlock pop">⏳ Quest complete! +{questXp} XP</div>}

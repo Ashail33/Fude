@@ -12,6 +12,8 @@ export interface Settings {
   /** 'auto' follows player level; a number pins the UI language mix. */
   immersion: 'auto' | ImmersionLevel
   showRomaji: boolean
+  /** Blend learned Japanese words into English instructions, little by little. */
+  weave: boolean
   sound: boolean
   voice: boolean
   speechRate: number
@@ -78,6 +80,8 @@ export interface PlayerState {
   flags: Record<string, number>
   /** Key (story) items carried, by id. */
   keyItems: string[]
+  /** Sightings of everyday words woven into instructions (see engine/weave). */
+  weave?: Record<string, number>
 }
 
 export interface WorldPos {
@@ -94,6 +98,7 @@ const KEY = 'fude.kotoba.save.v1'
 export const DEFAULT_SETTINGS: Settings = {
   immersion: 'auto',
   showRomaji: true,
+  weave: true,
   sound: true,
   voice: true,
   speechRate: 0.9,
@@ -199,9 +204,11 @@ export function level(s: PlayerState = state): number {
 export function immersionOf(s: PlayerState = state): ImmersionLevel {
   if (s.settings.immersion !== 'auto') return s.settings.immersion
   const l = level(s)
-  if (l < 5) return 0
-  if (l < 10) return 1
-  if (l < 16) return 2
+  // whole sentences switch late and slowly; until then single learned words
+  // are woven into the English (engine/weave)
+  if (l < 6) return 0
+  if (l < 12) return 1
+  if (l < 18) return 2
   return 3
 }
 

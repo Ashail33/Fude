@@ -3,6 +3,7 @@ import * as wanakana from 'wanakana'
 import { EFFECTS } from '../engine/rewards'
 import { speak } from '../engine/speech'
 import { immersionOf, usePlayer } from '../engine/store'
+import { Weave } from './Weave'
 
 /**
  * Bilingual label that follows the player's immersion level:
@@ -11,12 +12,19 @@ import { immersionOf, usePlayer } from '../engine/store'
 export function T({ en, jp, className }: { en: string; jp: string; className?: string }) {
   const p = usePlayer()
   const lvl = immersionOf(p)
-  if (lvl === 0) return <span className={className}>{en}</span>
+  if (lvl === 0)
+    return (
+      <span className={className}>
+        <Weave text={en} />
+      </span>
+    )
   if (lvl === 1)
     return (
       <span className={`bi ${className ?? ''}`}>
         <span lang="ja">{jp}</span>
-        <small>{en}</small>
+        <small>
+          <Weave text={en} />
+        </small>
       </span>
     )
   return (
@@ -382,7 +390,9 @@ export function Intro({ title, jp, lines, onStart, children }: { title: string; 
       </h2>
       <ul>
         {lines.map((l) => (
-          <li key={l}>{l}</li>
+          <li key={l}>
+            <Weave text={l} />
+          </li>
         ))}
       </ul>
       {children}
