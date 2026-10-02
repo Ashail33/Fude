@@ -1,4 +1,4 @@
-import { atOrBefore, JOURNEY } from '../data/journey'
+import { atOrBefore, JOURNEY, regionRank } from '../data/journey'
 import { describe, expect, it } from 'vitest'
 import { ENEMY_SPRITES } from '../art'
 import { item } from '../engine/items'
@@ -233,10 +233,11 @@ describe('questions', () => {
 })
 
 describe('balance (simulation)', () => {
-  const LEVEL = [0, 2, 5, 8, 12, 16]
+  /** A typical level on arrival, by place on the road (1st region, 2nd, …). */
+  const LEVEL = [0, 2, 5, 8, 11, 14, 17, 20, 23, 26, 29]
   function sim(region: number, accuracy: number, seed: number) {
     const r = rng(seed)
-    let s = createBattle(region, LEVEL[region], rollEnemies(region, r))
+    let s = createBattle(region, LEVEL[regionRank(region)], rollEnemies(region, r))
     let turns = 0
     while (!s.outcome && turns < 60) {
       const correct = r() < accuracy
@@ -246,7 +247,7 @@ describe('balance (simulation)', () => {
     return { win: s.outcome === 'win', turns }
   }
   it('a decent player (75%) usually wins in a handful of turns', () => {
-    for (let region = 1; region <= 5; region++) {
+    for (const region of JOURNEY) {
       let wins = 0
       let turns = 0
       for (let i = 0; i < 300; i++) {
@@ -254,7 +255,7 @@ describe('balance (simulation)', () => {
         wins += Number(o.win)
         turns += o.turns
       }
-      expect(wins / 300).toBeGreaterThan(0.85)
+      expect(wins / 300, `region ${region}`).toBeGreaterThan(0.85)
       expect(turns / 300).toBeLessThan(9)
       expect(turns / 300).toBeGreaterThan(1.5)
     }

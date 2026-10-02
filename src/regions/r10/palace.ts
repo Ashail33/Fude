@@ -69,8 +69,6 @@ export const ROOM: Locus[] = [
       { item: 'g:to-whenever', story: 'Every time a cloud-sheep steps on Sorata’s TOE, it rains. TOE, then rain. TOE, then rain. Whenever the first thing happens, the second always follows.', image: 'every time a sheep steps on a boy’s TOE it rains — TOE, then rain, TOE, then rain — whenever the first thing happens, the second always follows' },
       { item: 'w:dandan', story: 'A shepherd called DAN climbs a staircase of clouds one step at a time: “DAN… DAN… DAN…” Little by little, gradually, he gets higher than the pen.', image: 'a shepherd called DAN climbs a staircase of clouds one step at a time — “DAN… DAN… DAN…” — little by little, gradually higher' },
       { item: 'w:sugu', story: 'A cloud-sheep sits on SUE’s lunch. “SUE, GO!” yells Sorata, and SUE goes right away, immediately, before the sheep can eat the rice balls.', image: 'a sheep sits on a girl’s lunch and someone yells “SUE, GO!” so she goes right away, immediately, before it eats her rice balls' },
-      { item: 'w:mada', story: 'A lamb tugs its mother’s wool: “MA, DA? Are we there?” “Not yet,” says the old ewe. Still not yet. They are still walking round and round the pen.', image: 'a lamb tugs its mother’s wool — “MA, DA? are we there?” — and the old ewe says “not yet,” still walking round and round' },
-      { item: 'w:mou', story: 'Sorata arrives with shears, but the cloud-sheep have already been MOWN bald. “Already done?” he gasps. A cow chews the last fluff and says MOO.', image: 'a boy arrives with shears but the sheep are already MOWN bald — already done! — while a cow chews the last fluff and says MOO' },
     ],
   },
   {
@@ -167,7 +165,6 @@ export const ROOM: Locus[] = [
       { item: 'w:kitto', story: 'Each wind chime hangs from a little first-aid KIT for your TOE. KIT-TOE: rub it on a stubbed toe and it will surely, certainly stop hurting.', image: 'a first-aid KIT for your TOE hangs off a string — KIT-TOE — rub it on a stubbed toe and it will surely, certainly stop hurting' },
       { item: 'w:tabun', story: 'The chimes clink “TA… BOON?” Is this breeze a boon? Probably. Maybe. Perhaps. The chimes never say yes for sure.', image: 'chimes clink “TA… BOON?” — is this breeze a boon? probably, maybe, perhaps — they never say yes for sure' },
       { item: 'w:hontou', story: 'An HONEST TOE pokes out of a sandal under the chimes and swears: “HONEST, TOE: it’s the truth!” It cannot tell a lie. Really, truly.', image: 'an HONEST TOE pokes out of a sandal and swears “HONEST, TOE: it’s the truth!” — it can’t tell a lie, really, truly' },
-      { item: 'w:mochiron', story: 'RON is eating MOCHI under the chimes. “Want one?” you ask. “MOCHI, RON? Of course!” says Ron, already reaching. Naturally.', image: 'a boy called RON is eating MOCHI, and when you ask if he wants another, he says “MOCHI? RON says of course!” already reaching — naturally' },
       { item: 'w:yatto', story: 'A tiny YACHT finally sails out of the clouds and bumps into the chimes. “At last!” cry the crowd. “YACHT-OH! It took forever.”', image: 'a tiny YACHT finally sails out of the clouds and bumps into you — “YACHT-OH! at last!” — it took forever' },
     ],
   },
@@ -208,7 +205,6 @@ export const ROOM: Locus[] = [
     emoji: '🌸',
     memories: [
       { item: 'w:omoide', story: 'The old plum smells of OH-MOE-EE-DAY: Grandma Moe’s birthday, years ago. One sniff of the blossom and the whole memory comes back, cake and all.', image: 'one sniff of plum blossom — OH, MOE, EE, DAY! — and a whole memory of Grandma Moe’s birthday comes back, cake and all' },
-      { item: 'w:wasureru', story: '“I WAS SURE… ROO… what was I saying?” A kangaroo leans on the plum tree and forgets mid-sentence. It has forgotten its own name.', image: 'a kangaroo leans on a tree — “I WAS SURE… ROO… what was I saying?” — and forgets in mid-sentence, even its own name' },
       { item: 'w:yakusoku', story: 'A YAK, SO COOL in sunglasses, hooks his little finger round a plum branch: “YAK-SO-KOO. I promise I’ll come back next spring.” A promise.', image: 'a YAK, SO COOL in sunglasses, hooks his little finger round a branch — “YAK-SO-KOO, I promise I’ll come back next spring”' },
       { item: 'w:shinjiru', story: 'A SHIN-GUARDED ROO kneels before the plum and believes, truly believes, that it will fly. SHIN-GEE-ROO. And the next morning, it does.', image: 'a ROO in SHIN-GUARDS kneels and believes, truly believes, that it will fly — SHIN-GEE-ROO — and the next morning it does' },
     ],
@@ -221,8 +217,8 @@ export const ROOM: Locus[] = [
     name: { jp: 'てんじんさまの ほこら', en: 'Shrine of Tenjin' },
     emoji: '📚',
     memories: [
-      { item: 'w:oshieru', story: '“OH, SHE AIRs out her wisdom!” A little teacher spirit stands on the shrine roof, teaching a class of sparrows to read. OH-SHE-AIR-ROO: she teaches.', image: 'a little teacher stands on a roof — “OH, SHE AIRs out her wisdom!” — teaching a class of sparrows to read: OH-SHE-AIR-ROO' },
       { item: 'w:oboeru', story: 'A student bows to the god of learning — “OH, BOW, AIR, ROO!” — and every word she bows to sticks in her head for good. Remembered, memorised.', image: 'a student bows deeply — “OH, BOW, AIR, ROO!” — and every word she bows to sticks in her head for good: remembered, memorised' },
+      { item: 'w:wasureru', story: '“I WAS SURE… ROO… what was I saying?” A kangaroo leans on the plum tree and forgets mid-sentence. It has forgotten its own name.', image: 'a kangaroo leans on a tree — “I WAS SURE… ROO… what was I saying?” — and forgets in mid-sentence, even its own name' },
     ],
   },
 ]
