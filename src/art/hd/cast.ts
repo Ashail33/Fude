@@ -3,7 +3,7 @@
  * instruction and the recurring cast. Import-free, so region packs can
  * describe their art without pulling in the manifest.
  */
-export type HdCategory = 'portraits' | 'enemies' | 'bosses' | 'backdrops' | 'scenes' | 'title'
+export type HdCategory = 'portraits' | 'enemies' | 'bosses' | 'backdrops' | 'scenes' | 'title' | 'arcade'
 
 export interface HdAsset {
   id: string

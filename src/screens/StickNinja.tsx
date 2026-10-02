@@ -31,6 +31,7 @@ import {
 } from '../arcade/ninja/data'
 import { draw, resetCamera } from '../arcade/ninja/draw'
 import { createSim, noInput, step, type Input, type Sim } from '../arcade/ninja/sim'
+import { useHdLoaded, useHdLoadedMany } from '../art/hd'
 import { sfx } from '../engine/sfx'
 import { grantRewards, setState, usePlayer } from '../engine/store'
 import './StickNinja.css'
@@ -73,6 +74,7 @@ export default function StickNinja() {
         </h1>
       </header>
       <section className="card nj-stats">
+        <HeroArt />
         <div className="nj-lv">
           <b>Lv {save.level}</b>
           <div className="nj-xp" title={`${save.xp} / ${xpToNext(save.level)} XP`}>
@@ -109,7 +111,14 @@ export default function StickNinja() {
   )
 }
 
+function HeroArt() {
+  const url = useHdLoaded('nj-hero')
+  return url ? <img src={url} alt="" className="nj-hero-art" /> : null
+}
+
 function Stages({ save, onStart }: { save: NinjaSave; onStart: (i: number) => void }) {
+  const bgs = useHdLoadedMany(WORLDS.map((_, i) => `nj-bg-${i}`))
+  const bosses = useHdLoadedMany(WORLDS.map((w) => `nj-${w.boss}`))
   return (
     <div className="nj-worlds">
       {WORLDS.map((w, wi) => {
@@ -117,7 +126,12 @@ function Stages({ save, onStart }: { save: NinjaSave; onStart: (i: number) => vo
         const open = stageUnlocked(save, first)
         const boss = FOES[w.boss]
         return (
-          <section key={w.name} className={`card nj-world nj-w${wi}${open ? '' : ' locked'}`}>
+          <section
+            key={w.name}
+            className={`card nj-world nj-w${wi}${open ? '' : ' locked'}${bgs[wi] ? ' painted' : ''}`}
+            style={bgs[wi] ? { backgroundImage: `linear-gradient(90deg, rgba(8,7,13,0.88) 30%, rgba(8,7,13,0.35)), url(${bgs[wi]})` } : undefined}
+          >
+            {bosses[wi] && <img src={bosses[wi]!} alt="" className="nj-world-boss" />}
             <h2>
               <span lang="ja">{w.jp}</span> {w.name}
             </h2>
@@ -481,6 +495,11 @@ function Fight({ stage, save, onEnd, onQuit }: { stage: number; save: NinjaSave;
   )
 }
 
+function ResultArt({ id }: { id: string }) {
+  const url = useHdLoaded(id)
+  return url ? <img src={url} alt="" className="nj-res-art" /> : null
+}
+
 function Result({ view, save, onNext, onDojo }: { view: Extract<View, { k: 'result' }>; save: NinjaSave; onNext: (i: number) => void; onDojo: () => void }) {
   const { r, won, stage } = view
   const st = stageAt(stage)
@@ -490,6 +509,7 @@ function Result({ view, save, onNext, onDojo }: { view: Extract<View, { k: 'resu
   return (
     <main className="nj-page nj-result">
       <section className={`card nj-res ${won ? 'won' : 'lost'}`}>
+        <ResultArt id={st.boss ? `nj-${st.boss}` : 'nj-hero'} />
         <h1>{won ? (st.boss ? '👹 Boss defeated!' : '⛩️ Stage clear!') : '💀 Defeated…'}</h1>
         <p className="muted">
           <span lang="ja">{w.jp}</span> {w.name} · {st.world + 1}-{st.n}

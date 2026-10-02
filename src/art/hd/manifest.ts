@@ -9,6 +9,7 @@
  * the flat key-colour background from cut-out art and converts to WebP.
  */
 
+import { ARCADE_ASSETS } from '../../arcade/art'
 import { PACK_ASSETS } from '../../regions/art'
 import { CAST, CUTOUT, STYLE, type HdAsset } from './cast'
 
@@ -116,8 +117,8 @@ const CORE_ASSETS: HdAsset[] = [
   { id: 'ending', category: 'scenes', name: 'Ending: words return', usage: 'Final cutscene', w: 1920, h: 1080, priority: 2, prompt: `Triumphant sunrise over the whole land seen from the tower summit: countless glowing brush-stroke glyphs stream back across the sky into villages, forests and fields, bringing color back; ${CAST.mage} raises their staff while ${CAST.fude} cheers; villagers celebrate far below.` },
 ]
 
-/** Every illustrated asset: the core game's, then the region packs'. */
-export const HD_ASSETS: HdAsset[] = [...CORE_ASSETS, ...PACK_ASSETS]
+/** Every illustrated asset: the core game's, the region packs', then the Games tab's. */
+export const HD_ASSETS: HdAsset[] = [...CORE_ASSETS, ...PACK_ASSETS, ...ARCADE_ASSETS]
 export const HD_BY_ID = new Map(HD_ASSETS.map((a) => [a.id, a]))
 
 /** Public URL of the processed asset (WebP). */

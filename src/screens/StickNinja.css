@@ -487,3 +487,67 @@ kbd {
   gap: 8px;
   justify-content: center;
 }
+
+/* Painted art (when available) */
+.nj-stats {
+  position: relative;
+  overflow: hidden;
+}
+.nj-hero-art {
+  position: absolute;
+  right: -18px;
+  bottom: -26px;
+  height: 150%;
+  opacity: 0.35;
+  pointer-events: none;
+}
+.nj-stats > :not(.nj-hero-art) {
+  position: relative;
+}
+.nj-world {
+  position: relative;
+  overflow: hidden;
+  background-size: cover;
+  background-position: center 60%;
+}
+.nj-world.painted {
+  min-height: 120px;
+}
+.nj-world > :not(.nj-world-boss) {
+  position: relative;
+  z-index: 1;
+}
+.nj-world-boss {
+  position: absolute;
+  right: -10px;
+  bottom: -20px;
+  height: 135%;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.6));
+  pointer-events: none;
+}
+.nj-world.painted .nj-stage {
+  background: rgba(8, 7, 13, 0.6);
+  backdrop-filter: blur(2px);
+}
+.nj-world.painted .nj-stage-row {
+  grid-template-columns: repeat(5, minmax(0, 52px));
+}
+.nj-res {
+  position: relative;
+  overflow: hidden;
+}
+.nj-res-art {
+  display: block;
+  margin: -8px auto 0;
+  height: 180px;
+  filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.6));
+}
+@media (max-width: 520px) {
+  .nj-stats {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .nj-world.painted .nj-stage-row {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    max-width: 75%;
+  }
+}

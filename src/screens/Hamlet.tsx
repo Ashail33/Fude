@@ -6,6 +6,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useHdLoaded } from '../art/hd'
 import { computeNeighbours, drawTile, type TileId } from '../art/tiles'
 import Battle, { type BattleOutcome } from '../battle/Battle'
 import { REGION_POOLS } from '../battle/logic'
@@ -107,6 +108,26 @@ function PlotArt({ kind }: { kind: keyof typeof ART }) {
   return <canvas ref={ref} width={48} height={48} className="hm-art" aria-hidden />
 }
 
+/** Painted building art when it has loaded; the pixel diorama until then. Bare land is drawn in CSS. */
+function PlotPic({ kind }: { kind: keyof typeof ART }) {
+  const painted = kind !== 'empty' && kind !== 'locked'
+  const url = useHdLoaded(painted ? `hm-${kind}` : null)
+  if (!painted) return <span className={`hm-ground ${kind}`} aria-hidden />
+  if (!url) return <PlotArt kind={kind} />
+  return (
+    <>
+      <span className="hm-ground" aria-hidden />
+      <img src={url} alt="" className="hm-pic" draggable={false} />
+    </>
+  )
+}
+
+/** A building's painted thumbnail, or its emoji. */
+function Thumb({ id, emoji }: { id: string; emoji: string }) {
+  const url = useHdLoaded(`hm-${id}`)
+  return url ? <img src={url} alt="" className="hm-thumb" /> : <span className="hm-emoji">{emoji}</span>
+}
+
 const RES_ICON: Record<keyof Cost, string> = { wood: '🪵', stone: '🪨', rice: '🌾', shards: '✦' }
 
 function CostLine({ cost, h, shards }: { cost: Cost; h: HamletState; shards: number }) {
@@ -129,6 +150,7 @@ const clock = (ms: number) => {
 
 export default function Hamlet() {
   const p = usePlayer()
+  const banner = useHdLoaded('hamlet-bg')
   const [now, setNow] = useState(() => Date.now())
   const [sel, setSel] = useState<number | null>(null)
   const [raid, setRaid] = useState<{ region: number; enemies: string[] } | null>(null)
@@ -202,7 +224,7 @@ export default function Hamlet() {
   const due = raidDue(h, now)
   return (
     <main className="hm-page">
-      <header className="hm-head">
+      <header className={`hm-head${banner ? ' painted' : ''}`} style={banner ? { backgroundImage: `linear-gradient(180deg, rgba(8,7,13,0.15), rgba(8,7,13,0.75)), url(${banner})` } : undefined}>
         <Link to="/arcade" className="btn btn-sm">
           ← あそび
         </Link>
@@ -266,7 +288,7 @@ export default function Hamlet() {
           const def = pl ? BUILDING_BY_ID.get(pl.id)! : null
           return (
             <button key={i} type="button" className={`hm-plot ${sel === i ? 'sel' : ''} ${locked ? 'locked' : ''}`} disabled={locked} onClick={() => setSel(sel === i ? null : i)} aria-label={def ? `${def.name} level ${pl!.level}` : locked ? 'Locked land' : 'Empty plot'}>
-              <PlotArt kind={building && pl!.level === 1 ? 'site' : (pl?.id ?? (locked ? 'locked' : 'empty'))} />
+              <PlotPic kind={building && pl!.level === 1 ? 'site' : (pl?.id ?? (locked ? 'locked' : 'empty'))} />
               {pl && <span className="hm-lv">{pl.level}</span>}
               {building && (
                 <span className="hm-timer">
@@ -293,7 +315,7 @@ export default function Hamlet() {
                   const ok = !why && affordable(h, p.shards, cost)
                   return (
                     <li key={b.id}>
-                      <span className="hm-emoji">{b.emoji}</span>
+                      <Thumb id={b.id} emoji={b.emoji} />
                       <span className="hm-info">
                         <b>
                           {b.name} <span lang="ja">{b.jp}</span>

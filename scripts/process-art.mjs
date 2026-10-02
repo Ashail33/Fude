@@ -22,7 +22,7 @@ const OUT = 'public/art/hd'
 const force = process.argv.includes('--force')
 
 /** Longest-side limits per category (keeps downloads small on phones). */
-const MAX = { portraits: 900, enemies: 700, bosses: 1100, backdrops: 1920, scenes: 1920, title: 1920 }
+const MAX = { portraits: 900, enemies: 700, bosses: 1100, backdrops: 1920, scenes: 1920, title: 1920, arcade: 900 }
 
 function findSource(asset) {
   const dir = join(SRC, asset.category)
