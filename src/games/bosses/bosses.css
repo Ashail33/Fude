@@ -218,7 +218,12 @@
 
 .bp-guardian .bp-shield-ring {
   position: absolute;
-  inset: -18px;
+  /* a circle around the boss, whatever the art's shape */
+  left: 50%;
+  top: 50%;
+  height: calc(100% + 36px);
+  aspect-ratio: 1;
+  translate: -50% -50%;
   border-radius: 50%;
   border: 4px dashed color-mix(in srgb, var(--ba-aura) 85%, transparent);
   box-shadow:

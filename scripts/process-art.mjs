@@ -68,6 +68,62 @@ export function keyOut(data, channels, key) {
   return data
 }
 
+/**
+ * The box worth keeping in a cut-out: rows and columns with real coverage,
+ * padded a little. A plain trim keeps every stray speck (a firefly, a
+ * sparkle, leftover key noise), which can leave a figure floating in a
+ * mostly empty square that then shows up small and off-centre in the game.
+ */
+export function contentBox(data, width, height, channels) {
+  const solid = (x, y) => data[(y * width + x) * channels + 3] > 96
+  const rows = new Uint32Array(height)
+  const cols = new Uint32Array(width)
+  for (let y = 0; y < height; y++)
+    for (let x = 0; x < width; x++)
+      if (solid(x, y)) {
+        rows[y]++
+        cols[x]++
+      }
+  const span = (counts, need) => {
+    const a = counts.findIndex((c) => c >= need)
+    if (a < 0) return null
+    let b = counts.length - 1
+    while (counts[b] < need) b--
+    return [a, b]
+  }
+  // the body: rows and columns with real coverage
+  const r = span(rows, Math.max(2, Math.round(width * 0.02)))
+  const c = span(cols, Math.max(2, Math.round(height * 0.02)))
+  if (!r || !c) return null
+  let [top, bottom] = r
+  let [left, right] = c
+  // then grow over anything touching it (antlers, a tail, a raised hand),
+  // jumping small gaps but not across to far-off specks
+  const gap = Math.max(2, Math.round(Math.max(width, height) * 0.015))
+  const rowHit = (y) => { for (let x = left; x <= right; x++) if (solid(x, y)) return true; return false }
+  const colHit = (x) => { for (let y = top; y <= bottom; y++) if (solid(x, y)) return true; return false }
+  const grow = (pos, dir, limit, hit) => {
+    for (let miss = 0, p = pos + dir; p >= 0 && p < limit && miss <= gap; p += dir) {
+      if (hit(p)) { pos = p; miss = 0 } else miss++
+    }
+    return pos
+  }
+  for (let changed = true; changed; ) {
+    const before = [top, bottom, left, right].join()
+    top = grow(top, -1, height, rowHit)
+    bottom = grow(bottom, 1, height, rowHit)
+    left = grow(left, -1, width, colHit)
+    right = grow(right, 1, width, colHit)
+    changed = before !== [top, bottom, left, right].join()
+  }
+  const pad = Math.round(Math.max(width, height) * 0.01)
+  top = Math.max(0, top - pad)
+  left = Math.max(0, left - pad)
+  bottom = Math.min(height - 1, bottom + pad)
+  right = Math.min(width - 1, right + pad)
+  return { left, top, width: right - left + 1, height: bottom - top + 1 }
+}
+
 async function processOne(asset, src) {
   const outDir = join(OUT, asset.category)
   mkdirSync(outDir, { recursive: true })
@@ -78,7 +134,9 @@ async function processOne(asset, src) {
   if (asset.cutout) {
     const { data, info } = await img.ensureAlpha().raw().toBuffer({ resolveWithObject: true })
     keyOut(data, info.channels, hexToRgb(asset.cutout.key))
-    img = sharp(data, { raw: { width: info.width, height: info.height, channels: info.channels } }).trim({ threshold: 1 })
+    img = sharp(data, { raw: { width: info.width, height: info.height, channels: info.channels } })
+    const box = contentBox(data, info.width, info.height, info.channels)
+    img = box ? img.extract(box) : img.trim({ threshold: 1 })
     // Re-materialise after trim so resize sees trimmed bounds.
     const trimmed = await img.png().toBuffer()
     img = sharp(trimmed)

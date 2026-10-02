@@ -127,8 +127,9 @@
 
 /* Stage */
 .ba-stage {
+  --ba-stage-h: clamp(140px, 24dvh, 250px);
   position: relative;
-  height: clamp(140px, 24dvh, 250px);
+  height: var(--ba-stage-h);
   border-radius: var(--radius);
   background:
     radial-gradient(ellipse at 50% 55%, color-mix(in srgb, var(--ba-aura) 30%, transparent), transparent 62%),
@@ -753,6 +754,25 @@
   width: min(92vw, 560px);
   max-height: 40vh;
 }
+/* Always the whole boss: never taller than its stage (or the intro card). */
+.ba-stage .ba-hd {
+  width: auto;
+  height: auto;
+  max-width: min(62vw, 300px);
+  max-height: calc(var(--ba-stage-h) - 20px);
+}
+.ba-stage.has-floor .ba-hd {
+  max-height: calc(var(--ba-stage-h) - 40px);
+}
+.ba-stage .ba-hd-big {
+  max-width: min(88vw, 520px);
+}
+.ba-intro-boss .ba-hd {
+  width: auto;
+  height: auto;
+  max-width: min(80vw, 420px);
+  max-height: 30dvh;
+}
 .ba-hd-flash {
   filter: brightness(0) invert(1) drop-shadow(0 0 12px #fff);
 }
@@ -795,7 +815,7 @@
   .ba-aura {
     height: 120px;
   }
-  .ba-sprite canvas,
+  .ba-sprite canvas:not(.la-canvas),
   .ba-pixel canvas {
     max-height: 18dvh;
     width: auto;
@@ -816,9 +836,9 @@
     grid-row: 1;
   }
   .ba-arena > .ba-stage {
+    --ba-stage-h: clamp(120px, 46dvh, 220px);
     grid-column: 1;
     grid-row: 2;
-    height: clamp(120px, 46dvh, 220px);
   }
   .ba-arena > .ba-phase-label {
     grid-column: 1;
@@ -840,15 +860,9 @@
   .ba-prompt-big {
     font-size: clamp(2.4rem, 16dvh, 3.6rem);
   }
-  .ba-sprite canvas,
+  .ba-sprite canvas:not(.la-canvas),
   .ba-pixel canvas {
     max-height: 30dvh;
-  }
-  .ba-hd {
-    max-height: 38dvh;
-  }
-  .ba-hd-big {
-    max-height: 42dvh;
   }
   .ba-taunt {
     font-size: 0.8rem;
