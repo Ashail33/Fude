@@ -7,7 +7,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { T } from '../components/ui'
 import { REGIONS } from '../data/regions'
-import { episodeCue, fading, info, placed, roomOf } from '../engine/palace'
+import { episodeCue, fading, info, placed, roomOf, storyOf } from '../engine/palace'
 import { regionUnlocked, usePlayer } from '../engine/store'
 
 export function PalacePanel() {
@@ -108,7 +108,7 @@ export function PalacePanel() {
                             {[d?.reading && d.reading !== d.front ? d.reading : '', d?.kind === 'kana' ? '' : d?.meaning].filter(Boolean).join(' · ')}
                           </small>
                           {episodeCue(p, m.item) && <span className="gm-memory-episode">📍 {episodeCue(p, m.item)}</span>}
-                          <span className="gm-memory-story">{m.story}</span>
+                          <span className="gm-memory-story">{storyOf(p, m)}</span>
                         </span>
                       </li>
                     )

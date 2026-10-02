@@ -18,10 +18,10 @@ export const ROOM_4: Locus[] = [
     name: { jp: 'こいの いけ', en: 'Koi Pond' },
     emoji: '🎏',
     memories: [
-      { item: 'w:atsui', story: 'One corner of the koi pond boils and steams. You dip a toe and yelp "AH, TSOO-EE!" as it scalds you hot, and the koi there swim in sunglasses.' },
-      { item: 'w:tsumetai', story: 'The rest of the pond is frozen cold. A shivering koi in an icy bow TIE chatters "TSU... MEH... TIE..." as frost cracks across its fins. Hot corner, cold corner.' },
-      { item: 'w:hayai', story: 'A koi in a karate belt shouts "HIGH-YAH!" and rockets across the pond so fast it leaves a wake of foam and splashes your face.' },
-      { item: 'w:osoi', story: 'Behind it an ancient koi drifts OH SO slowly, "OH... SO... EE...", moss growing on its back. The fast one laps it twice before it blinks.' },
+      { item: 'w:atsui', story: 'One corner of the koi pond boils and steams. You dip a toe and yelp "AH, TSOO-EE!" as it scalds you hot, and the koi there swim in sunglasses.', image: 'a puddle at your feet boils and steams; you dip a toe and yelp "AH, TSOO-EE!" as it scalds you hot, and a fish in sunglasses fans itself' },
+      { item: 'w:tsumetai', story: 'The rest of the pond is frozen cold. A shivering koi in an icy bow TIE chatters "TSU... MEH... TIE..." as frost cracks across its fins. Hot corner, cold corner.', image: 'a shivering fish in an icy bow TIE chatters "TSU... MEH... TIE..." as frost cracks across its fins and everything around it freezes cold' },
+      { item: 'w:hayai', story: 'A koi in a karate belt shouts "HIGH-YAH!" and rockets across the pond so fast it leaves a wake of foam and splashes your face.', image: 'a fish in a karate belt shouts "HIGH-YAH!" and rockets past so fast it leaves a wake of foam and splashes your face' },
+      { item: 'w:osoi', story: 'Behind it an ancient koi drifts OH SO slowly, "OH... SO... EE...", moss growing on its back. The fast one laps it twice before it blinks.', image: 'an ancient tortoise drifts by OH SO slowly, "OH... SO... EE...", moss growing on its back, while a fast hare laps it twice before it blinks' },
     ],
   },
   {
@@ -32,10 +32,10 @@ export const ROOM_4: Locus[] = [
     name: { jp: 'つきみいし', en: 'Moon-Viewing Stone' },
     emoji: '🌕',
     memories: [
-      { item: 'w:kirei', story: 'A silver KEY RAY of moonlight slides into a keyhole in the stone, and the whole garden unlocks, glittering and beautiful, petals floating up into the light.' },
-      { item: 'w:oishii', story: 'The moon rabbit pounds mochi beside the stone and stuffs a warm piece in your mouth. "OY, SHE-EE!" you cry at her, chewing: sweet, sticky, delicious.' },
-      { item: 'w:kuroi', story: 'A black crow named ROY lands on the stone and spreads his wings, "COO, ROY!", blotting out the moon until the whole sky is inky black.' },
-      { item: 'g:na-adj', story: 'Carved on the stone: "beautiful ___ moon". A quiet-type describing word can\'t touch its noun alone, so a sticky NAH-NAH glue bead hops into the gap and binds them: word, NAH, noun.' },
+      { item: 'w:kirei', story: 'A silver KEY RAY of moonlight slides into a keyhole in the stone, and the whole garden unlocks, glittering and beautiful, petals floating up into the light.', image: 'a silver KEY RAY of moonlight slides into a hidden keyhole and everything around you unlocks, glittering and beautiful, petals floating up into the light' },
+      { item: 'w:oishii', story: 'The moon rabbit pounds mochi beside the stone and stuffs a warm piece in your mouth. "OY, SHE-EE!" you cry at her, chewing: sweet, sticky, delicious.', image: 'the moon rabbit pounds mochi and stuffs a warm piece in your mouth; "OY, SHE-EE!" you cry, chewing: sweet, sticky, delicious' },
+      { item: 'w:kuroi', story: 'A black crow named ROY lands on the stone and spreads his wings, "COO, ROY!", blotting out the moon until the whole sky is inky black.', image: 'a black crow named ROY lands and spreads his wings, "COO, ROY!", blotting out the moon until the whole sky is inky black' },
+      { item: 'g:na-adj', story: 'Carved on the stone: "beautiful ___ moon". A quiet-type describing word can\'t touch its noun alone, so a sticky NAH-NAH glue bead hops into the gap and binds them: word, NAH, noun.', image: 'a quiet-type describing word can\'t touch its noun alone, so a sticky NAH-NAH glue bead hops into the gap and binds them: "beautiful NAH moon", word, NAH, noun' },
     ],
   },
   {
@@ -46,11 +46,11 @@ export const ROOM_4: Locus[] = [
     name: { jp: 'けんだい', en: 'Sealed Lectern' },
     emoji: '📖',
     memories: [
-      { item: 'w:kami', story: 'A sheet of paper peels off the sealed lectern, curls a corner like a finger and beckons "COME-EE, COME-EE", folding itself into a crane as you follow.' },
-      { item: 'w:kotoba', story: 'An old COAT hangs on the lectern with a TUBA in its pocket. Every honk of the COAT-TUBA blows spoken words out as floating speech bubbles that pop into sentences.' },
-      { item: 'w:shizuka', story: 'A ghostly librarian shoulders a SHE-ZOO-KAH bazooka and fires a blob of silence. Every cough, creak and page-flip in the library goes muffled and quiet.' },
-      { item: 'w:kantan', story: 'The lectern\'s riddle book is so easy that a tin CAN with a sun TAN reads it aloud in one second, then shrugs and naps on the open page.' },
-      { item: 'g:janai', story: 'The sign over the lectern says QUIET, but a tanuki crashing cymbals slaps on a sticker: "JAH-NIGH!" Now it reads NOT quiet. Na-words and nouns take JAH-NIGH to say "not".' },
+      { item: 'w:kami', story: 'A sheet of paper peels off the sealed lectern, curls a corner like a finger and beckons "COME-EE, COME-EE", folding itself into a crane as you follow.', image: 'a sheet of paper curls a corner like a finger and beckons "COME-EE, COME-EE", folding itself into a crane as you follow' },
+      { item: 'w:kotoba', story: 'An old COAT hangs on the lectern with a TUBA in its pocket. Every honk of the COAT-TUBA blows spoken words out as floating speech bubbles that pop into sentences.', image: 'an old COAT floats by with a TUBA in its pocket, and every honk of the COAT-TUBA blows spoken words out as speech bubbles that pop into sentences' },
+      { item: 'w:shizuka', story: 'A ghostly librarian shoulders a SHE-ZOO-KAH bazooka and fires a blob of silence. Every cough, creak and page-flip in the library goes muffled and quiet.', image: 'a ghostly librarian shoulders a SHE-ZOO-KAH bazooka and fires a blob of silence, and every cough, creak and page-flip goes muffled and quiet' },
+      { item: 'w:kantan', story: 'The lectern\'s riddle book is so easy that a tin CAN with a sun TAN reads it aloud in one second, then shrugs and naps on the open page.', image: 'a riddle book is so easy that a tin CAN with a sun TAN reads it aloud in one second, then shrugs and naps on the open page' },
+      { item: 'g:janai', story: 'The sign over the lectern says QUIET, but a tanuki crashing cymbals slaps on a sticker: "JAH-NIGH!" Now it reads NOT quiet. Na-words and nouns take JAH-NIGH to say "not".', image: 'a sign says QUIET, but a tanuki crashing cymbals slaps on a sticker, "JAH-NIGH!", so now it reads NOT quiet: na-words and nouns take JAH-NIGH to say "not"' },
     ],
   },
   {
@@ -61,10 +61,10 @@ export const ROOM_4: Locus[] = [
     name: { jp: 'えまかけ', en: 'Ema Board' },
     emoji: '🪧',
     memories: [
-      { item: 'w:namae', story: 'You write your name on a wooden wish plaque. It wriggles, shouts "NAH, MY name!" and scrawls its own name over yours in thick dripping ink.' },
-      { item: 'w:suki', story: 'A plaque with a heart drawn on it straps on tiny SKIS and slides down the ema board, leaving a pink trail that spells "I like you".' },
-      { item: 'w:taisetsu', story: 'One plaque is so important it is bound with a whole TIE SET, SUE: twelve silk neckties knotted round it, and a guard dog sleeps beneath.' },
-      { item: 'w:yuumei', story: 'A famous star\'s plaque glows gold. Cameras flash, fans shove autograph books at it and squeal "YOU MAY sign mine!" while the board creaks under the crowd.' },
+      { item: 'w:namae', story: 'You write your name on a wooden wish plaque. It wriggles, shouts "NAH, MY name!" and scrawls its own name over yours in thick dripping ink.', image: 'you write your name on a wooden plaque; it wriggles, shouts "NAH, MY name!" and scrawls its own name over yours in thick dripping ink' },
+      { item: 'w:suki', story: 'A plaque with a heart drawn on it straps on tiny SKIS and slides down the ema board, leaving a pink trail that spells "I like you".', image: 'a little wooden heart straps on tiny SKIS and slides past you, leaving a pink trail that spells "I like you"' },
+      { item: 'w:taisetsu', story: 'One plaque is so important it is bound with a whole TIE SET, SUE: twelve silk neckties knotted round it, and a guard dog sleeps beneath.', image: 'a treasure so important it is bound with a whole TIE SET, SUE: twelve silk neckties knotted round it, and a guard dog sleeps beneath' },
+      { item: 'w:yuumei', story: 'A famous star\'s plaque glows gold. Cameras flash, fans shove autograph books at it and squeal "YOU MAY sign mine!" while the board creaks under the crowd.', image: 'a famous star glows gold as cameras flash and fans shove autograph books at her, squealing "YOU MAY sign mine!" while the crowd pushes in' },
     ],
   },
   {
@@ -75,10 +75,10 @@ export const ROOM_4: Locus[] = [
     name: { jp: 'いろの すず', en: 'Colour Bells' },
     emoji: '🔔',
     memories: [
-      { item: 'w:akai', story: 'A red AH-KITE swoops down, tangles in the first bell\'s rope and flaps wildly, smearing the bell bright red like fresh paint.' },
-      { item: 'w:shiroi', story: 'SHE and ROY slosh buckets of whitewash over the middle bell. It rings with a soft milky clang, white drops spattering your sandals.' },
-      { item: 'w:aoi', story: 'The last bell tips and pours out a blue wave. "AH! OH! EE!" you yell as it soaks you, dyeing you blue from hair to toes.' },
-      { item: 'g:i-adj', story: 'Each bell rope ends in a little tail that squeals "EE!" These EE-tailed describing words march straight up in front of their noun, no glue needed: red-EE bell, white-EE bell.' },
+      { item: 'w:akai', story: 'A red AH-KITE swoops down, tangles in the first bell\'s rope and flaps wildly, smearing the bell bright red like fresh paint.', image: 'a red AH-KITE swoops down, tangles in your sleeve and flaps wildly, smearing everything bright red like fresh paint' },
+      { item: 'w:shiroi', story: 'SHE and ROY slosh buckets of whitewash over the middle bell. It rings with a soft milky clang, white drops spattering your sandals.', image: 'two painters, SHE and ROY, slosh buckets of whitewash over everything in sight, white drops spattering your sandals until the whole scene is milky white' },
+      { item: 'w:aoi', story: 'The last bell tips and pours out a blue wave. "AH! OH! EE!" you yell as it soaks you, dyeing you blue from hair to toes.', image: 'a bucket tips over your head and pours out a blue wave; "AH! OH! EE!" you yell as it soaks you, dyeing you blue from hair to toes' },
+      { item: 'g:i-adj', story: 'Each bell rope ends in a little tail that squeals "EE!" These EE-tailed describing words march straight up in front of their noun, no glue needed: red-EE bell, white-EE bell.', image: 'describing words with little tails that squeal "EE!" march straight up in front of their noun, no glue needed: red-EE kite, white-EE cat' },
     ],
   },
   {
@@ -89,10 +89,10 @@ export const ROOM_4: Locus[] = [
     name: { jp: 'ほんでんの すず', en: 'Main Hall Bell' },
     emoji: '⛩️',
     memories: [
-      { item: 'w:jinja', story: 'The main hall is a giant GIN JAR with a thatched lid. You shake the bell rope and the whole shrine sloshes, smelling of juniper.' },
-      { item: 'w:tera', story: 'A TERRA-cotta pagoda sprouts beside the hall. Clay monks inside bong a deep gong to drown out the bell: a Buddhist temple next door.' },
-      { item: 'w:toki', story: 'The bell rope ends in a giant TOE with a KEY between its toes. Each tug winds a huge hourglass above the hall, sand pouring: time passing.' },
-      { item: 'w:ima', story: 'The bell clangs and a booming mother leans out of the hall: "EE, MA says NOW! Right NOW!" Every pigeon takes off at once.' },
+      { item: 'w:jinja', story: 'The main hall is a giant GIN JAR with a thatched lid. You shake the bell rope and the whole shrine sloshes, smelling of juniper.', image: 'a giant GIN JAR with a thatched roof and a red gate turns out to be a Shinto shrine; you shake it and the whole shrine sloshes, smelling of juniper' },
+      { item: 'w:tera', story: 'A TERRA-cotta pagoda sprouts beside the hall. Clay monks inside bong a deep gong to drown out the bell: a Buddhist temple next door.', image: 'a TERRA-cotta pagoda sprouts from the ground and clay monks inside bong a deep gong: a Buddhist temple, built of red clay' },
+      { item: 'w:toki', story: 'The bell rope ends in a giant TOE with a KEY between its toes. Each tug winds a huge hourglass above the hall, sand pouring: time passing.', image: 'a giant TOE holds a KEY between its toes, and each turn winds a huge hourglass overhead, sand pouring: time passing' },
+      { item: 'w:ima', story: 'The bell clangs and a booming mother leans out of the hall: "EE, MA says NOW! Right NOW!" Every pigeon takes off at once.', image: 'a booming mother leans out of a window and yells "EE, MA says NOW! Right NOW!", and every pigeon takes off at once' },
     ],
   },
   {
@@ -103,9 +103,9 @@ export const ROOM_4: Locus[] = [
     name: { jp: 'こまいぬ', en: 'Komainu Guardian' },
     emoji: '🦁',
     memories: [
-      { item: 'w:tsuyoi', story: 'The stone lion-dog spins a boulder on a string like a YO-YO, roaring "TSU-YOY-OY!", so strong the ground shakes with every throw.' },
-      { item: 'w:yowai', story: 'Its partner is weak: a crumbling stone pup trying to lift one cherry petal, wobbling and sobbing "YO... WHY?" Strong one, weak one, side by side.' },
-      { item: 'w:genki', story: 'A GENIE with a KEY on a string bounces on the lion-dog\'s head, cartwheeling and whooping, full of energy, never stopping for breath.' },
+      { item: 'w:tsuyoi', story: 'The stone lion-dog spins a boulder on a string like a YO-YO, roaring "TSU-YOY-OY!", so strong the ground shakes with every throw.', image: 'a stone lion-dog spins a boulder on a string like a YO-YO, roaring "TSU-YOY-OY!", so strong the ground shakes with every throw' },
+      { item: 'w:yowai', story: 'Its partner is weak: a crumbling stone pup trying to lift one cherry petal, wobbling and sobbing "YO... WHY?" Strong one, weak one, side by side.', image: 'a crumbling stone pup tries to lift one cherry petal, wobbling and sobbing "YO... WHY?", so weak beside its strong yo-yo-spinning partner' },
+      { item: 'w:genki', story: 'A GENIE with a KEY on a string bounces on the lion-dog\'s head, cartwheeling and whooping, full of energy, never stopping for breath.', image: 'a GENIE with a KEY on a string bounces about, cartwheeling and whooping, full of energy, never stopping for breath' },
     ],
   },
   {
@@ -116,8 +116,8 @@ export const ROOM_4: Locus[] = [
     name: { jp: 'おみくじばこ', en: 'Omikuji Box' },
     emoji: '🎴',
     memories: [
-      { item: 'g:kunai', story: 'Your fortune slip says "a cold day". A ninja\'s COO-NIGH blade slashes off its EE ending and stabs into the slip: now it says NOT cold. Swap the EE for the blade to say "not".' },
-      { item: 'g:katta', story: 'Last year\'s fortune hangs on the box, already CUT-TA in half. Its EE-word now ends in CUT-TA: "fun" became "WAS fun". That cut puts the describing word in the past.' },
+      { item: 'g:kunai', story: 'Your fortune slip says "a cold day". A ninja\'s COO-NIGH blade slashes off its EE ending and stabs into the slip: now it says NOT cold. Swap the EE for the blade to say "not".', image: 'a slip of paper says "a cold day", and a ninja\'s COO-NIGH blade slashes off its EE ending and stabs in: now it says NOT cold, blade instead of EE' },
+      { item: 'g:katta', story: 'Last year\'s fortune hangs on the box, already CUT-TA in half. Its EE-word now ends in CUT-TA: "fun" became "WAS fun". That cut puts the describing word in the past.', image: 'last year\'s note flutters down already CUT-TA in half; its EE-word now ends in CUT-TA, so "fun" became "WAS fun": the cut puts the describing word in the past' },
     ],
   },
   {
@@ -128,8 +128,8 @@ export const ROOM_4: Locus[] = [
     name: { jp: 'いしぶみ', en: 'Rune Tablets' },
     emoji: '🪨',
     memories: [
-      { item: 'w:moji', story: 'The carved letters crawl out of the mossy tablet like ants, chanting "MO! JEE! MO! JEE!", then march back into their grooves one by one.' },
-      { item: 'w:nagai', story: 'The inscription is so long it unrolls off the tablet, across the garden and over the wall. The scribe at the end groans "NAH, GUY, still going?"' },
+      { item: 'w:moji', story: 'The carved letters crawl out of the mossy tablet like ants, chanting "MO! JEE! MO! JEE!", then march back into their grooves one by one.', image: 'carved letters crawl out of a mossy stone like ants, chanting "MO! JEE! MO! JEE!", then march back into their grooves one by one' },
+      { item: 'w:nagai', story: 'The inscription is so long it unrolls off the tablet, across the garden and over the wall. The scribe at the end groans "NAH, GUY, still going?"', image: 'a scroll is so long it unrolls across the ground and over a far wall, and the scribe at the end groans "NAH, GUY, still going?"' },
     ],
   },
   {
@@ -140,9 +140,9 @@ export const ROOM_4: Locus[] = [
     name: { jp: 'ごしんぼく', en: 'Sacred Tree' },
     emoji: '🌳',
     memories: [
-      { item: 'w:takai', story: 'The sacred tree is so tall that a TALL KITE, a TAH-KITE, snags on its top branch far above the clouds, and you crane your neck until it cricks.' },
-      { item: 'w:furui', story: 'The ancient tree wears a long grey FURRY beard. It creaks "FOO-ROO-EE" and centuries of dust puff from its old cracked bark.' },
-      { item: 'w:atarashii', story: 'Beside the old giant, a brand-new sapling pops up still in shiny wrapping, sings "AH, TA-DA! RASH-EE!" and smells of fresh paint: new next to old.' },
+      { item: 'w:takai', story: 'The sacred tree is so tall that a TALL KITE, a TAH-KITE, snags on its top branch far above the clouds, and you crane your neck until it cricks.', image: 'a TALL KITE, a TAH-KITE, soars so high it snags on a cloud far above, and you crane your neck until it cricks' },
+      { item: 'w:furui', story: 'The ancient tree wears a long grey FURRY beard. It creaks "FOO-ROO-EE" and centuries of dust puff from its old cracked bark.', image: 'an ancient old-timer wears a long grey FURRY beard, creaks "FOO-ROO-EE", and centuries of dust puff from his cracked skin' },
+      { item: 'w:atarashii', story: 'Beside the old giant, a brand-new sapling pops up still in shiny wrapping, sings "AH, TA-DA! RASH-EE!" and smells of fresh paint: new next to old.', image: 'a brand-new gadget pops out still in shiny wrapping, sings "AH, TA-DA! RASH-EE!" and smells fresh beside a dusty old one: new next to old' },
     ],
   },
 ]

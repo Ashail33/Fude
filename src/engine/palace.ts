@@ -162,12 +162,92 @@ export function info(m: Memory): ItemInfo | undefined {
   return describeItem(m.item)
 }
 
+// ─── Retelling a picture wherever the item lives ──────────────────────────
+
+const PEOPLE = new Set(['mage', 'merchant', 'guard', 'priest', 'king', 'elder', 'innkeeper', 'jailer', 'villager-a', 'villager-b', 'child'])
+const ANIMALS = new Set(['cat', 'dog', 'fox', 'kitsune', 'tanuki', 'kappa'])
+const TITLES = /^(teacher|grandma|grandpa|granny|old|captain|king|princess|lady|sir|guard|sage|priestess)\b/i
+const GENERIC = /\b(innkeeper|villager|child|oni|golem|scribe|monk|hermit|tinker|nanny|page|fisherman|woodcutter|gatherer|racer|sage|farmhand|traveller|wanderer|teacher|captain|smith|miko|seller|cook|guard|keeper|merchant|farmer|priest|pilgrim|maid|wizard|baker|jailer|kid|cat|dog|fox|tanuki|crane|well|lantern|stone|tree|bell|sign|statue|chest|spot|box|pond|tablet|rock|boulder|bush|oven|altar|lectern|figure|apprentice|student|traveller|spirit|knight|elder|bamboo|hearth|portrait|room|garden|anvil|stair|signpost|gate|shrine|ring|cauldron|circle|sundial|loom|fence)\b/i
+
+type Setting = 'person' | 'animal' | 'spirit' | 'flame' | 'well' | 'sign' | 'statue' | 'box' | 'gate' | 'bell' | 'plant' | 'rock' | 'altar' | 'other'
+
+function settingOf(spec: { kind?: string; sprite?: string; tile?: string }): Setting {
+  const sp = spec.sprite ?? ''
+  if (sp) return PEOPLE.has(sp) ? 'person' : ANIMALS.has(sp) ? 'animal' : 'spirit'
+  const t = spec.tile ?? ''
+  if (/lantern|campfire|hearth|torch/.test(t)) return 'flame'
+  if (/well/.test(t)) return 'well'
+  if (/sign|tablet/.test(t)) return 'sign'
+  if (/statue/.test(t)) return 'statue'
+  if (/chest|barrel|crate|pot/.test(t)) return 'box'
+  if (/torii|noren|door|gate/.test(t)) return 'gate'
+  if (/bell/.test(t)) return 'bell'
+  if (/tree|sakura|bamboo|bush|pine/.test(t)) return 'plant'
+  if (/rock|boulder|stone/.test(t)) return 'rock'
+  if (/altar|lectern/.test(t)) return 'altar'
+  return 'other'
+}
+
+/** “the Festival Lantern” / “Teacher Hana”. */
+function called(name: string): string {
+  if (/^the /i.test(name)) return `the ${name.slice(4)}`
+  const proper = / the /i.test(name) || /-/.test(name) || TITLES.test(name) || !GENERIC.test(name)
+  return proper ? name : `the ${name}`
+}
+
+const FRAMES: Record<Setting, string[]> = {
+  person: ['Right in front of {the}, {image}. {The} {react}.', 'As you talk with {the}, {image}. {The} {react}.'],
+  animal: ['{The} pricks up its ears: {image}. {The} {pounce}.', 'Right under the nose of {the}, {image}. {The} {pounce}.'],
+  spirit: ['Around {the}, the air shimmers and {image}. {The} {glow}.', 'Beside {the}, {image}. {The} {glow}.'],
+  flame: ['In the warm glow of {the}, {image}, and the flame flares with every sound.', 'Shadows leap around {the} as {image}.'],
+  well: ['Up out of {the} it rises: {image}, the echo booming down the shaft.'],
+  sign: ['Painted across {the}, the picture comes alive: {image}.', 'You read {the} and the words peel off into a scene: {image}.'],
+  statue: ['{The} creaks awake to watch: {image}.'],
+  box: ['The lid of {the} flips open and {image}.'],
+  gate: ['Through {the} it comes: {image}.'],
+  bell: ['{The} rings once, and {image}.'],
+  plant: ['Leaves rain down from {the} as {image}.', 'Hanging from {the}, {image}.'],
+  rock: ['Perched on top of {the}, {image}.'],
+  altar: ['On {the}, candles flicker as {image}.'],
+  other: ['Right by {the}, {image}.'],
+}
+const REACT = ['jumps back with a yelp', 'bursts out laughing and claps', 'drops everything to stare', 'points and shouts for you to look', 'nods slowly, as if this happens every day']
+const POUNCE = ['pounces at it', 'chases it in circles', 'hides, then peeks back out', 'sniffs at it suspiciously']
+const GLOW = ['flickers with delight', 'hums along', 'spins in a slow circle', 'glows twice as bright']
+
+const hash = (s: string) => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7)
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
+
+/** Retell a memory's picture at any place in the world. */
+export function retell(m: Memory, place: { map: string; anchor: string; name: { en: string } }): string {
+  const spec = entityOf(place.map, place.anchor)
+  const img = (m.image ?? m.story).trim().replace(/[.!]+$/, '')
+  const frames = FRAMES[spec ? settingOf(spec) : 'other']
+  const h = hash(m.item + place.anchor)
+  const the = called(place.name.en)
+  return frames[h % frames.length]
+    .replace(/\{The\}/g, cap(the))
+    .replace(/\{the\}/g, the)
+    .replace('{image}', img)
+    .replace('{react}', REACT[h % REACT.length])
+    .replace('{pounce}', POUNCE[h % POUNCE.length])
+    .replace('{glow}', GLOW[h % GLOW.length])
+}
+
+/** The picture as this player should see it: the authored story at home, retold anywhere else. */
+export function storyOf(s: PlayerState, m: Memory): string {
+  const home = homeOf(s, m.item)
+  const authored = LOCUS_BY_ITEM.get(m.item)
+  if (!home || !authored || (home.map === authored.map && home.anchor === authored.anchor)) return m.story
+  return retell(m, home)
+}
+
 /** Hide the item's own writing (and reading) inside a cue, just in case. */
-export function cueOf(m: Memory): string {
+export function cueOf(s: PlayerState, m: Memory): string {
   const i = info(m)
-  let s = m.story
-  for (const t of [i?.front, i?.reading].filter((x): x is string => !!x && /[^\x00-\x7f]/.test(x))) s = s.split(t).join('？')
-  return s
+  let out = storyOf(s, m)
+  for (const t of [i?.front, i?.reading].filter((x): x is string => !!x && /[^\x00-\x7f]/.test(x))) out = out.split(t).join('？')
+  return out
 }
 
 export interface RecallQ {

@@ -16,6 +16,14 @@ export interface Memory {
    * Japanese characters, so it can be shown as a recall cue.
    */
   story: string
+  /**
+   * The same picture with no place in it, so it can be retold wherever the
+   * item ends up living (engine/palace sets it in the player's own place).
+   * A lower-case clause that reads after "Right here, …": who/what is
+   * there, what it does, the CAPS sound hook and the meaning. Same rules as
+   * `story`: no Japanese characters of the item itself.
+   */
+  image: string
 }
 
 export interface Locus {

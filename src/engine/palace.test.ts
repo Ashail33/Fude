@@ -4,7 +4,7 @@ import { HIRAGANA, KATAKANA } from '../data/kana'
 import { VOCAB } from '../data/vocab'
 import { getMap } from '../world/maps'
 import { describeItem, item } from './items'
-import { cueOf, episodeCue, homeOf, LOCI, roomLoci, roomOf } from './palace'
+import { cueOf, episodeCue, homeOf, LOCI, retell, roomLoci, roomOf, storyOf } from './palace'
 import { freshState } from './store'
 
 /** What each room must hold. */
@@ -51,7 +51,20 @@ describe('memory palace', () => {
           expect(d, m.item).toBeTruthy()
           expect(m.story.length, `${m.item} story`).toBeGreaterThan(30)
           expect(m.story, `${m.item} story shows its own Japanese`).not.toContain(d!.front)
-          expect(cueOf(m)).not.toContain(d!.front)
+          expect(cueOf(freshState(), m)).not.toContain(d!.front)
+        }
+    })
+
+    it('every memory has a place-free image that can be retold anywhere', () => {
+      for (const l of loci)
+        for (const m of l.memories) {
+          const img = m.image ?? ''
+          expect(img.length, `${m.item} image`).toBeGreaterThan(25)
+          expect(img.split(/\s+/).length, `${m.item} image is too long`).toBeLessThanOrEqual(40)
+          expect(img[0], `${m.item} image should start lower case`).toBe(img[0]?.toLowerCase())
+          expect(img, `${m.item} image shows its own Japanese`).not.toContain(describeItem(m.item)!.front)
+          expect(/[A-Z]{2,}/.test(img), `${m.item} image needs its CAPS sound hook`).toBe(true)
+          expect(img.toLowerCase(), `${m.item} image names its home place`).not.toContain(l.name.en.toLowerCase().replace(/^the /, ''))
         }
     })
   })
@@ -88,5 +101,38 @@ describe('the player’s own palace', () => {
   it('ignores moments at things that no longer exist', () => {
     const s = { ...base, episodes: { 'k:か': ep('village', 'no-such-thing') } }
     expect(homeOf(s, 'k:か')!.personal).toBeFalsy()
+  })
+})
+
+describe('stories follow the item', () => {
+  it('reads well everywhere (sample)', () => {
+    const ms = LOCI.flatMap((l) => l.memories)
+    const places = ['village', 'fields', 'forest', 'shrine', 'tower'].flatMap((id) => getMap(id)!.entitySpecs.slice(0, 40).map((e) => ({ map: id, anchor: e.id, name: e.name ?? { en: 'spot' } })))
+    const out = places.map((p, i) => retell(ms[(i * 37) % ms.length], p))
+    for (const s of out) expect(s).not.toMatch(/\{|\}|undefined/)
+  })
+
+  const base = freshState()
+  const at = (map: string, anchor: string) => ({ ...base, episodes: { 'k:か': [{ map, anchor, how: 'learned' as const, at: 1 }] } })
+  const ka = LOCI.flatMap((l) => l.memories).find((m) => m.item === 'k:か')!
+
+  it('keeps the hand-written story at the authored place', () => {
+    expect(storyOf(base, ka)).toBe(ka.story)
+  })
+
+  it('retells the picture at the place the item moved to', () => {
+    for (const [map, anchor, name] of [
+      ['village', 'v-teacher', 'Teacher Hana'],
+      ['village', 'v-flant-1', 'Festival Lantern'],
+      ['village', 'v-tanuki', 'Mischievous Tanuki'],
+      ['village', 'v-sakura', ''],
+    ]) {
+      const story = storyOf(at(map, anchor), ka)
+      expect(story).not.toBe(ka.story)
+      expect(story).toContain(ka.image.replace(/[.!]+$/, '').slice(0, 30))
+      if (name) expect(story).toContain(name)
+      expect(story[0]).toBe(story[0].toUpperCase())
+      expect(cueOf(at(map, anchor), ka)).not.toContain('か')
+    }
   })
 })
