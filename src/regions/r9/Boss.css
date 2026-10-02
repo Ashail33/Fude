@@ -1,0 +1,136 @@
+/* Yuki-onna boss (region 9): frozen words, the blizzard and the warmth meter. */
+
+.r9-warmth {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin-bottom: 6px;
+  font-size: 1.1rem;
+}
+
+.r9-warmth-label {
+  color: var(--muted);
+  font-size: 0.8rem;
+  margin-right: 4px;
+}
+
+.r9-candle {
+  filter: grayscale(1) brightness(0.55);
+  opacity: 0.5;
+  transition: filter 0.4s ease, opacity 0.4s ease, transform 0.4s ease;
+}
+
+.r9-candle.lit {
+  filter: drop-shadow(0 0 4px #ffd166);
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+.r9-ice {
+  background: linear-gradient(180deg, rgba(214, 241, 255, 0.16), rgba(155, 231, 255, 0.06)), var(--win-fill);
+}
+
+.r9-frozen-word {
+  color: #d6f1ff;
+  text-shadow: 0 0 6px #9be7ff, 0 0 2px #ffffff;
+  filter: blur(0.6px);
+  transition: color 0.6s ease, text-shadow 0.6s ease, filter 0.6s ease;
+}
+
+.r9-frozen-word.thawed {
+  color: var(--text);
+  text-shadow: 0 0 10px rgba(255, 209, 102, 0.8);
+  filter: none;
+}
+
+.r9-blizzard {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+}
+
+.r9-hidden {
+  filter: blur(9px);
+  opacity: 0.55;
+  user-select: none;
+  transition: filter 0.6s ease, opacity 0.6s ease;
+}
+
+.r9-hidden.shown {
+  filter: none;
+  opacity: 1;
+}
+
+.r9-part {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: var(--font-jp);
+  font-size: 2.2rem;
+  line-height: 1.1;
+  padding: 6px 10px;
+  border: 2px dashed rgba(155, 231, 255, 0.6);
+  border-radius: 6px;
+}
+
+.r9-part small {
+  font-family: inherit;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.r9-meaning {
+  font-size: clamp(1.1rem, 5vw, 1.5rem);
+}
+
+.r9-mark {
+  background: rgba(155, 231, 255, calc(0.45 - var(--r9-warm, 0) * 0.3));
+  color: inherit;
+  border-radius: 4px;
+  padding: 0 4px;
+  box-shadow: 0 0 0 2px rgba(214, 241, 255, 0.5);
+}
+
+/* Snowflakes drifting around her. */
+.r9-flakes {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.r9-flake {
+  position: absolute;
+  color: #e8f7ff;
+  opacity: 0.85;
+  font-size: 0.9rem;
+  animation: r9-fall 4.6s linear infinite;
+}
+
+.r9-flake-0 { left: 8%; animation-delay: 0s; }
+.r9-flake-1 { left: 26%; animation-delay: 1.2s; font-size: 0.7rem; }
+.r9-flake-2 { left: 44%; animation-delay: 2.5s; }
+.r9-flake-3 { left: 62%; animation-delay: 0.6s; font-size: 1.1rem; }
+.r9-flake-4 { left: 78%; animation-delay: 3.1s; font-size: 0.7rem; }
+.r9-flake-5 { left: 92%; animation-delay: 1.8s; }
+
+.r9-phase-1 .r9-flake {
+  animation-duration: 1.6s;
+  font-size: 1.2rem;
+}
+
+@keyframes r9-fall {
+  from {
+    transform: translate(0, -10%) rotate(0deg);
+  }
+  to {
+    transform: translate(-14px, 110%) rotate(180deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .r9-flake {
+    animation: none;
+  }
+}
