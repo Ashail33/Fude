@@ -1,0 +1,92 @@
+/* Region 7 boss: the Knotting Yamanba. */
+
+.yb-knot {
+  display: inline-flex;
+  gap: 0.05em;
+  padding: 0 0.2em;
+}
+
+.yb-knot span {
+  display: inline-block;
+  transform: rotate(var(--r, 0deg)) translateY(var(--y, 0));
+  transition: transform 0.45s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+
+.yb-knot.yb-untied span {
+  transform: none;
+}
+
+.yb-rope {
+  font-size: 0.9em;
+  margin: 0 0.15em;
+  opacity: 0.85;
+}
+
+.yb-untied .yb-rope {
+  opacity: 0.25;
+}
+
+.yb-frame {
+  margin-top: 4px;
+  font-family: var(--font-jp);
+  font-size: clamp(1.1rem, 4.5vw, 1.5rem);
+}
+
+.yb-slot {
+  display: inline-block;
+  min-width: 2.5em;
+  border-bottom: 3px dashed currentColor;
+  padding: 0 0.2em;
+}
+
+.yb-slot.ok {
+  color: var(--good, #7ed957);
+  border-bottom-style: solid;
+}
+
+.yb-slot.bad {
+  color: var(--bad, #ff6b6b);
+}
+
+.yb-steam {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.yb-steam i {
+  position: absolute;
+  bottom: -10%;
+  left: calc(8% + var(--i) * 14%);
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.35), transparent 70%);
+  animation: yb-rise calc(5s + var(--i) * 0.7s) linear infinite;
+  animation-delay: calc(var(--i) * -1.3s);
+}
+
+@keyframes yb-rise {
+  from {
+    transform: translateY(0) scale(0.7);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  to {
+    transform: translateY(-220%) scale(1.6);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .yb-steam i {
+    animation: none;
+    opacity: 0.4;
+  }
+  .yb-knot span {
+    transition: none;
+  }
+}
