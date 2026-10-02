@@ -10,6 +10,7 @@
  */
 
 import { ARCADE_ASSETS } from '../../arcade/art'
+import { PEOPLE_ASSETS } from './people'
 import { PACK_ASSETS } from '../../regions/art'
 import { CAST, CUTOUT, STYLE, type HdAsset } from './cast'
 
@@ -118,7 +119,7 @@ const CORE_ASSETS: HdAsset[] = [
 ]
 
 /** Every illustrated asset: the core game's, the region packs', then the Games tab's. */
-export const HD_ASSETS: HdAsset[] = [...CORE_ASSETS, ...PACK_ASSETS, ...ARCADE_ASSETS]
+export const HD_ASSETS: HdAsset[] = [...CORE_ASSETS, ...PACK_ASSETS, ...ARCADE_ASSETS, ...PEOPLE_ASSETS]
 export const HD_BY_ID = new Map(HD_ASSETS.map((a) => [a.id, a]))
 
 /** Public URL of the processed asset (WebP). */

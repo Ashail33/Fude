@@ -45,6 +45,7 @@ const BG_HD: Partial<Record<Backdrop, string>> = { village: 'battle-village', fi
  */
 export function sceneArt(scene: Scene, i: number): { id: string; still: boolean } | null {
   const bg = backdropAt(scene, i)
+  if (scene.art) return bg === 'void' ? null : { id: scene.art, still: true }
   if (scene.id === 'intro') return { id: bg !== 'void' ? 'intro-3' : i <= 2 ? 'intro-1' : 'intro-2', still: true }
   if (scene.id.startsWith('arrive-')) return { id: scene.id, still: true }
   // Fude's memories and the true ending are painted scenes; the void between memories stays dark

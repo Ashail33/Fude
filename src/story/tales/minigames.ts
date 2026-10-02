@@ -97,6 +97,7 @@ function sumiReport(c: Ctx, k: number): Step[] {
       ...c.give('ink-blade'),
       c.narrate('🗡️ すみの かたな：たたかいで こうげき +4、HP +10', '🗡️ The Ink Blade: +4 attack and +10 HP in every battle'),
     )
+    c.scene('sumi-kotone')
   }
   return out
 }
@@ -188,7 +189,10 @@ function tane(c: Ctx): Step[] {
     out.push(...c.advance('empty-valley'))
     k++
   }
-  if (k >= VALLEY.length && k > st) out.push(...c.give('village-bell'), c.say('この すずを もって いって。たにの みんなからの おれいだよ。', 'Take this bell. It is a thank-you from everyone in the valley.'))
+  if (k >= VALLEY.length && k > st) {
+    out.push(...c.give('village-bell'), c.say('この すずを もって いって。たにの みんなからの おれいだよ。', 'Take this bell. It is a thank-you from everyone in the valley.'))
+    c.scene('valley-home')
+  }
   if (out.length) return [...out, visit()]
   return [c.say('たにの ようすは どうだい？', 'How is the valley coming along?'), visit()]
 }

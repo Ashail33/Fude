@@ -193,6 +193,8 @@ const ALIASES: Record<string, string> = {
   librarian: 'wisp',
   chimera: 'kitsune',
   kotone: 'scribe',
+  sumi: 'samurai',
+  tane: 'okami',
   shadow: 'wisp',
   // Boss illustration / game ids.
   'kana-oni': 'oni',

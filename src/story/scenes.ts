@@ -10,6 +10,7 @@
 import type { SpriteId } from '../art'
 import type { TrackId } from '../engine/music'
 import { MEMORY_SCENES } from './memories'
+import { SIDE_SCENES } from './sideScenes'
 import type { PackBackdrop } from '../regions/ids'
 import { PACK_SCENES, PACK_SPEAKER_DEFS } from '../regions/scenes'
 
@@ -45,6 +46,9 @@ const CORE_SPEAKERS = {
   scribe: { sprite: 'scribe', name: 'Girl with the Brush', jp: 'ふでの しょうじょ', color: '#f2a7c3' },
   kotone: { sprite: 'scribe', name: 'Kotone', jp: 'ことね', color: '#f2a7c3' },
   shadow: { sprite: 'wisp', name: '???', jp: '？？？', color: '#8a8fb8' },
+  // keepers of the Games tab (story/tales/minigames.ts)
+  sumi: { sprite: 'samurai', name: 'Master Sumi', jp: 'スミ せんせい', color: '#cfd8dc' },
+  tane: { sprite: 'okami', name: 'Granny Tane', jp: 'タネ ばあちゃん', color: '#e6c98a' },
 } satisfies Record<string, Speaker>
 
 /** Everyone who can speak in a cutscene: the core cast, then the region packs'. */
@@ -87,6 +91,8 @@ export interface Scene {
   steps: SceneStep[]
   /** One of Fude's memories: drawn in faded sepia. */
   memory?: boolean
+  /** A painted still shown behind the whole scene (HD asset id). */
+  art?: string
 }
 
 const S: Scene[] = [
@@ -368,7 +374,7 @@ const S: Scene[] = [
   },
 ]
 
-export const SCENES: Record<string, Scene> = Object.fromEntries([...S, ...MEMORY_SCENES, ...PACK_SCENES].map((s) => [s.id, s]))
+export const SCENES: Record<string, Scene> = Object.fromEntries([...S, ...MEMORY_SCENES, ...PACK_SCENES, ...SIDE_SCENES].map((s) => [s.id, s]))
 
 export function hasSceneData(id: string): boolean {
   return id in SCENES

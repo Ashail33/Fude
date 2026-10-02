@@ -10,6 +10,7 @@ import type { Profile } from './deform'
 import { DEFAULT_SCENE, type SceneMotion } from './scene'
 import { flyer, portrait, R, slime, stander } from './profileKit'
 import { PACK_PROFILES } from '../regions/art'
+import { PEOPLE_PROFILES } from '../art/hd/people'
 
 const CORE_PROFILES: Record<string, Profile> = {
   // ── Bosses ──────────────────────────────────────────────────────────
@@ -192,7 +193,7 @@ const CORE_PROFILES: Record<string, Profile> = {
 }
 
 /** Every figure's motion: the core cast, then the region packs'. */
-export const PROFILES: Record<string, Profile> = { ...CORE_PROFILES, ...PACK_PROFILES }
+export const PROFILES: Record<string, Profile> = { ...CORE_PROFILES, ...PACK_PROFILES, ...PEOPLE_PROFILES }
 
 /** Scene motion for full-bleed art (backdrops, key art, stills). */
 export const SCENES: Record<string, SceneMotion> = {

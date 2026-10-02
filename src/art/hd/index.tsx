@@ -5,6 +5,7 @@
  */
 import { useEffect, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from 'react'
 import { HD_BY_ID, hdUrl } from './manifest'
+import { PEOPLE_ENTITY_HD } from './people'
 import './hd.css'
 import { PACK_BOSS_HD, PACK_ENTITY_HD, PACK_SPEAKER_HD, PACK_SPRITE_HD } from '../../regions/art'
 
@@ -224,7 +225,7 @@ export const BOSS_HD: Record<string, string> = {
 
 /** HD art for a story/dialogue speaker: boss art for boss keys, else the portrait/enemy art. */
 /** Cutscene speakers with art of their own (not their sprite's). */
-export const SPEAKER_HD: Record<string, string> = { shadow: 'shadow', ...PACK_SPEAKER_HD }
+export const SPEAKER_HD: Record<string, string> = { shadow: 'shadow', sumi: 'p-sumi', tane: 'p-tane', ...PACK_SPEAKER_HD }
 
 /**
  * Characters in the world with art of their own: the folklore spirits wear
@@ -248,6 +249,7 @@ export const ENTITY_HD: Record<string, string> = {
   'fk5-baku': 'yokai-baku',
   'fk5-urashima': 'yokai-urashima',
   ...PACK_ENTITY_HD,
+  ...PEOPLE_ENTITY_HD,
 }
 
 export function speakerHd(sprite?: string | null, key?: string | null): string | undefined {

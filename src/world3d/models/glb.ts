@@ -38,6 +38,21 @@ const FIT: Record<string, { h: number; yaw?: number; float?: boolean; quad?: boo
   cat: { h: 0.55, quad: true },
   dog: { h: 0.7, quad: true },
   fox: { h: 0.65, quad: true },
+  // region packs (rigged: Meshy auto-rig, posed by the bone animation below)
+  fisher: { h: 1.45 },
+  sailor: { h: 1.55 },
+  okami: { h: 1.45 },
+  samurai: { h: 1.55 },
+  lady: { h: 1.45 },
+  monk: { h: 1.35 },
+  snowchild: { h: 1.0 },
+  tennin: { h: 1.5 },
+  scholar: { h: 1.5 },
+  yamanba: { h: 1.7 },
+  karakuri: { h: 1.4 },
+  nurarihyon: { h: 1.6 },
+  'yuki-onna': { h: 1.8 },
+  raijin: { h: 2.0 },
 }
 
 let available: Set<string> | null = null
