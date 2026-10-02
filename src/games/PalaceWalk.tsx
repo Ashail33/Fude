@@ -7,7 +7,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { GameFrame, Intro, T } from '../components/ui'
 import { REGIONS } from '../data/regions'
-import { cueOf, recallQuestion, walkMemories, type RecallQ } from '../engine/palace'
+import { cueOf, episodeCue, recallQuestion, walkMemories, type RecallQ } from '../engine/palace'
 import { sfx } from '../engine/sfx'
 import { speak } from '../engine/speech'
 import type { Review } from '../engine/srs'
@@ -18,6 +18,7 @@ import './PalaceWalk.css'
 interface Stop {
   emoji: string
   name: { jp: string; en: string }
+  personal?: boolean
   questions: RecallQ[]
 }
 
@@ -29,6 +30,7 @@ export default function PalaceWalk({ activity, params, onFinish, onExit }: GameP
       walkMemories(getState(), params.room).map(({ locus, memories }) => ({
         emoji: locus.emoji,
         name: locus.name,
+        personal: locus.personal,
         questions: memories.map((m) => recallQuestion(getState(), m)).filter((q): q is RecallQ => !!q),
       })),
     [params.room],
@@ -140,7 +142,9 @@ export default function PalaceWalk({ activity, params, onFinish, onExit }: GameP
           <div className="card pw-card" key={`${si}-${qi}`}>
             <div className="pw-place">
               {stop.emoji} <span lang="ja">{stop.name.jp}</span> · {stop.name.en}
+              {stop.personal && <span className="pw-own"> ✨</span>}
             </div>
+            {episodeCue(p, q.memory.item) && <p className="pw-episode">📍 {episodeCue(p, q.memory.item)}</p>}
             <p className="pw-cue">{picked ? q.memory.story : cueOf(q.memory)}</p>
             {picked && (
               <div className={`pw-answer pop ${picked === q.answer.id ? 'good' : 'bad'}`}>

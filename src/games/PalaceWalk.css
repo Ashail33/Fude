@@ -97,3 +97,8 @@
     font-size: 1rem;
   }
 }
+.pw-episode {
+  margin: 0;
+  color: var(--gold, #f7c948);
+  font-size: 0.95rem;
+}

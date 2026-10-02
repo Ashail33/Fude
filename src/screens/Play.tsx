@@ -9,10 +9,11 @@ import { dueItems, completeQuest, featuredToday, FEATURED_MULTIPLIER, questActiv
 import { playJingle } from '../engine/music'
 import { levelForXp, titleFor, xpForLevel } from '../engine/rewards'
 import { sfx } from '../engine/sfx'
-import { activityUnlocked, getState, recordResult, setState, usePlayer, type Outcome, type PlayerState } from '../engine/store'
+import { activityUnlocked, getState, recordResult, setState, usePlayer, recordEpisodes, type Outcome, type PlayerState } from '../engine/store'
 import { gameComponent } from '../games/registry'
 import { owedMemories } from '../story/chronicle'
-import { info, LOCI, LOCUS_BY_ITEM, placed } from '../engine/palace'
+import { homeOf, info, LOCI, MEMORY_BY_ITEM, placed } from '../engine/palace'
+import { locateActivity } from '../world/maps'
 import { isChunkError, reloadForNewBuild } from '../engine/staleBuild'
 import type { Activity, GameResult } from '../games/types'
 
@@ -105,6 +106,13 @@ export default function Play() {
       finished.current = true
       const featured = featuredToday(getState()).some((a) => a.id === activity.id)
       const o = recordResult(activity, r, Date.now() - startedAt.current, featured ? FEATURED_MULTIPLIER : 1)
+      // the memory palace is built by playing: what this trial taught lives with whoever hosts it
+      const host = activity.game === 'palace' ? undefined : locateActivity(activity.id)
+      if (host) {
+        const after = getState()
+        const items = [...new Set(r.reviews.map((x) => x.itemId))].filter((id) => MEMORY_BY_ITEM.has(id) && !after.episodes?.[id]?.length && placed(after, MEMORY_BY_ITEM.get(id)!))
+        recordEpisodes(items, { map: host.map.spec.id, anchor: host.entityId, how: 'learned', what: activity.title })
+      }
       let questXp = 0
       if (questId && o.stars > 0) {
         const q = getState().quests.list.find((x) => x.id === questId)
@@ -349,18 +357,20 @@ function placedItems(s: PlayerState): string[] {
 /** “📍 あ → the Inn”: where this game’s new items now live in the palace. */
 function PlacedNote({ ids }: { ids: string[] }) {
   const byPlace = new Map<string, string[]>()
+  const names = new Map<string, { emoji: string; name: { en: string } }>()
   for (const id of ids) {
-    const l = LOCUS_BY_ITEM.get(id)
-    const m = l?.memories.find((x) => x.item === id)
+    const l = homeOf(getState(), id)
+    const m = MEMORY_BY_ITEM.get(id)
     if (!l || !m) continue
     byPlace.set(l.id, [...(byPlace.get(l.id) ?? []), info(m)?.front ?? ''])
+    names.set(l.id, l)
   }
   const rows = [...byPlace].slice(0, 4)
   return (
     <div className="unlock pop">
       🏯 <T en="Placed in your Memory Palace:" jp="きおくの やかたに しまった：" />
       {rows.map(([lid, fronts]) => {
-        const l = LOCI.find((x) => x.id === lid)!
+        const l = names.get(lid)!
         return (
           <div key={lid} className="small">
             <span lang="ja">{fronts.join(' ')}</span> → {l.emoji} {l.name.en}

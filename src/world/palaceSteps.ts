@@ -4,7 +4,7 @@
  * Recall questions show the place's image with the answer hidden and ask
  * which kana / word / grammar lives in it; answers count as reviews.
  */
-import { cueOf, fadingIn, placedIn, recallQuestion, type Locus, type Memory } from '../engine/palace'
+import { cueOf, episodeCue, fadingIn, placedIn, recallQuestion, type Locus, type Memory } from '../engine/palace'
 import { getState, grantRewards, recordReviews } from '../engine/store'
 import type { Step } from './Dialog'
 
@@ -41,7 +41,7 @@ function recallChain(l: Locus, list: Memory[], i: number, right: number): Step[]
   return [
     {
       kind: 'choice',
-      prompt: { jp: `${l.name.jp}に いるのは？`, en: `${l.emoji} ${cueOf(q.memory)}` },
+      prompt: { jp: `${l.name.jp}に いるのは？`, en: `${l.emoji} ${[episodeCue(getState(), q.memory.item), cueOf(q.memory)].filter(Boolean).join(' ')}` },
       // meanings stay hidden: the image is the cue
       options: q.options.map((o) => ({ id: o.id, label: { jp: o.front, en: kana ? '' : o.reading && o.reading !== o.front ? o.reading : '' } })),
       onPick: (id) => {

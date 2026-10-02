@@ -17,9 +17,9 @@ import { xpForLevel } from '../engine/rewards'
 import { sfx } from '../engine/sfx'
 import { speak } from '../engine/speech'
 import { strength } from '../engine/srs'
-import { addItem, getState, grantRewards, isPassed, level, markOpened, markScene, regionUnlocked, setFlag, setWorldPos, usePlayer, type PlayerState } from '../engine/store'
+import { addItem, getState, grantRewards, isPassed, level, markOpened, markScene, recordEpisodes, regionUnlocked, setFlag, setWorldPos, usePlayer, type PlayerState } from '../engine/store'
 import type { Activity } from '../games/types'
-import { fadingAnchors, fadingIn, LOCUS_BY_ANCHOR } from '../engine/palace'
+import { fadingAnchors, fadingIn, placeAt } from '../engine/palace'
 import { owedMemories } from '../story/chronicle'
 import { Cutscene, hasScene } from '../story/Cutscene'
 import { GameMenu } from '../ui/GameMenu'
@@ -342,7 +342,12 @@ export default function Overworld() {
         steps.push({
           kind: 'recall',
           wordId: w.id,
-          onResult: (ok) => (ok ? [{ kind: 'say', line: { jp: `${w.jp}（${w.kana}）が もどった！`, en: `${w.en} is solid again!` } }] : [{ kind: 'say', line: { jp: 'まだ すけている… また ためそう。', en: 'Still see-through… try again later.' }, voice: false }]),
+          onResult: (ok) => {
+            if (!ok) return [{ kind: 'say', line: { jp: 'まだ すけている… また ためそう。', en: 'Still see-through… try again later.' }, voice: false }]
+            const map = Wd.current?.map.spec.id
+            if (map) recordEpisodes([item.word(w.id)], { map, anchor: spec.id, how: 'recall' })
+            return [{ kind: 'say', line: { jp: `${w.jp}（${w.kana}）が もどった！`, en: `${w.en} is solid again!` } }]
+          },
         })
         if (spec.kind === 'landmark') return { steps, speaker }
       }
@@ -392,6 +397,7 @@ export default function Overworld() {
     scene: (id: string) => {
       if (hasScene(id)) setScenes((q) => (q.some((x) => x.id === id) ? q : [...q, { id }]))
     },
+    map: () => Wd.current?.map.spec.id,
   })
 
   /** Word magic: cast a word at whatever the mage faces (or into the open). */
@@ -508,7 +514,7 @@ export default function Overworld() {
         wd.talking = e
         const d = interactSteps(e)
         // a memory-palace place: offer its memories after its usual lines
-        const locus = LOCUS_BY_ANCHOR.get(`${wd.map.spec.id}:${e.spec.id}`)
+        const locus = placeAt(getState(), wd.map.spec.id, e.spec.id)
         const extra = locus ? palaceSteps(locus) : []
         // hosts with a trial or a question ask theirs last; they only offer memories when some are fading
         const ask = d.steps.findIndex((x) => x.kind === 'activity' || x.kind === 'choice' || x.kind === 'cast' || x.kind === 'kana' || x.kind === 'recall')

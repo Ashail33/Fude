@@ -482,3 +482,11 @@
   line-height: 1.45;
   font-size: 0.92rem;
 }
+.gm-locus-own {
+  color: var(--gold, #f7c948);
+}
+.gm-memory-episode {
+  display: block;
+  color: var(--gold, #f7c948);
+  font-size: 0.85rem;
+}

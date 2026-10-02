@@ -82,6 +82,36 @@ export interface PlayerState {
   keyItems: string[]
   /** Sightings of everyday words woven into instructions (see engine/weave). */
   weave?: Record<string, number>
+  /** Where things happened to each learnable item: the player's own memory palace (engine/palace). */
+  episodes?: Record<string, Episode[]>
+}
+
+/** A moment in the world tied to an item: where you met it or used it. */
+export interface Episode {
+  map: string
+  /** Entity the moment happened at (an NPC, a landmark you cast at). */
+  anchor: string
+  how: 'learned' | 'cast' | 'recall'
+  /** What it was (a lesson title, a tale name…). */
+  what?: string
+  at: number
+}
+
+/** Keep the first time (where the item lives) and the two latest moments. */
+export function recordEpisodes(items: string[], ep: Omit<Episode, 'at'>) {
+  if (!items.length) return
+  const at = Date.now()
+  setState((s) => {
+    const all = { ...(s.episodes ?? {}) }
+    for (const id of items) {
+      const list = all[id] ?? []
+      const last = list[list.length - 1]
+      if (last && last.map === ep.map && last.anchor === ep.anchor && last.how === ep.how) continue
+      const next = [...list, { ...ep, at }]
+      all[id] = next.length > 3 ? [next[0], ...next.slice(-2)] : next
+    }
+    return { ...s, episodes: all }
+  })
 }
 
 export interface WorldPos {

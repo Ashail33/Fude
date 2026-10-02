@@ -4,7 +4,8 @@ import { HIRAGANA, KATAKANA } from '../data/kana'
 import { VOCAB } from '../data/vocab'
 import { getMap } from '../world/maps'
 import { describeItem, item } from './items'
-import { cueOf, LOCI, roomLoci } from './palace'
+import { cueOf, episodeCue, homeOf, LOCI, roomLoci, roomOf } from './palace'
+import { freshState } from './store'
 
 /** What each room must hold. */
 const expected = (room: number): string[] => [
@@ -53,5 +54,39 @@ describe('memory palace', () => {
           expect(cueOf(m)).not.toContain(d!.front)
         }
     })
+  })
+})
+
+describe('the player’s own palace', () => {
+  const ep = (map: string, anchor: string) => [{ map, anchor, how: 'learned' as const, what: 'First Words I', at: 1 }]
+  const base = freshState()
+
+  it('keeps authored homes until something happens in the world', () => {
+    const home = homeOf(base, 'k:か')!
+    expect(home.personal).toBeFalsy()
+    expect(LOCI.find((l) => l.id === home.id)).toBeTruthy()
+  })
+
+  it('moves an item to where it was learned, joining the route', () => {
+    const s = { ...base, episodes: { 'k:か': ep('village', 'v-teacher') } }
+    const home = homeOf(s, 'k:か')!
+    expect(home).toMatchObject({ personal: true, map: 'village', anchor: 'v-teacher', room: 1 })
+    const route = roomOf(s, 1)
+    expect(route).toContain(home)
+    expect(route.filter((l) => l.memories.some((m) => m.item === 'k:か'))).toHaveLength(1)
+    expect(episodeCue(s, 'k:か')).toContain('First Words I')
+  })
+
+  it('moves an item onto an authored place it was used at', () => {
+    const inn = LOCI.find((l) => l.room === 1)!
+    const other = LOCI.find((l) => l.room === 1 && l.id !== inn.id)!
+    const item = other.memories[0].item
+    const s = { ...base, episodes: { [item]: ep(inn.map, inn.anchor) } }
+    expect(homeOf(s, item)!.id).toBe(inn.id)
+  })
+
+  it('ignores moments at things that no longer exist', () => {
+    const s = { ...base, episodes: { 'k:か': ep('village', 'no-such-thing') } }
+    expect(homeOf(s, 'k:か')!.personal).toBeFalsy()
   })
 })

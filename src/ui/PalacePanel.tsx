@@ -7,16 +7,16 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { T } from '../components/ui'
 import { REGIONS } from '../data/regions'
-import { fading, info, placed, roomLoci } from '../engine/palace'
+import { episodeCue, fading, info, placed, roomOf } from '../engine/palace'
 import { regionUnlocked, usePlayer } from '../engine/store'
 
 export function PalacePanel() {
   const p = usePlayer()
   const nav = useNavigate()
-  const rooms = REGIONS.filter((r) => regionUnlocked(p, r.id) && roomLoci(r.id).length)
+  const rooms = REGIONS.filter((r) => regionUnlocked(p, r.id) && roomOf(p, r.id).length)
   const [room, setRoom] = useState(rooms[rooms.length - 1]?.id ?? 1)
   const [open, setOpen] = useState<string | null>(null)
-  const loci = roomLoci(room)
+  const loci = roomOf(p, room).filter((l) => l.memories.length)
   const all = loci.flatMap((l) => l.memories)
   const have = all.filter((m) => placed(p, m)).length
   const fade = all.filter((m) => fading(p, m)).length
@@ -28,7 +28,7 @@ export function PalacePanel() {
       </span>
       <p className="muted small">
         <T
-          en="Every kana, word and grammar point you learn is placed somewhere you’ve walked. Picture the place, see the image, and the Japanese comes back. Places that glow blue in the world have fading memories."
+          en="Every kana, word and grammar point you learn is kept somewhere in the world: where you learned it, or where you first used it. Picture the place, see the image, and the Japanese comes back. Places that glow blue in the world have fading memories."
           jp="おぼえた ことばは、せかいの どこかに しまわれる。ばしょを おもいうかべれば、ことばが もどる。"
         />
       </p>
@@ -68,6 +68,11 @@ export function PalacePanel() {
                 <span className="gm-locus-name bi">
                   <span lang="ja">{l.name.jp}</span>
                   <small>{l.name.en}</small>
+                  {l.personal && (
+                    <small className="gm-locus-own" title="A place you made by playing">
+                      ✨ <T en="yours" jp="あなたの" />
+                    </small>
+                  )}
                 </span>
                 <span className="gm-locus-chips" lang="ja">
                   {l.memories.map((m) => {
@@ -102,6 +107,7 @@ export function PalacePanel() {
                           <small className="gm-memory-gloss">
                             {[d?.reading && d.reading !== d.front ? d.reading : '', d?.kind === 'kana' ? '' : d?.meaning].filter(Boolean).join(' · ')}
                           </small>
+                          {episodeCue(p, m.item) && <span className="gm-memory-episode">📍 {episodeCue(p, m.item)}</span>}
                           <span className="gm-memory-story">{m.story}</span>
                         </span>
                       </li>

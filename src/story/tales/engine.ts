@@ -8,7 +8,7 @@ import type { SpriteId } from '../../art'
 import { ITEM_BY_ID } from '../../battle/items'
 import { VOCAB, type Word } from '../../data/vocab'
 import { item as itemId } from '../../engine/items'
-import { addItem, flagOf, getState, giveKeyItem, grantRewards, hasKeyItem, recordReviews, setFlag, takeKeyItem, type PlayerState } from '../../engine/store'
+import { addItem, flagOf, recordEpisodes, getState, giveKeyItem, grantRewards, hasKeyItem, recordReviews, setFlag, takeKeyItem, type PlayerState } from '../../engine/store'
 import type { Step } from '../../world/Dialog'
 import type { Entity, Line } from '../../world/types'
 import { pageUnlockedBySeal, sealCount, YOKAI, YOKAI_BY_ID } from '../chronicle'
@@ -97,6 +97,8 @@ export interface Hooks {
   sparkle: (e: Entity | null, kind: 'spark' | 'leaf' | 'dust' | 'ripple') => void
   sfx: (name: string) => void
   scene: (id: string) => void
+  /** Current map id (where word magic happens, for the memory palace). */
+  map?: () => string | undefined
 }
 
 /** Build the script context for an entity (or for casting into the open). */
@@ -155,6 +157,9 @@ export function makeCtx(e: Entity | null, hooks: Hooks): Ctx {
     },
     learn(wordId) {
       recordReviews([{ itemId: itemId.word(wordId), correct: true }])
+      // using a word on something in the world ties it to that place in the memory palace
+      const map = hooks.map?.() ?? getState().world.map
+      if (e && map) recordEpisodes([itemId.word(wordId)], { map, anchor: e.spec.id, how: 'cast' })
     },
     cast: (prompt, on) => ({ kind: 'cast', prompt, onCast: (kana) => on(kana) }),
     choice: (prompt, options, on) => ({ kind: 'choice', prompt, options: options.map(([id, jp, en]) => ({ id, label: { jp, en } })), onPick: on }),

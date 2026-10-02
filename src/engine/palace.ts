@@ -6,6 +6,12 @@
  * game, so the palace fills up as you play. Grammar points are placed when
  * their region's lessons begin. A memory fades as its spaced-repetition
  * strength drops; fading places glow in the world to call you back.
+ *
+ * The palace is personal. Every item has an authored home with a picture
+ * story, but the place you actually met it (the teacher whose lesson taught
+ * it, the lantern you lit by casting it) is a stronger memory than any
+ * picture, so once that happens the item moves there. Places only you have
+ * used join the route next to the nearest authored place.
  */
 import { activitiesFor } from '../data/regions'
 import { GRAMMAR_BY_ID } from '../data/grammar'
@@ -13,17 +19,112 @@ import { LOCI, type Locus, type Memory } from '../data/palace'
 import { shuffle } from './random'
 import { describeItem, type ItemInfo } from './items'
 import { strength } from './srs'
-import { isPassed, type PlayerState } from './store'
+import { getMap } from '../world/maps'
+import { isPassed, type Episode, type PlayerState } from './store'
 
 export { LOCI }
 export type { Locus, Memory }
 
-export const LOCUS_BY_ANCHOR = new Map(LOCI.map((l) => [`${l.map}:${l.anchor}`, l]))
+/** A place in the player's own palace: an authored place, or one they made by playing. */
+export type Place = Locus & { personal?: boolean }
+
 export const LOCUS_BY_ITEM = new Map(LOCI.flatMap((l) => l.memories.map((m) => [m.item, l] as const)))
+export const MEMORY_BY_ITEM = new Map(LOCI.flatMap((l) => l.memories.map((m) => [m.item, m] as const)))
 export const ROOMS = [1, 2, 3, 4, 5]
 
+/** The authored route of a room (before the player's own places join it). */
 export function roomLoci(room: number): Locus[] {
   return LOCI.filter((l) => l.room === room)
+}
+
+const SPRITE_EMOJI: Record<string, string> = { cat: '🐈', dog: '🐕', fox: '🦊', kitsune: '🦊', tanuki: '🦝', wisp: '👻', elder: '👴', child: '🧒', merchant: '🛍️', guard: '💂', priest: '⛩️', king: '👑', innkeeper: '🏮', golem: '🗿', tengu: '👺', kappa: '🐢', treant: '🌳', oni: '👹', jailer: '🗝️' }
+const TILE_EMOJI: Record<string, string> = { lantern: '🏮', well: '🪣', sign: '🪧', statue: '🗿', chest: '🧰', torii: '⛩️', 'shrine-bell': '🔔', bush: '🌿', rock: '🪨', boulder: '🪨', tablet: '📜', campfire: '🔥', altar: '🕯️', sakura: '🌸', tree: '🌳', barrel: '🛢️', bamboo: '🎋', noren: '🏠' }
+
+function entityOf(map: string, anchor: string) {
+  return getMap(map)?.entitySpecs.find((e) => e.id === anchor)
+}
+
+/** The first moment that ties an item to a place (where it lives for this player). */
+export function homeEpisode(s: PlayerState, itemId: string): Episode | undefined {
+  return s.episodes?.[itemId]?.find((e) => !!entityOf(e.map, e.anchor))
+}
+
+const cache = new WeakMap<PlayerState, Place[]>()
+
+/** The player's palace: authored places plus their own, items moved to where they met them. */
+export function palaceOf(s: PlayerState): Place[] {
+  const hit = cache.get(s)
+  if (hit) return hit
+  const places = new Map<string, Place>(LOCI.map((l) => [`${l.map}:${l.anchor}`, { ...l, memories: [] }]))
+  const own: Place[] = []
+  for (const l of LOCI)
+    for (const m of l.memories) {
+      const ep = homeEpisode(s, m.item)
+      const key = ep ? `${ep.map}:${ep.anchor}` : `${l.map}:${l.anchor}`
+      let place = places.get(key)
+      if (!place && ep) {
+        const spec = entityOf(ep.map, ep.anchor)!
+        place = {
+          id: `me-${key}`,
+          room: getMap(ep.map)?.spec.region ?? l.room,
+          map: ep.map,
+          anchor: ep.anchor,
+          name: spec.name ?? { jp: 'ここ', en: 'This spot' },
+          emoji: SPRITE_EMOJI[spec.sprite ?? ''] ?? TILE_EMOJI[spec.tile ?? ''] ?? '📍',
+          memories: [],
+          personal: true,
+        }
+        places.set(key, place)
+        own.push(place)
+      }
+      place!.memories.push(m)
+    }
+  // the player's own places join the route right after the nearest authored place on their map
+  const route = LOCI.map((l) => places.get(`${l.map}:${l.anchor}`)!)
+  for (const p of own) {
+    const at = entityOf(p.map, p.anchor)!
+    let best = -1
+    let bestD = Infinity
+    route.forEach((r, i) => {
+      if (r.personal || r.map !== p.map) return
+      const e = entityOf(r.map, r.anchor)
+      const d = e ? Math.abs(e.x - at.x) + Math.abs(e.y - at.y) : Infinity
+      if (d < bestD) {
+        bestD = d
+        best = i
+      }
+    })
+    if (best < 0) best = route.reduce((last, r, i) => (r.room === p.room ? i : last), route.length - 1)
+    route.splice(best + 1, 0, p)
+  }
+  cache.set(s, route)
+  return route
+}
+
+/** One room of the player's palace, in route order. */
+export function roomOf(s: PlayerState, room: number): Place[] {
+  return palaceOf(s).filter((l) => l.room === room)
+}
+
+/** The place at a map entity, if it holds anything for this player. */
+export function placeAt(s: PlayerState, map: string, anchor: string): Place | undefined {
+  return palaceOf(s).find((l) => l.map === map && l.anchor === anchor)
+}
+
+/** Where an item lives for this player. */
+export function homeOf(s: PlayerState, itemId: string): Place | undefined {
+  return palaceOf(s).find((l) => l.memories.some((m) => m.item === itemId))
+}
+
+/** “You learned this here — First Words I.” (null when the item still lives at its authored place). */
+export function episodeCue(s: PlayerState, itemId: string): string | null {
+  const ep = homeEpisode(s, itemId)
+  if (!ep) return null
+  const last = s.episodes?.[itemId]?.at(-1)
+  const first = ep.how === 'learned' ? `You learned this here${ep.what ? `: ${ep.what}` : ''}.` : ep.how === 'cast' ? 'You first used this word here.' : 'You anchored this here.'
+  if (!last || last === ep) return first
+  const place = entityOf(last.map, last.anchor)?.name?.en
+  return place ? `${first} Last used at the ${place}.` : first
 }
 
 /** Has the player met this item yet? */
@@ -54,7 +155,7 @@ export function fadingIn(s: PlayerState, l: Locus, now = Date.now()): Memory[] {
 /** Places on a map whose memories are fading (they glow in the world). */
 export function fadingAnchors(s: PlayerState, mapId: string): Set<string> {
   const now = Date.now()
-  return new Set(LOCI.filter((l) => l.map === mapId && l.memories.some((m) => fading(s, m, now))).map((l) => l.anchor))
+  return new Set(palaceOf(s).filter((l) => l.map === mapId && l.memories.some((m) => fading(s, m, now))).map((l) => l.anchor))
 }
 
 export function info(m: Memory): ItemInfo | undefined {
@@ -97,9 +198,9 @@ export function recallQuestion(s: PlayerState, m: Memory): RecallQ | null {
 }
 
 /** What a route walk should cover: placed memories in route order (fading ones always included). */
-export function walkMemories(s: PlayerState, room: number, max = 24): { locus: Locus; memories: Memory[] }[] {
+export function walkMemories(s: PlayerState, room: number, max = 24): { locus: Place; memories: Memory[] }[] {
   const now = Date.now()
-  const stops = roomLoci(room)
+  const stops = roomOf(s, room)
     .map((locus) => ({ locus, memories: placedIn(s, locus) }))
     .filter((x) => x.memories.length)
   const total = stops.reduce((n, x) => n + x.memories.length, 0)
