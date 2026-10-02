@@ -801,3 +801,56 @@
     width: auto;
   }
 }
+
+/* Phones on their side: the boss on the left, the question beside it. */
+@media (orientation: landscape) and (max-height: 540px) {
+  .ba-arena {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+    grid-template-rows: auto 1fr auto;
+    gap: 6px 12px;
+    align-items: start;
+  }
+  .ba-arena > .ba-top {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .ba-arena > .ba-stage {
+    grid-column: 1;
+    grid-row: 2;
+    height: clamp(120px, 46dvh, 220px);
+  }
+  .ba-arena > .ba-phase-label {
+    grid-column: 1;
+    grid-row: 3;
+    margin-top: 0;
+  }
+  .ba-arena > .ba-panel {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+    max-width: none;
+    gap: 6px;
+  }
+  .ba-prompt {
+    padding: 6px 10px;
+  }
+  .ba-prompt-main {
+    font-size: clamp(1.3rem, 7dvh, 2rem);
+  }
+  .ba-prompt-big {
+    font-size: clamp(2.4rem, 16dvh, 3.6rem);
+  }
+  .ba-sprite canvas,
+  .ba-pixel canvas {
+    max-height: 30dvh;
+  }
+  .ba-hd {
+    max-height: 38dvh;
+  }
+  .ba-hd-big {
+    max-height: 42dvh;
+  }
+  .ba-taunt {
+    font-size: 0.8rem;
+  }
+}

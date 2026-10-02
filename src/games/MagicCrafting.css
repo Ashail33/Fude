@@ -626,3 +626,25 @@
     display: none;
   }
 }
+
+/* Phones on their side: riddle and grimoire on the left, the altar beside them. */
+@media (orientation: landscape) and (max-height: 540px) {
+  .mc-evo {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    max-width: none;
+    gap: 8px 12px;
+    align-items: start;
+  }
+  .mc-evo > .mc-altar {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+  }
+  .mc-evo > :not(.mc-altar) {
+    grid-column: 1;
+  }
+  .mc-slot {
+    width: 60px;
+    height: 60px;
+  }
+}

@@ -416,3 +416,11 @@ button.fg-tile:focus-visible {
     min-width: 42px;
   }
 }
+
+/* Phones on their side: a shallower anvil so the tiles stay in view. */
+@media (orientation: landscape) and (max-height: 540px) {
+  .fg-anvil {
+    min-height: 56px;
+    padding: 6px 10px;
+  }
+}

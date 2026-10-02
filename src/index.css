@@ -1465,3 +1465,51 @@ input[type='radio'] {
   top: max(4px, env(safe-area-inset-top));
   z-index: 40;
 }
+
+/* Phones on their side: there's width to spare and little height, so the
+   frame slims down and answers sit in one row. Play.tsx shrinks whatever
+   still doesn't fit. */
+@media (orientation: landscape) and (max-height: 540px) {
+  .app.in-play,
+  .app.in-game.in-play {
+    padding: 0 max(10px, env(safe-area-inset-right)) 0 max(10px, env(safe-area-inset-left));
+  }
+  .app.in-play .game {
+    min-height: 0;
+  }
+  .app.in-play .game-header {
+    margin: 4px 0 6px;
+    padding: 2px 8px;
+  }
+  .app.in-play .game-body {
+    gap: 8px;
+  }
+  .app.in-play .card,
+  .app.in-play .win {
+    padding: 8px 12px;
+  }
+  .app.in-play .prompt {
+    padding: 8px 10px;
+  }
+  .app.in-play .prompt-label {
+    margin-bottom: 2px;
+  }
+  .app.in-play .big-char {
+    font-size: clamp(2.6rem, 17vh, 4.5rem);
+  }
+  .app.in-play .choices {
+    grid-template-columns: repeat(auto-fit, minmax(min(120px, 100%), 1fr));
+    gap: 8px;
+  }
+  .app.in-play .choice {
+    min-height: 44px;
+    padding: 6px 10px 6px 20px;
+  }
+  .app.in-play .btn-lg {
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+  .app.in-play .kana-input {
+    padding: 6px 12px;
+  }
+}

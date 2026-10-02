@@ -590,3 +590,27 @@
     background: linear-gradient(180deg, transparent, rgba(10, 12, 32, 0.92) 30%);
   }
 }
+
+/* Phones on their side: the fight on the left, the incantation beside it. */
+@media (orientation: landscape) and (max-height: 540px) {
+  .sc .game-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+    grid-auto-flow: dense;
+    align-items: start;
+    gap: 6px 12px;
+  }
+  .sc .game-body > .sc-foes,
+  .sc .game-body > .sc-arena {
+    grid-column: 1;
+  }
+  .sc .game-body > :not(.sc-foes):not(.sc-arena) {
+    grid-column: 2;
+  }
+  .sc .game-body > .sc-foes {
+    grid-row: 1;
+  }
+  .sc .game-body > .sc-arena {
+    grid-row: 2 / span 3;
+  }
+}

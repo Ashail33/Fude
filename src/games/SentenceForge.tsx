@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as RPointerEvent } from 'react'
+import { createPortal } from 'react-dom'
 import { FORGE_SENTENCES, type ForgeSentence } from '../data/sentences'
 import { GameFrame, Intro, Jp, Progress, SpeakButton, T, useAnswerTimer, useBurst, useFlash } from '../components/ui'
 import { item } from '../engine/items'
@@ -465,11 +466,14 @@ export default function SentenceForge({ activity, params, onFinish, onExit }: Ga
         </div>
       )}
 
-      {drag && (
-        <div className={`${tileClass(drag.text)} fg-ghost`} style={{ left: drag.x, top: drag.y }} aria-hidden>
-          <TileFace text={drag.text} />
-        </div>
-      )}
+      {/* on the body, so a zoomed-to-fit game doesn't pull it away from the finger */}
+      {drag &&
+        createPortal(
+          <div className={`${tileClass(drag.text)} fg-ghost`} style={{ left: drag.x, top: drag.y }} aria-hidden>
+            <TileFace text={drag.text} />
+          </div>,
+          document.body,
+        )}
     </GameFrame>
   )
 }

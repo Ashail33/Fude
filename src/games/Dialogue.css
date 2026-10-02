@@ -336,3 +336,15 @@
     width: 84px;
   }
 }
+
+/* Phones on their side: a shorter bubble and answers side by side. */
+@media (orientation: landscape) and (max-height: 540px) {
+  .dlg-bubble {
+    min-height: 0;
+    padding: 10px 14px 8px;
+  }
+  .dlg-options {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 8px;
+  }
+}

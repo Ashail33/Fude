@@ -1,5 +1,6 @@
 import { Component, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { FitScreen } from '../components/FitScreen'
 import { StatBar } from '../components/Journal'
 import { useCountUp } from '../components/motion'
 import { PixelStar, T, useBurst } from '../components/ui'
@@ -131,7 +132,9 @@ export default function Play() {
   return (
     <GameErrorBoundary onExit={onExit}>
       <Suspense fallback={<div className="loading">✨</div>}>
-        <Game key={run} activity={activity} params={activity.params} onFinish={onFinish} onExit={onExit} />
+        <FitScreen>
+          <Game key={run} activity={activity} params={activity.params} onFinish={onFinish} onExit={onExit} />
+        </FitScreen>
       </Suspense>
     </GameErrorBoundary>
   )

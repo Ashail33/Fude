@@ -290,3 +290,25 @@
 .cw-clue-speak {
   flex: none;
 }
+
+/* Phones on their side: the board on the left, the clue beside it. */
+@media (orientation: landscape) and (max-height: 540px) {
+  .cw-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    align-items: start;
+    gap: 8px;
+  }
+  .cw-board {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .cw-layout > .cw-active {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+  .cw-clues {
+    grid-column: 1;
+    grid-row: 2;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
