@@ -5,7 +5,7 @@
  * raids are fought in the normal battle system.
  */
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { BackLink, isOpen, Locked } from '../arcade/ui'
 import { useHdLoaded } from '../art/hd'
 import { computeNeighbours, drawTile, type TileId } from '../art/tiles'
 import Battle, { type BattleOutcome } from '../battle/Battle'
@@ -158,7 +158,7 @@ export default function Hamlet() {
 
   // found the village on the first visit; settle production once a second
   useEffect(() => {
-    if (!getState().hamlet) setState((s) => ({ ...s, hamlet: freshHamlet() }))
+    if (!getState().hamlet && isOpen(getState(), 'valley')) setState((s) => ({ ...s, hamlet: freshHamlet() }))
     const t = setInterval(() => setNow(Date.now()), 1000)
     return () => clearInterval(t)
   }, [])
@@ -168,6 +168,17 @@ export default function Hamlet() {
   }, [now])
 
   const h = useMemo(() => (p.hamlet ? settle(p.hamlet, now) : null), [p.hamlet, now])
+  if (!isOpen(p, 'valley'))
+    return (
+      <Locked
+        game="valley"
+        title={
+          <>
+            <span lang="ja">かくれざと</span> The Hidden Village
+          </>
+        }
+      />
+    )
   if (!h) return null
 
   const cap = capacity(h, now)
@@ -225,9 +236,7 @@ export default function Hamlet() {
   return (
     <main className="hm-page">
       <header className={`hm-head${banner ? ' painted' : ''}`} style={banner ? { backgroundImage: `linear-gradient(180deg, rgba(8,7,13,0.15), rgba(8,7,13,0.75)), url(${banner})` } : undefined}>
-        <Link to="/arcade" className="btn btn-sm">
-          ← あそび
-        </Link>
+        <BackLink />
         <h1>
           <span lang="ja">かくれざと</span> The Hidden Village
         </h1>

@@ -34,3 +34,12 @@
   color: #ff8a9a;
   font-weight: 700;
 }
+.ar-locked {
+  opacity: 0.7;
+}
+.ar-locked .ar-icon {
+  filter: grayscale(1);
+}
+section.ar-locked p {
+  margin: 4px 0;
+}

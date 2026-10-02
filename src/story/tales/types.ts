@@ -106,6 +106,8 @@ export interface Ctx {
   sfx(name: 'chest' | 'confirm' | 'correct' | 'wrong' | 'levelUp' | 'door'): void
   /** Play a cutscene after the dialog closes. */
   scene(id: string): void
+  /** Open another screen (a game in the Games tab) when the dialog closes; you return to this spot. */
+  play(route: string): void
   /** A spirit signs the Spirit Scroll (announcement + any memory it unlocks). */
   seal(yokai: string): Step[]
 }

@@ -98,6 +98,8 @@ export interface Hooks {
   sparkle: (e: Entity | null, kind: 'spark' | 'leaf' | 'dust' | 'ripple') => void
   sfx: (name: string) => void
   scene: (id: string) => void
+  /** Open a route once the dialog closes (optional: tests and previews leave it out). */
+  play?: (route: string) => void
   /** Current map id (where word magic happens, for the memory palace). */
   map?: () => string | undefined
 }
@@ -169,6 +171,7 @@ export function makeCtx(e: Entity | null, hooks: Hooks): Ctx {
     sparkle: (kind = 'spark') => hooks.sparkle(e, kind),
     sfx: (name) => hooks.sfx(name),
     scene: (id) => hooks.scene(id),
+    play: (route) => hooks.play?.(route),
     seal(id) {
       const y = YOKAI_BY_ID.get(id)
       if (!y || flagOf(getState(), `seal.${id}`) > 0) return []

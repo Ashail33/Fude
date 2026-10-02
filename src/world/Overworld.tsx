@@ -397,6 +397,8 @@ export default function Overworld() {
   )
 
   // ─── story (tales, word magic) ──────────────────────────────────
+  /** A game a keeper sent us to, opened when the talk ends. */
+  const playRoute = useRef<string | null>(null)
   const storyHooks = useRef({
     sparkle: (e: Entity | null, kind: 'spark' | 'leaf' | 'dust' | 'ripple') => {
       const r = R.current
@@ -410,6 +412,9 @@ export default function Overworld() {
     sfx: (name: string) => fx(name),
     scene: (id: string) => {
       if (hasScene(id)) setScenes((q) => (q.some((x) => x.id === id) ? q : [...q, { id }]))
+    },
+    play: (route: string) => {
+      playRoute.current = route
     },
     map: () => Wd.current?.map.spec.id,
   })
@@ -823,7 +828,13 @@ export default function Overworld() {
   const closeDialog = useCallback(() => {
     setDialog(null)
     syncStory()
-  }, [setDialog, syncStory])
+    const route = playRoute.current
+    if (route) {
+      playRoute.current = null
+      savePos(true)
+      nav(route)
+    }
+  }, [setDialog, syncStory, savePos, nav])
 
   // ─── HUD values ──────────────────────────────────────────────────
   const lvl = level(p)

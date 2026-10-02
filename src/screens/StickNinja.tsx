@@ -8,7 +8,6 @@
  * dojo (stages, armoury), the fight view with its controls, and results.
  */
 import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
 import {
   buySword,
   canBuy,
@@ -31,6 +30,8 @@ import {
 } from '../arcade/ninja/data'
 import { draw, resetCamera } from '../arcade/ninja/draw'
 import { createSim, noInput, step, type Input, type Sim } from '../arcade/ninja/sim'
+import { ninjaStageOpen, ninjaWorldGate } from '../arcade/story'
+import { BackLink, isOpen, Locked } from '../arcade/ui'
 import { useHdLoaded, useHdLoadedMany } from '../art/hd'
 import { sfx } from '../engine/sfx'
 import { grantRewards, setState, usePlayer } from '../engine/store'
@@ -40,12 +41,19 @@ type View = { k: 'dojo' } | { k: 'fight'; stage: number; run: number } | { k: 'r
 
 const saveOf = (n: NinjaSave | undefined) => n ?? freshNinja()
 
+/** Which stages the journey has opened (Stick Ninja's worlds follow the story). */
+function useStoryGate() {
+  const p = usePlayer()
+  return (i: number) => ninjaStageOpen(p, i)
+}
+
 export default function StickNinja() {
   const p = usePlayer()
   const save = saveOf(p.ninja)
   const [view, setView] = useState<View>({ k: 'dojo' })
   const [tab, setTab] = useState<'stages' | 'armory' | 'how'>('stages')
 
+  const story = useStoryGate()
   const start = (stage: number) => setView({ k: 'fight', stage, run: Date.now() })
 
   const finish = (stage: number, s: Sim) => {
@@ -57,8 +65,19 @@ export default function StickNinja() {
     setView({ k: 'result', stage, won, r, kills: s.kills, chain: s.bestChain })
   }
 
+  if (!isOpen(p, 'dojo'))
+    return (
+      <Locked
+        game="dojo"
+        title={
+          <>
+            <span lang="ja">ぼうにんじゃ</span> Stick Ninja
+          </>
+        }
+      />
+    )
   if (view.k === 'fight') return <Fight key={view.run} stage={view.stage} save={save} onEnd={(s) => finish(view.stage, s)} onQuit={() => setView({ k: 'dojo' })} />
-  if (view.k === 'result') return <Result view={view} save={save} onNext={start} onDojo={() => setView({ k: 'dojo' })} />
+  if (view.k === 'result') return <Result view={view} save={save} open={story} onNext={start} onDojo={() => setView({ k: 'dojo' })} />
 
   const st = heroStats(save.level)
   const sword = SWORD_BY_ID[save.sword]
@@ -66,9 +85,7 @@ export default function StickNinja() {
   return (
     <main className="nj-page">
       <header className="nj-head">
-        <Link to="/arcade" className="btn btn-sm">
-          ← Games
-        </Link>
+        <BackLink />
         <h1>
           <span lang="ja">ぼうにんじゃ</span> Stick Ninja
         </h1>
@@ -104,7 +121,7 @@ export default function StickNinja() {
           📜 How to play
         </button>
       </nav>
-      {tab === 'stages' && <Stages save={save} onStart={start} />}
+      {tab === 'stages' && <Stages save={save} open={story} onStart={start} />}
       {tab === 'armory' && <Armory save={save} />}
       {tab === 'how' && <HowTo />}
     </main>
@@ -116,15 +133,17 @@ function HeroArt() {
   return url ? <img src={url} alt="" className="nj-hero-art" /> : null
 }
 
-function Stages({ save, onStart }: { save: NinjaSave; onStart: (i: number) => void }) {
+function Stages({ save, open: storyOpen, onStart }: { save: NinjaSave; open: (i: number) => boolean; onStart: (i: number) => void }) {
   const bgs = useHdLoadedMany(WORLDS.map((_, i) => `nj-bg-${i}`))
   const bosses = useHdLoadedMany(WORLDS.map((w) => `nj-${w.boss}`))
   return (
     <div className="nj-worlds">
       {WORLDS.map((w, wi) => {
         const first = wi * STAGES_PER_WORLD
-        const open = stageUnlocked(save, first)
+        const gate = storyOpen(first)
+        const open = gate && stageUnlocked(save, first)
         const boss = FOES[w.boss]
+        const gateRegion = ninjaWorldGate(wi)
         return (
           <section
             key={w.name}
@@ -138,12 +157,17 @@ function Stages({ save, onStart }: { save: NinjaSave; onStart: (i: number) => vo
             <small className="muted">
               Boss: {boss.name} <span lang="ja">{boss.jp}</span>
             </small>
+            {!gate && gateRegion && (
+              <small className="nj-gate">
+                🔒 The scroll opens this world when your journey reaches {gateRegion.emoji} {gateRegion.name} <span lang="ja">{gateRegion.jp}</span>.
+              </small>
+            )}
             <div className="nj-stage-row">
               {Array.from({ length: STAGES_PER_WORLD }, (_, k) => {
                 const i = first + k
                 const isBoss = k === STAGES_PER_WORLD - 1
                 const done = i < save.cleared
-                const unlocked = stageUnlocked(save, i)
+                const unlocked = gate && stageUnlocked(save, i)
                 return (
                   <button
                     key={i}
@@ -500,11 +524,11 @@ function ResultArt({ id }: { id: string }) {
   return url ? <img src={url} alt="" className="nj-res-art" /> : null
 }
 
-function Result({ view, save, onNext, onDojo }: { view: Extract<View, { k: 'result' }>; save: NinjaSave; onNext: (i: number) => void; onDojo: () => void }) {
+function Result({ view, save, open: storyOpen, onNext, onDojo }: { view: Extract<View, { k: 'result' }>; save: NinjaSave; open: (i: number) => boolean; onNext: (i: number) => void; onDojo: () => void }) {
   const { r, won, stage } = view
   const st = stageAt(stage)
   const w = WORLDS[st.world]
-  const next = stage + 1 < STAGE_COUNT && stageUnlocked(save, stage + 1) ? stage + 1 : null
+  const next = stage + 1 < STAGE_COUNT && stageUnlocked(save, stage + 1) && storyOpen(stage + 1) ? stage + 1 : null
   const nowAffordable = SWORDS.filter((s) => canBuy(save, s.id) === 'ok')
   return (
     <main className="nj-page nj-result">
@@ -528,6 +552,14 @@ function Result({ view, save, onNext, onDojo }: { view: Extract<View, { k: 'resu
             </li>
           )}
           {r.shards > 0 && <li className="nj-up">✦ +{r.shards} spirit shards for your journey</li>}
+          {won && st.boss && r.firstClear && (
+            <li className="nj-up">
+              🥋 <span lang="ja">スミ せんせいに しらせよう！</span> Tell Master Sumi in the bamboo grove: he has a keepsake (and a blessing) for you.
+            </li>
+          )}
+          {won && stage + 1 < STAGE_COUNT && !storyOpen(stage + 1) && ninjaWorldGate(st.world + 1) && (
+            <li>🔒 The next world opens when your journey reaches {ninjaWorldGate(st.world + 1)!.name}.</li>
+          )}
           {nowAffordable.length > 0 && <li>🗡️ You can afford {nowAffordable.map((s) => s.name).join(', ')} in the Armoury!</li>}
         </ul>
         <div className="nj-res-btns">

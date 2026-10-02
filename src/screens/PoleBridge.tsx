@@ -6,8 +6,8 @@
  * before you reach the pillar or down you go. Shards collected are kept.
  */
 import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { paint } from '../arcade/ninja/draw'
+import { BackLink, isOpen, Locked } from '../arcade/ui'
 import { sfx } from '../engine/sfx'
 import { grantRewards, setState, usePlayer } from '../engine/store'
 import './PoleBridge.css'
@@ -83,7 +83,8 @@ export default function PoleBridge() {
   const best = p.arcade?.stick ?? 0
 
   useEffect(() => {
-    const c = canvas.current!
+    const c = canvas.current
+    if (!c) return
     const ctx = c.getContext('2d')!
     let raf = 0
     let last = performance.now()
@@ -200,12 +201,21 @@ export default function PoleBridge() {
   }, [])
 
   const over = hud.phase === 'over'
+  if (!isOpen(p, 'bridge'))
+    return (
+      <Locked
+        game="bridge"
+        title={
+          <>
+            <span lang="ja">ぼうわたり</span> Bamboo Bridge
+          </>
+        }
+      />
+    )
   return (
     <main className="sn-page">
       <header className="sn-head">
-        <Link to="/arcade" className="btn btn-sm">
-          ← あそび
-        </Link>
+        <BackLink />
         <span className="sn-title">
           <span lang="ja">ぼうわたり</span> Bamboo Bridge
         </span>

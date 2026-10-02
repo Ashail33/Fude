@@ -551,3 +551,8 @@ kbd {
     max-width: 75%;
   }
 }
+
+.nj-gate {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
