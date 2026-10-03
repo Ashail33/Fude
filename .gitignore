@@ -36,6 +36,7 @@ art-src/**/*.webp
 
 # 3D models are fetched at build time from art-src/models.json
 public/models/*.glb
+public/models/.sources.json
 public/props/*.glb
 public/tex/*.jpg
 .claude/worktrees/

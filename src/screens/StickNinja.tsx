@@ -53,7 +53,7 @@ import {
   type StageResult,
   type SwordId,
 } from '../arcade/ninja/data'
-import { draw, resetCamera } from '../arcade/ninja/draw'
+import { draw, resetCamera, setFighters3D } from '../arcade/ninja/draw'
 import { createSim, noInput, step, type Input, type Sim } from '../arcade/ninja/sim'
 import { ninjaStageOpen, ninjaWorldGate } from '../arcade/story'
 import { BackLink, isOpen, Locked } from '../arcade/ui'
@@ -80,6 +80,16 @@ function useStoryGate() {
   return (i: number) => ninjaStageOpen(p, i)
 }
 
+/** 3D fighters on or off (per device; on by default). */
+const THREE_D_KEY = 'fude.ninja.3d'
+function read3d(): boolean {
+  try {
+    return localStorage.getItem(THREE_D_KEY) !== '0'
+  } catch {
+    return true
+  }
+}
+
 const abyssOpen = (save: NinjaSave) => save.cleared >= FIRST_WORLDS * STAGES_PER_WORLD
 
 export default function StickNinja() {
@@ -87,6 +97,17 @@ export default function StickNinja() {
   const save = saveOf(p.ninja)
   const [view, setView] = useState<View>({ k: 'dojo' })
   const [tab, setTab] = useState<Tab>('stages')
+  const [three, setThree] = useState(read3d)
+  useEffect(() => setFighters3D(three), [three])
+  const toggle3d = () => {
+    const on = !three
+    setThree(on)
+    try {
+      localStorage.setItem(THREE_D_KEY, on ? '1' : '0')
+    } catch {
+      /* private mode: just this session */
+    }
+  }
 
   const story = useStoryGate()
   const start = (stage: number) => setView({ k: 'fight', stage, run: Date.now() })
@@ -154,6 +175,9 @@ export default function StickNinja() {
           <span lang="ja">{sword.jp}</span> {sword.name} · ✨ {sword.specialName}
           {el && ` · ${ART_BY_ID[`el:${el}`].icon}`} · {armor.name}
         </div>
+        <button className={`btn btn-sm nj-3d${three ? ' on' : ''}`} onClick={toggle3d} title="Draw fighters as rigged 3D models where they exist (stick figures otherwise)">
+          🧊 3D fighters: {three ? 'on' : 'off'}
+        </button>
       </section>
       <nav className="nj-tabs" role="tablist">
         {tabBtn('stages', '⛩️ Stages')}

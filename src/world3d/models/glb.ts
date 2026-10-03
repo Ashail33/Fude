@@ -53,6 +53,8 @@ const FIT: Record<string, { h: number; yaw?: number; float?: boolean; quad?: boo
   nurarihyon: { h: 1.6 },
   'yuki-onna': { h: 1.8 },
   raijin: { h: 2.0 },
+  // Stick Ninja's hero (rigged; posed by arcade/ninja/fighters3d)
+  ninja: { h: 1.6 },
 }
 
 let available: Set<string> | null = null
@@ -156,6 +158,22 @@ export function glbReady(id: string): boolean {
   return !!templates.get(id)
 }
 
+/** A loaded character's template height (tiles), or 0 when not loaded. */
+export const glbHeight = (id: string) => (templates.get(id)?.userData.height as number | undefined) ?? 0
+
+/** A fresh posable instance of a rigged GLB character: null if not loaded or not rigged. */
+export function glbRigged(id: string): { root: THREE.Group; inner: THREE.Group; rig: Rig; height: number } | null {
+  const tpl = templates.get(id)
+  if (!tpl) return null
+  const root = new THREE.Group()
+  const body = cloneSkinned(tpl) as THREE.Group
+  root.add(body)
+  const inner = body.children[0] as THREE.Group
+  const rig = makeRig(inner)
+  if (!rig) return null
+  return { root, inner, rig, height: tpl.userData.height as number }
+}
+
 /** A fresh animated instance of a loaded GLB character (null if not ready). */
 export function glbModel(id: string): Model | null {
   const tpl = templates.get(id)
@@ -227,7 +245,6 @@ const BONES = {
   lHand: /left.?hand$/i,
   rHand: /right.?hand$/i,
 } as const
-type BoneKey = keyof typeof BONES
 
 interface Joint {
   bone: THREE.Bone
@@ -244,8 +261,11 @@ const qb = new THREE.Quaternion()
 /** How far from straight down the lowered arms hang (radians). */
 const ARM_HANG = 0.15
 
+export type BoneKey = keyof typeof BONES
+export type Rig = NonNullable<ReturnType<typeof makeRig>>
+
 /** Find the named joints of a skinned model; null when it has no usable skeleton. */
-function makeRig(model: THREE.Object3D) {
+export function makeRig(model: THREE.Object3D) {
   const bones: THREE.Bone[] = []
   model.traverse((o) => {
     if ((o as THREE.Bone).isBone) bones.push(o as THREE.Bone)
@@ -290,6 +310,14 @@ function makeRig(model: THREE.Object3D) {
     else j.bone.quaternion.copy(qb).multiply(j.rest)
   }
   return {
+    turn,
+    joint: (k: BoneKey) => joints[k]?.bone,
+    lDrop,
+    rDrop,
+    /** Put every named joint back to its rest pose. */
+    reset() {
+      for (const j of Object.values(joints)) j?.bone.quaternion.copy(j.rest)
+    },
     pose(phase: number, moving: boolean, run: boolean, t: number, talking: boolean) {
       const s = Math.sin(phase * Math.PI)
       const c = Math.cos(phase * Math.PI)

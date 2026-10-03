@@ -15,6 +15,10 @@ const OUT = 'public/models'
 const sources = existsSync(SRC) ? JSON.parse(readFileSync(SRC, 'utf8')) : {}
 mkdirSync(OUT, { recursive: true })
 
+/** Which URL each downloaded model came from, so a changed source (say, a re-rigged model) is fetched again. */
+const STAMP = join(OUT, '.sources.json')
+const stamp = existsSync(STAMP) ? JSON.parse(readFileSync(STAMP, 'utf8')) : {}
+
 let fetched = 0
 let failed = 0
 /**
@@ -138,7 +142,8 @@ await Promise.all(
   Object.entries(sources).map(async ([id, src]) => {
     const { url, turn } = typeof src === 'string' ? { url: src, turn: 0 } : src
     const dest = join(OUT, `${id}.glb`)
-    if (existsSync(dest) && statSync(dest).size > 1000) return
+    // (an unstamped file is fetched again once; if that fails the old file stays)
+    if (existsSync(dest) && statSync(dest).size > 1000 && stamp[id] === url) return
     try {
       const ctrl = new AbortController()
       const t = setTimeout(() => ctrl.abort(), 120_000)
@@ -149,6 +154,7 @@ await Promise.all(
       if (buf.subarray(0, 4).toString() !== 'glTF') throw new Error('not a GLB')
       // characters stand ~100 px tall on a phone: 7k triangles and 512 px textures are plenty
       writeFileSync(dest, (await slimToBudget(await slimGlb(turn ? turnGlb(buf, turn) : buf), 7000)).glb)
+      stamp[id] = url
       fetched++
     } catch (e) {
       failed++
@@ -161,4 +167,5 @@ const available = readdirSync(OUT)
   .map((f) => f.slice(0, -4))
   .sort()
 writeFileSync(join(OUT, 'available.json'), JSON.stringify(available) + '\n')
+writeFileSync(STAMP, JSON.stringify(stamp, null, 1) + '\n')
 console.log(`models: ${Object.keys(sources).length} sources, ${fetched} downloaded, ${failed} unavailable, ${available.length} available`)

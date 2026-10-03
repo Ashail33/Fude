@@ -5,6 +5,7 @@
  */
 import { hdAvailable } from '../../art/hd'
 import { hdUrl } from '../../art/hd/manifest'
+import { Fighters3D } from './fighters3d'
 import { ART_BY_ID, FOES, MOD_INFO, WORLDS, isSword, type Deco, type FoeKind, type Weapon } from './data'
 import { ARENA, type Fighter, type Move, type Shot, type Sim, type Swing } from './sim'
 
@@ -559,7 +560,7 @@ const lerp = (a: number, b: number, u: number) => a + (b - a) * u
 const easeOut = (u: number) => 1 - (1 - u) * (1 - u)
 const easeIn = (u: number) => u * u
 
-interface Pose {
+export interface Pose {
   phi: number
   psi: number
   ext: number
@@ -606,7 +607,7 @@ function movePose(m: Move, t: number): Pose {
   return { phi, psi, ext, lean, live, spinning: false }
 }
 
-function poseOf(f: Fighter): Pose {
+export function poseOf(f: Fighter): Pose {
   if (f.move) return movePose(f.move, f.moveT)
   if (f.blockT >= 0) return { phi: -0.2, psi: 1.45, ext: 0.8, lean: -0.05, live: false, spinning: false }
   if (f.hurtT > 0 || f.stunT > 0) return { phi: -1.7, psi: -2.2, ext: 1, lean: -0.35, live: false, spinning: false }
@@ -753,7 +754,12 @@ interface At {
   tint?: string
 }
 
-function drawFighter(ctx: CanvasRenderingContext2D, s: Sim, f: Fighter, cam: number, at?: At) {
+/**
+ * Draw a fighter. `mode`: 'full' (the stick figure), 'shadow' (just its
+ * shadow, under a 3D body), 'fx' (only what goes over a 3D body: trails,
+ * marks, ice, barrier).
+ */
+function drawFighter(ctx: CanvasRenderingContext2D, s: Sim, f: Fighter, cam: number, at?: At, mode: 'full' | 'shadow' | 'fx' = 'full') {
   const sc = f.scale
   const look = lookOf(s, f)
   const pose = poseOf(f)
@@ -765,7 +771,7 @@ function drawFighter(ctx: CanvasRenderingContext2D, s: Sim, f: Fighter, cam: num
   const ghost = !!at
 
   ctx.save()
-  if (!ghost) {
+  if (!ghost && mode !== 'fx') {
     const sh = ctx.createRadialGradient(sx, GY + 2, 1, sx, GY + 2, 20 * sc)
     sh.addColorStop(0, `rgba(0,0,0,${0.38 * Math.max(0.3, 1 - fy / 260)})`)
     sh.addColorStop(1, 'rgba(0,0,0,0)')
@@ -774,6 +780,13 @@ function drawFighter(ctx: CanvasRenderingContext2D, s: Sim, f: Fighter, cam: num
     ctx.ellipse(sx, GY + 2, 20 * sc, 4.5, 0, 0, Math.PI * 2)
     ctx.fill()
   }
+  if (mode === 'shadow') {
+    ctx.restore()
+    return
+  }
+  let tip: Pt
+  if (mode === 'fx') tip = [R.hand[0] + Math.cos(pose.psi) * f.face * look.len * sc, R.hand[1] - Math.sin(pose.psi) * look.len * sc]
+  else {
   if (f.dead) {
     ctx.globalAlpha = Math.max(0, 1 - Math.max(0, f.deadT - 0.8) / 0.8)
     ctx.translate(sx, sy)
@@ -882,8 +895,9 @@ function drawFighter(ctx: CanvasRenderingContext2D, s: Sim, f: Fighter, cam: num
       ctx.fillRect(R.head[0] + f.face * 3 * sc - 1.2, R.head[1] - 1.5 * sc, 2.6 * sc, 1.3 * sc)
     }
   }
-  const tip = blade(ctx, s, f, R.hand, pose.psi, look.len * sc, look, ghost)
+  tip = blade(ctx, s, f, R.hand, pose.psi, look.len * sc, look, ghost)
   if (!ghost) extras(ctx, s, f, R.head, sc, body)
+  }
   if (!ghost && !f.dead) {
     // Shadow's mark: a violet sigil over the head.
     if (f.markT > 0) {
@@ -1940,7 +1954,14 @@ export function draw(ctx: CanvasRenderingContext2D, s: Sim, level: number, width
   drawProps(ctx, s, camX)
   const all = [...s.foes.filter((f) => f.dead), ...s.foes.filter((f) => !f.dead), s.hero]
   for (const f of all) drawGhosts(ctx, s, f, camX)
-  for (const f of all) drawFighter(ctx, s, f, camX)
+  // Rigged 3D fighters where there are models; stick figures for the rest.
+  const f3 = use3d ? (fighters3d ??= new Fighters3D()) : null
+  const layer = f3?.render(s, camX, vw, VH, GY, width, height, poseOf, THEMES[s.stage.world].sky[1], true) ?? null
+  const in3d = (f: Fighter) => !!layer && f3!.drawn.has(f.uid)
+  for (const f of all) if (in3d(f)) drawFighter(ctx, s, f, camX, undefined, 'shadow')
+  for (const f of all) if (!in3d(f)) drawFighter(ctx, s, f, camX)
+  if (layer) ctx.drawImage(layer, 0, 0, vw, VH)
+  for (const f of all) if (in3d(f)) drawFighter(ctx, s, f, camX, undefined, 'fx')
   for (const sh of s.shots) drawShot(ctx, sh, camX, s.t)
   drawDrops(ctx, s, camX)
   drawFx(ctx, s, camX)
@@ -1954,6 +1975,14 @@ export function draw(ctx: CanvasRenderingContext2D, s: Sim, level: number, width
   }
   bossEntrance(ctx, s)
   hud(ctx, s, level)
+}
+
+let fighters3d: Fighters3D | null = null
+let use3d = true
+
+/** Turn the 3D fighters on or off (they also stay off without WebGL or models). */
+export function setFighters3D(on: boolean) {
+  use3d = on
 }
 
 export function resetCamera() {

@@ -744,3 +744,10 @@ kbd {
   font-weight: 700;
   font-size: 0.9rem;
 }
+.nj-3d {
+  grid-column: 1 / -1;
+  justify-self: start;
+}
+.nj-3d.on {
+  border-color: #80deea;
+}
