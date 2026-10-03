@@ -4,7 +4,7 @@ import { activitiesFor, REGIONS, STAGE_LABEL, STAGE_ORDER } from '../data/region
 import { VOCAB } from '../data/vocab'
 import { item } from '../engine/items'
 import { masteryTier } from '../engine/srs'
-import { activityUnlocked, regionMastered, regionUnlocked, usePlayer } from '../engine/store'
+import { activityUnlocked, regionMastered, regionUnlocked, usePlayer, wardOpen } from '../engine/store'
 import { GAME_META } from '../games/registry'
 
 export default function RegionScreen() {
@@ -84,7 +84,7 @@ export default function RegionScreen() {
                       {inner}
                     </Link>
                   ) : (
-                    <div key={a.id} className="act card locked" title="Clear the previous trial to unlock">
+                    <div key={a.id} className="act card locked" title={stage === 'boss' && !wardOpen(p, a.region) ? 'Sealed by a ward of the Quiet: talk to the boss in the world to find out how to break it' : 'Clear the previous trial to unlock'}>
                       {inner}
                     </div>
                   )

@@ -17,7 +17,7 @@ import { xpForLevel } from '../engine/rewards'
 import { sfx } from '../engine/sfx'
 import { speak } from '../engine/speech'
 import { strength } from '../engine/srs'
-import { addItem, getState, grantRewards, isPassed, level, markOpened, markScene, recordEpisodes, regionUnlocked, setFlag, setWorldPos, usePlayer, type PlayerState } from '../engine/store'
+import { addItem, getState, grantRewards, isPassed, level, markOpened, markScene, recordEpisodes, regionUnlocked, setFlag, setWorldPos, usePlayer, wardOpen, type PlayerState } from '../engine/store'
 import type { Activity } from '../games/types'
 import { fadingAnchors, fadingIn, placeAt } from '../engine/palace'
 import { ensureStories, placesOf } from '../engine/palaceAI'
@@ -32,6 +32,7 @@ import { entityAt, OPPOSITE, World } from './engine'
 import { HINT_FLAG as TRAVEL_HINT, isTravelWord, TRAVEL_WORDS, travelReady, travelTaught } from './travel'
 import { TravelMap } from './TravelMap'
 import { castScript, taleLog, entityGhost, entityMoved, entityVisible, fizzle, makeCtx, mapCastScript, storyMarkers, talkScript } from '../story/tales/engine'
+import { roadTale } from '../story/tales/road'
 import { makeEntities } from './entities'
 import { tileSolid } from './mapdef'
 import { getMap, locateActivity } from './maps'
@@ -128,6 +129,12 @@ function fudeHint(p: PlayerState, m: GameMap, n: number): Line {
       if (host.sprite) options.push({ jp: `つぎは『${next.jp}』！ ${where}の ${host.name.jp}に あいに いこう。`, en: `Next: “${next.title}”. Go see the ${host.name.en} — ${whereEn}.` })
       else options.push({ jp: `つぎは『${next.jp}』！ ${where}の「${host.name.jp}」へ いこう。`, en: `Next: “${next.title}”. Head for the ${host.name.en} — ${whereEn}.` })
     }
+  } else if (!wardOpen(p, m.spec.region)) {
+    const road = taleLog(p).find((t) => t.tale.id === roadTale(m.spec.region) && !t.done)
+    if (road) {
+      const st = road.tale.stages[road.stage]
+      options.push({ jp: `『${road.tale.jp}』── ${st.jp}`, en: `“${road.tale.title}”: ${st.en}` })
+    } else options.push({ jp: 'この ちほうの ボスは「しずけさの けっかい」に まもられてる… ボスに はなしかけて みよう！', en: 'This region’s boss hides behind a ward of the Quiet… go and talk to it!' })
   } else options.push({ jp: 'すごい！ ぜんぶの しれんを クリアしたね！', en: 'Amazing! You’ve cleared every trial!' })
   if (due > 0) options.push({ jp: `ことばが ${due}こ きえかけてる… メニューの「クエスト」で ふくしゅうしよう！`, en: `${due} words are fading… review them from Quests in the menu!` })
   if (ghosts > 0) options.push({ jp: 'あれ？ なにかが すけて 見える… しらべて みよう！', en: 'Huh? Something here looks see-through… let’s check it!' })

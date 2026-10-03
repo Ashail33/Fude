@@ -323,8 +323,20 @@ export function regionUnlocked(s: PlayerState, region: number): boolean {
   return activitiesFor(region).some((a) => isPassed(s, a.id))
 }
 
+/**
+ * Flag set when the Quiet's ward around a region's boss is broken (see
+ * story/tales/road.ts): the boss can only be fought once it is.
+ */
+export const wardFlag = (region: number) => `road.ward.r${region}`
+
+/** Is the ward around this region's boss broken (or the boss already beaten)? */
+export function wardOpen(s: PlayerState, region: number): boolean {
+  return flagOf(s, wardFlag(region)) > 0 || activitiesFor(region).some((a) => a.stage === 'boss' && isPassed(s, a.id))
+}
+
 export function activityUnlocked(s: PlayerState, a: Activity): boolean {
   if (!regionUnlocked(s, a.region)) return false
+  if (a.stage === 'boss' && !isPassed(s, a.id) && !wardOpen(s, a.region)) return false
   const list = activitiesFor(a.region)
   const i = list.findIndex((x) => x.id === a.id)
   if (i <= 0) return true

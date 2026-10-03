@@ -80,6 +80,8 @@ export interface Ctx {
   fude(jp: string, en: string): Step
   /** Current stage of a tale: -1 not started, stages.length when finished. */
   stage(tale: string): number
+  /** Is a tale finished? */
+  done(tale: string): boolean
   /** Start a tale: returns the "new tale" announcement. */
   start(tale: string): Step[]
   /** Move a tale to a stage (default: next); finishing it announces completion. */
@@ -126,6 +128,11 @@ export interface TaleContent {
   /** Folklore spirits introduced by this content. */
   yokai?: Yokai[]
   talk: Record<string, TalkScript>
+  /**
+   * Scripts layered over an entity's usual talk (from any content): they get
+   * the usual script and decide whether to add to it, replace it or pass.
+   */
+  wrapTalk?: Record<string, (c: Ctx, base: TalkScript | undefined) => Step[] | null>
   cast: Record<string, CastScript>
   /** Casting with nothing in front of you, per map. */
   mapCast?: Record<string, CastScript>

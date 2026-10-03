@@ -21,6 +21,7 @@ export const TALE_BY_ID = new Map(TALES.map((t) => [t.id, t]))
 export const KEY_ITEMS: KeyItem[] = CONTENT.flatMap((c) => c.items)
 export const KEY_ITEM_BY_ID = new Map(KEY_ITEMS.map((k) => [k.id, k]))
 const TALK: Record<string, TalkScript> = Object.assign({}, ...CONTENT.map((c) => c.talk))
+const WRAP: Record<string, NonNullable<(typeof CONTENT)[number]['wrapTalk']>[string]> = Object.assign({}, ...CONTENT.map((c) => c.wrapTalk ?? {}))
 const CAST: Record<string, CastScript> = Object.assign({}, ...CONTENT.map((c) => c.cast))
 const MAP_CAST: Record<string, CastScript> = Object.assign({}, ...CONTENT.map((c) => c.mapCast ?? {}))
 const VISIBLE: Record<string, (s: PlayerState) => boolean> = Object.assign({}, ...CONTENT.map((c) => c.visible ?? {}))
@@ -52,7 +53,9 @@ export function taleOffered(s: PlayerState, t: Tale): boolean {
 }
 
 export function talkScript(id: string): TalkScript | undefined {
-  return TALK[id]
+  const base = TALK[id]
+  const wrap = WRAP[id]
+  return wrap ? (c) => wrap(c, base) : base
 }
 export function castScript(id: string): CastScript | undefined {
   return CAST[id]
@@ -120,6 +123,7 @@ export function makeCtx(e: Entity | null, hooks: Hooks): Ctx {
     narrate,
     fude: (jp, en) => ({ kind: 'say', speaker: { jp: 'フデ', en: 'Fude' }, portrait: 'fude', line: { jp, en } }),
     stage: (id) => taleStage(getState(), id),
+    done: (id) => taleDone(getState(), id),
     start(id) {
       const t = TALE_BY_ID.get(id)
       if (!t || taleStage(getState(), id) >= 0) return []

@@ -11,6 +11,7 @@ import { SHRINE_FOLK } from './folk-r4'
 import { TOWER_FOLK } from './folk-r5'
 import { EXTRA_AREAS } from './extra-areas'
 import { MINIGAMES } from './minigames'
+import { ROAD } from './road'
 import type { TaleContent } from './types'
 import { PACK_CONTENT } from '../../regions/story'
 
@@ -28,4 +29,5 @@ export const CONTENT: TaleContent[] = [
   TOWER_FOLK,
   EXTRA_AREAS,
   MINIGAMES,
+  ROAD,
 ]

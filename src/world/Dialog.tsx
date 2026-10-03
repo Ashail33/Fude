@@ -17,7 +17,7 @@ import { sfx } from '../engine/sfx'
 import { speak } from '../engine/speech'
 import { voices } from '../engine/voice'
 import { Weave } from '../components/Weave'
-import { activityUnlocked, immersionOf, recordReviews, regionUnlocked, usePlayer } from '../engine/store'
+import { activityUnlocked, wardOpen, immersionOf, recordReviews, regionUnlocked, usePlayer } from '../engine/store'
 import type { Activity } from '../games/types'
 import { VnBusts, type Bust } from '../ui/Hd'
 import { uiSound } from '../ui/sound'
@@ -190,6 +190,7 @@ function lockReason(a: Activity, p: ReturnType<typeof usePlayer>): Line | null {
     const boss = bossOf(prevRegion(a.region) ?? a.region)
     return { jp: `まず『${boss.jp}』を たおそう。`, en: `Defeat ${boss.title} first.` }
   }
+  if (a.stage === 'boss' && !wardOpen(p, a.region)) return { jp: 'しずけさの けっかいが じゃまを している… まずは けっかいを やぶろう。', en: 'A ward of the Quiet is in the way… break the ward first.' }
   const list = activitiesFor(a.region)
   const prev = list[list.findIndex((x) => x.id === a.id) - 1]
   return { jp: `まず『${prev.jp}』を クリアしよう。`, en: `Complete “${prev.title}” first.` }
