@@ -4,14 +4,14 @@
  *
  * Every region's boss hides inside a ward of the Quiet. Talking to it starts
  * that region's road tale: Fude can weave a key to break the ward, but needs
- * three things for it, and they are scattered:
+ * two of three things for it, and they are scattered:
  *
  *  - one from a side quest in the region itself (finish it, then ask again),
  *  - one from a trip back to an earlier region (the travel spell helps),
  *  - one from a game keeper: Master Sumi's Ink Dojo (Stick Ninja), Hayato's
  *    Bamboo Bridge, or Granny Tane's Hidden Village.
  *
- * Carry all three back to the ward and Fude weaves them into the key; cast
+ * Carry any two back to the ward and Fude weaves them into the key; cast
  * the right word through it and the ward shatters. The boss can't be fought
  * (in the world or from the region menu) until then. Saves that already beat
  * a boss keep their road open.
@@ -52,7 +52,7 @@ export interface Gate {
   parts: [Part, Part, Part]
   /** Objective while gathering (shown in the story log). */
   gather: JE
-  /** Objective once you hold all three. */
+  /** Objective once you hold two of the three. */
   bring: JE
   /** The key Fude weaves (kept afterwards as a keepsake). */
   key: KeyItem
@@ -117,7 +117,7 @@ export const GATES: Gate[] = [
       },
     ],
     gather: ['けっかいを やぶる ざいりょうを あつめよう：まつりの ろうそく（やどや）・ちょうちんの かみ（かさの こ）・スミの すみ（たけやぶの どうじょう）', 'Gather what the ward needs: a festival candle (the innkeeper), lantern paper (the umbrella girl) and ink from Master Sumi’s dojo (the bamboo grove)'],
-    bring: ['みっつを もって、ひがしの みちの おにの けっかいへ', 'Take all three to the oni’s ward on the east road'],
+    bring: ['ふたつ そろったら、ひがしの みちの おにの けっかいへ', 'Take two of them to the oni’s ward on the east road'],
     key: item('lantern', 'Lantern of First Letters', 'はじまりの ちょうちん', 'ちょうちん', '🏮', 'Woven by Fude from a candle, lantern paper and Sumi’s ink. It broke the Quiet’s first ward.'),
     word: 'hi',
   },
@@ -158,7 +158,7 @@ export const GATES: Gate[] = [
       },
     ],
     gather: ['むすびの ざいりょう：わらの なわ（じぞうの サキチ）・すずめの のり（むらの ジロウ）・たにの ねんど（かざぐるまの おかの タネばあちゃん）', 'Gather the binding: straw rope (Sakichi of the Jizō), sparrows’ rice glue (Jirō, back in the Village) and valley clay (Granny Tane on Windmill Hill)'],
-    bring: ['みっつを もって、ひがしの みちの ゴーレムへ', 'Take all three to the golem on the east road'],
+    bring: ['ふたつ そろったら、ひがしの みちの ゴーレムへ', 'Take two of them to the golem on the east road'],
     key: item('binding', 'Binding Charm', 'むすびの ふだ', 'ふだ', '🧧', 'Rope, glue and clay, woven into a charm that holds scattered things together.'),
     word: 'ishi',
   },
@@ -199,7 +199,7 @@ export const GATES: Gate[] = [
       },
     ],
     gather: ['こえの ざいりょう：いわいの ひも（きつね）・たけぶえ（きのこの くぼちの ハヤト）・うたう こいし（はたけの ケンタ）', 'Gather a voice: a wedding ribbon (the fox), a bamboo flute (Hayato in Mushroom Hollow) and a singing pebble (Kenta, back in the Fields)'],
-    bring: ['みっつを もって、もりの おくの しゅごしゃへ', 'Take all three to the Guardian deep in the forest'],
+    bring: ['ふたつ そろったら、もりの おくの しゅごしゃへ', 'Take two of them to the Guardian deep in the forest'],
     key: item('echo-flute', 'Echo Flute', 'こだまの ふえ', 'ふえ', '🪈', 'Whatever you say into it, the whole forest hears.'),
     word: 'ki',
   },
@@ -240,7 +240,7 @@ export const GATES: Gate[] = [
       },
     ],
     gather: ['かがみの ざいりょう：すずの ひも（ポンタ）・しゅの すみ（むらの スミせんせい）・つきの はっぱ（もりの ポン）', 'Gather the mirror: a bell cord (Ponta), red ink (Master Sumi, back in the Village) and a moonlit leaf (Pon, back in the Forest)'],
-    bring: ['みっつを もって、としょかんの ししょの けっかいへ', 'Take all three to the Librarian’s ward in the library'],
+    bring: ['ふたつ そろったら、としょかんの ししょの けっかいへ', 'Take two of them to the Librarian’s ward in the library'],
     key: item('moon-mirror', 'Moon Mirror', 'つきの かがみ', 'かがみ', '🪞', 'Holds moonlight even at noon. Hidden writing shows in it.'),
     word: 'namae',
   },
@@ -281,7 +281,7 @@ export const GATES: Gate[] = [
       },
     ],
     gather: ['しおの ざいりょう：そこなしの ひしゃく（いりえの ふなゆうれい）・つきうさぎの おまもり（やしろ）・あらしの すみ（むらの スミせんせい）', 'Gather the tide: a bottomless ladle (the funayūrei in the cove), a moon-rabbit charm (back at the Shrine) and storm ink (Master Sumi, in the Village)'],
-    bring: ['みっつを もって、いりえの うみぼうずへ', 'Take all three to the Umibōzu in the cove'],
+    bring: ['ふたつ そろったら、いりえの うみぼうずへ', 'Take two of them to the Umibōzu in the cove'],
     key: item('tide-charm', 'Tide Charm', 'しおの おまもり', 'おまもり', '🌊', 'Ladle, moon charm and storm ink in one. The sea listens to whoever carries it.'),
     word: 'umi',
   },
@@ -322,7 +322,7 @@ export const GATES: Gate[] = [
       },
     ],
     gather: ['くしの ざいりょう：ぬくい いし（おふろの こざる）・にんぎょの しんじゅ（みなとの いりえ）・たけの かんざし（もりの ハヤト）', 'Gather the comb: a warm stone (the little monkey at the baths), a mermaid’s pearl (back at the Harbour cove) and a bamboo pin (Hayato, back in the Forest)'],
-    bring: ['みっつを もって、やまの どうくつの やまんばへ', 'Take all three to the Yamanba’s mountain cave'],
+    bring: ['ふたつ そろったら、やまの どうくつの やまんばへ', 'Take two of them to the Yamanba’s mountain cave'],
     key: item('comb', 'Untangling Comb', 'ほどきの くし', 'くし', '🪮', 'It combs knots out of hair, steam and sentences alike.'),
     word: 'mizu',
   },
@@ -363,7 +363,7 @@ export const GATES: Gate[] = [
       },
     ],
     gather: ['いんの ざいりょう：まねきの て（おはな）・さぎの はね（おんせんの キヨ）・やしきの ろう（かざぐるまの おかの タネばあちゃん）', 'Gather the seal: a beckoning paw (Ohana), a heron quill (Kiyo, back at the Hot Springs) and manor wax (Granny Tane, Windmill Hill)'],
-    bring: ['みっつを もって、おしろの てんしゅの ぬらりひょんへ', 'Take all three to Nurarihyon in the castle keep'],
+    bring: ['ふたつ そろったら、おしろの てんしゅの ぬらりひょんへ', 'Take two of them to Nurarihyon in the castle keep'],
     key: item('true-seal', 'True Seal', 'まことの いん', 'いん', '🔏', 'A seal that can’t be faked. Stamped on anything, it shows what is real.'),
     word: 'tono',
   },
@@ -404,7 +404,7 @@ export const GATES: Gate[] = [
       },
     ],
     gather: ['あかりの ざいりょう：ゆきんこの てぶくろ（ユキ）・とおみの あかり（じょうかまちの おろく）・ほのおの すみ（むらの スミせんせい）', 'Gather the light: a snow child’s mitten (Yuki), a far-seeing lamp (Oroku, back in the Castle Town) and ember ink (Master Sumi, in the Village)'],
-    bring: ['みっつを もって、ゆきの どうくつの ゆきおんなへ', 'Take all three to Yuki-onna’s snow cave'],
+    bring: ['ふたつ そろったら、ゆきの どうくつの ゆきおんなへ', 'Take two of them to Yuki-onna’s snow cave'],
     key: item('hearth', 'Hearth Light', 'ぬくもりの ひ', 'ひ', '🔆', 'A little sun in a lamp. Frozen words thaw in its glow.'),
     word: 'yuki',
   },
@@ -445,7 +445,7 @@ export const GATES: Gate[] = [
       },
     ],
     gather: ['たいこの ざいりょう：たいこの つぎ（おばあさん）・つららの ばち（ゆきでらの みずうみ）・いかずちの すみ（むらの スミせんせい）', 'Gather the drum: a drum patch (Grandma), an icicle drumstick (back at the Snow Temple lake) and thunder ink (Master Sumi, in the Village)'],
-    bring: ['みっつを もって、くもの ごてんの らいじんへ', 'Take all three to Raijin in the cloud hall'],
+    bring: ['ふたつ そろったら、くもの ごてんの らいじんへ', 'Take two of them to Raijin in the cloud hall'],
     key: item('song-drum', 'Rain-Song Drum', 'あまうたの たいこ', 'たいこ', '🪘', 'Beat it and the thunder sings along instead of shouting.'),
     word: 'taiko',
   },
@@ -486,11 +486,14 @@ export const GATES: Gate[] = [
       },
     ],
     gather: ['ふでの ざいりょう：つきの たけ（かぐやひめ）・てんの いと（くもの みやこの てんにょ）・たにの こえ（かざぐるまの おかの タネばあちゃん）', 'Gather the brush: moon bamboo (Kaguya-hime), heavenly thread (the tennin, back in the Cloud Capital) and the valley’s voices (Granny Tane, Windmill Hill)'],
-    bring: ['みっつを もって、とうの てっぺんの けっかいへ', 'Take all three to the ward at the top of the Tower'],
+    bring: ['ふたつ そろったら、とうの てっぺんの けっかいへ', 'Take two of them to the ward at the top of the Tower'],
     key: item('many-brush', 'Brush of Many Voices', 'みんなの ふで', 'ふで', '🖌️', 'Bamboo from the moon, thread from heaven, and a whole valley’s laughter. Kotone would have loved it.'),
     word: 'kotoba',
   },
 ]
+
+/** Parts of the three it takes to weave a key. */
+export const NEEDED = 2
 
 export const roadTale = (region: number) => `road-r${region}`
 
@@ -500,11 +503,11 @@ export const roadTale = (region: number) => `road-r${region}`
 function weave(c: Ctx, g: Gate): Step[] {
   const out: Step[] = []
   if (!c.has(g.key.id)) {
-    const [a, b, d] = g.parts.map((p) => p.item)
-    out.push(c.fude(`${a.jp}、${b.jp}、${d.jp}… いくよ！`, `The ${a.name}, the ${b.name}, the ${d.name}… here goes!`))
-    for (const p of g.parts) c.take(p.item.id)
+    const held = g.parts.filter((p) => c.has(p.item.id)).map((p) => p.item)
+    out.push(c.fude(`${held.map((i) => i.jp).join('、')}… いくよ！`, `${held.map((i) => `The ${i.name}`).join(', ')}… here goes!`))
+    for (const i of held) c.take(i.id)
     c.sparkle('spark')
-    out.push(c.narrate('フデが みっつを くるくると あんで いく…', 'Fude spins the three together, round and round…'), ...c.give(g.key.id))
+    out.push(c.narrate('フデが ぜんぶを くるくると あんで いく…', 'Fude spins them together, round and round…'), ...c.give(g.key.id))
   }
   const w = WORD_BY_ID.get(g.word)!
   out.push(c.fude(`${g.key.jp}に ことばを こめて！「${w.en}」の ことばを となえるんだ！`, `Put a word into the ${g.key.name}! Cast the word for “${w.en}”!`))
@@ -536,12 +539,12 @@ function wardTalk(c: Ctx, g: Gate): Step[] | null {
   if (wardOpen(s, g.region)) return null
   const id = roadTale(g.region)
   const st = c.stage(id)
-  if (st < 0) return [c.narrate('ブウウン…', 'Vmmmmm…'), ...g.ward.map(([jp, en]) => c.fude(jp, en)), ...c.start(id)]
+  if (st < 0) return [c.narrate('ブウウン…', 'Vmmmmm…'), ...g.ward.map(([jp, en]) => c.fude(jp, en)), c.fude('みっつの うち、ふたつ あれば なんとか なるよ！', 'Any two of the three should do!'), ...c.start(id)]
   if (st === 0) {
     const missing = g.parts.filter((p) => !c.has(p.item.id))
     return [
       c.narrate('けっかいが ブウウンと うなって いる…', 'The ward hums, solid as ever…'),
-      c.fude(`まだ たりないよ：${missing.map((p) => p.item.jp).join('・')}`, `We’re still missing: ${missing.map((p) => `the ${p.item.name}`).join(', ')}.`),
+      c.fude(`あと ${NEEDED - (g.parts.length - missing.length)}つ！ どれでも いいよ：${missing.map((p) => p.item.jp).join('・')}`, `${NEEDED - (g.parts.length - missing.length)} more to go! Any of these: ${missing.map((p) => `the ${p.item.name}`).join(', ')}.`),
       ...missing.map((p) => c.fude(p.hint[0], p.hint[1])),
     ]
   }
@@ -558,7 +561,10 @@ function handOver(c: Ctx, from: string): Step[] {
       if (p.from !== from || c.has(p.item.id) || !p.ready(c)) continue
       out.push(c.fude('あっ！ それ、けっかいを やぶるのに つかえるかも！', 'Oh! That could help us break the ward!'))
       out.push(...p.give.map(([jp, en]) => c.say(jp, en)), ...c.give(p.item.id))
-      if (g.parts.every((q) => c.has(q.item.id))) out.push(c.fude('これで みっつ そろった！ けっかいへ いそごう！', 'That’s all three! To the ward, quick!'), ...c.advance(id))
+      if (g.parts.filter((q) => c.has(q.item.id)).length >= NEEDED) {
+        out.push(c.fude('これで ふたつ そろった！ けっかいへ いそごう！', 'That’s two! To the ward, quick!'), ...c.advance(id))
+        break
+      }
     }
   }
   return out
@@ -600,7 +606,7 @@ const tales: Tale[] = GATES.map((g) => ({
   giver: g.boss,
   available: (s) => regionUnlocked(s, g.region) && !isPassed(s, g.activity),
   stages: [
-    { jp: g.gather[0], en: g.gather[1], target: g.parts.map((p) => p.from) },
+    { jp: `${g.gather[0]}（どれか ふたつで OK）`, en: `${g.gather[1]}. Any two will do`, target: g.parts.map((p) => p.from) },
     { jp: g.bring[0], en: g.bring[1], target: [g.boss] },
   ],
 }))

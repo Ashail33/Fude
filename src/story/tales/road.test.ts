@@ -81,11 +81,14 @@ describe('the Sealed Road', () => {
     finish('fk1-kasa')
     setState((s) => ({ ...s, ninja: { ...freshNinja(), cleared: 1 } }))
     talk('v-innkeeper')
-    talk('fk1-tsuru')
     expect(taleStage(getState(), roadTale(1))).toBe(0)
-    talk('vb-sumi')
-    expect(['road-candle', 'road-lantern-paper', 'road-sumi-ink'].every((k) => hasKeyItem(getState(), k))).toBe(true)
+    // any two of the three will do
+    talk('fk1-tsuru')
+    expect(['road-candle', 'road-lantern-paper'].every((k) => hasKeyItem(getState(), k))).toBe(true)
     expect(taleStage(getState(), roadTale(1))).toBe(1)
+    // the third is no longer needed, so Sumi keeps his ink
+    talk('vb-sumi')
+    expect(hasKeyItem(getState(), 'road-sumi-ink')).toBe(false)
 
     // a wrong word: the key is woven but the ward holds
     const miss = talk('v-oni', 'みず')
