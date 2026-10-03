@@ -62,7 +62,7 @@ export interface FoeDef {
 export const FOES: Record<FoeKind, FoeDef> = {
   bandit: { name: 'Bandit', jp: 'ごろつき', hp: 40, atk: 7, speed: 150, scale: 1, color: '#7a4a2a', weapon: 'sword', moves: [['slash', 1, 0, 60]], cooldown: 1.5, block: 0.1, xp: 10, ryo: 6 },
   spear: { name: 'Ashigaru', jp: 'あしがる', hp: 46, atk: 8, speed: 130, scale: 1, color: '#4f6b3a', weapon: 'spear', moves: [['thrust', 1, 0, 92]], cooldown: 1.7, block: 0.15, range: 80, xp: 12, ryo: 7 },
-  thrower: { name: 'Shinobi', jp: 'しのび', hp: 30, atk: 6, speed: 175, scale: 0.95, color: '#34406b', weapon: 'kunai', moves: [['star', 3, 90, 600], ['quick', 1, 0, 50]], cooldown: 1.8, block: 0.05, range: 230, xp: 12, ryo: 8 },
+  thrower: { name: 'Shinobi', jp: 'しのび', hp: 30, atk: 6, speed: 175, scale: 0.95, color: '#5b6b3a', weapon: 'kunai', moves: [['star', 3, 90, 600], ['quick', 1, 0, 50]], cooldown: 1.8, block: 0.05, range: 230, xp: 12, ryo: 8 },
   brute: { name: 'Sumō Brute', jp: 'りきし', hp: 115, atk: 14, speed: 100, scale: 1.35, color: '#8a3030', weapon: 'club', moves: [['heavy', 1, 0, 80]], cooldown: 2.3, block: 0, xp: 22, ryo: 14 },
   assassin: { name: 'Assassin', jp: 'あんさつしゃ', hp: 36, atk: 9, speed: 260, scale: 0.95, color: '#5b2a86', weapon: 'sword', moves: [['quick', 2, 0, 52], ['dashStab', 1, 90, 260]], cooldown: 1.1, block: 0.25, xp: 15, ryo: 10 },
   shade: { name: 'Shadow Clone', jp: 'かげぶんしん', hp: 30, atk: 8, speed: 240, scale: 1, color: '#7c4dbd', weapon: 'sword', moves: [['quick', 1, 0, 52]], cooldown: 1.3, block: 0, xp: 5, ryo: 2 },

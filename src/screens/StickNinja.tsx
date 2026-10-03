@@ -542,7 +542,19 @@ function HowTo() {
           <tr>
             <td>Jump (again in the air)</td>
             <td>
-              <kbd>↑</kbd> / <kbd>W</kbd> / <kbd>Space</kbd> · ⤒ or flick the stick up · 🎮 A
+              <kbd>↑</kbd> / <kbd>W</kbd> / <kbd>Space</kbd> · flick the stick up · 🎮 A
+            </td>
+          </tr>
+          <tr>
+            <td>Crouch (duck stars, arrows and spears)</td>
+            <td>
+              hold <kbd>↓</kbd> / <kbd>S</kbd> · hold the stick down · 🎮 stick down
+            </td>
+          </tr>
+          <tr>
+            <td>Shuriken (6, they come back)</td>
+            <td>
+              <kbd>U</kbd> / <kbd>F</kbd> / <kbd>H</kbd> · ✴ · 🎮 RB
             </td>
           </tr>
           <tr>
@@ -554,7 +566,7 @@ function HowTo() {
           <tr>
             <td>Guard (hold)</td>
             <td>
-              <kbd>K</kbd> / <kbd>X</kbd> / hold <kbd>↓</kbd> · 🛡️ or hold the stick down · 🎮 LB / RB
+              <kbd>K</kbd> / <kbd>X</kbd> · 🛡️ · 🎮 LB / LT
             </td>
           </tr>
           <tr>
@@ -570,9 +582,9 @@ function HowTo() {
             </td>
           </tr>
           <tr>
-            <td>Rising Dragon / Falling Star (Ink Arts)</td>
+            <td>Low sweep (trips foes) · Rising Dragon / Falling Star with the Ink Arts</td>
             <td>
-              hold <kbd>↓</kbd> + attack · stick down + ⚔️
+              crouch + attack · stick down + ⚔️
             </td>
           </tr>
         </tbody>
@@ -620,20 +632,23 @@ const KEYS: Record<string, keyof Input> = {
   KeyC: 'dash',
   ShiftLeft: 'dash',
   ShiftRight: 'dash',
+  KeyU: 'throw',
+  KeyH: 'throw',
+  KeyF: 'throw',
   KeyI: 'special',
   KeyV: 'special',
   KeyE: 'special',
 }
-const EDGES: (keyof Input)[] = ['jump', 'attack', 'dash', 'special']
+const EDGES: (keyof Input)[] = ['jump', 'attack', 'dash', 'special', 'throw']
 
-/** Standard gamepad mapping: A jump, B dash, X attack, Y special, bumpers guard. */
+/** Standard gamepad mapping: A jump, B dash, X attack, Y special, RB shuriken, LB / LT guard, RT special. */
 const PAD: [number, keyof Input][] = [
   [0, 'jump'],
   [1, 'dash'],
   [2, 'attack'],
   [3, 'special'],
   [4, 'block'],
-  [5, 'block'],
+  [5, 'throw'],
   [6, 'block'],
   [7, 'special'],
 ]
@@ -845,11 +860,11 @@ function Fight({ stage, save, onEnd, onQuit }: { stage: number; save: NinjaSave;
           {pad('special', <>✨<small>Special</small></>, `special${ready ? ' ready' : ''}`)}
           {pad('attack', <>⚔️<small>Attack</small></>, 'attack')}
           {pad('dash', <>💨<small>Dash</small></>, 'dash')}
-          {pad('jump', <>⤒<small>Jump</small></>, 'jump')}
+          {pad('throw', <>✴<small>Shuriken</small></>, 'throw', 'throw shuriken')}
         </div>
       </div>
       <p className="nj-keys muted">
-        <kbd>A</kbd>/<kbd>D</kbd> move · <kbd>W</kbd> jump · <kbd>J</kbd> attack · <kbd>K</kbd> or <kbd>S</kbd> guard · <kbd>L</kbd> dash · <kbd>I</kbd> special · <kbd>S</kbd>+<kbd>J</kbd> arts moves · <kbd>Esc</kbd> pause · 🎮 gamepads work too
+        <kbd>A</kbd>/<kbd>D</kbd> move · <kbd>W</kbd> jump · <kbd>S</kbd> crouch · <kbd>J</kbd> attack · <kbd>U</kbd> shuriken · <kbd>K</kbd> guard · <kbd>L</kbd> dash · <kbd>I</kbd> special · <kbd>Esc</kbd> pause · 🎮 gamepads work too
       </p>
     </div>
   )

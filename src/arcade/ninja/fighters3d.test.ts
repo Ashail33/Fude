@@ -11,7 +11,8 @@ describe('3D fighters', () => {
       expect(kind === 'hero' || kind in FOES, kind).toBe(true)
     }
   })
-  it('the hero is cast', () => {
+  it('the hero is cast, and no foe borrows his model', () => {
     expect(CAST3D.hero?.id).toBe('ninja')
+    for (const [kind, c] of Object.entries(CAST3D)) if (kind !== 'hero') expect(c!.id, kind).not.toBe('ninja')
   })
 })

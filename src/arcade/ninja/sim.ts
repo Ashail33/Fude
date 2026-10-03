@@ -14,6 +14,11 @@ export const GRAV = 1900
 const JUMP = 670
 const RUN = 250
 const BODY_H = 62
+/** Shuriken the hero carries (they come back over time). */
+export const MAX_STARS = 6
+const STAR_REGEN = 1.6
+/** Height of a fighter's body: much lower while crouching. */
+const bodyH = (t: Fighter) => BODY_H * t.scale * (t.crouch ? 0.45 : 1)
 
 export type Swing = 'slash' | 'up' | 'thrust' | 'slam' | 'spin' | 'throw' | 'cast'
 
@@ -100,6 +105,8 @@ export interface Fighter {
   markT: number
   /** Seconds since last on the ground (for a forgiving jump). */
   airT: number
+  /** Ducking low (projectiles and high attacks pass over). */
+  crouch: boolean
 }
 
 export type ShotKind = 'star' | 'wave' | 'fire' | 'wind' | 'shock' | 'dragon' | 'flame' | 'water' | 'wisp' | 'arrow' | 'ice' | 'bolt' | 'ink' | 'bone' | 'firefly' | 'crow' | 'geyser' | 'tornado'
@@ -156,9 +163,11 @@ export interface Fx {
 export interface Input {
   left: boolean
   right: boolean
-  /** Held ▼ (with attack: Rising Dragon on the ground, Falling Star in the air). */
+  /** Held ▼: crouch (with attack: a low sweep, or Rising Dragon; in the air, Falling Star). */
   down: boolean
   jump: boolean
+  /** Throw a shuriken. */
+  throw: boolean
   attack: boolean
   /** The attack button is held down (keeps the combo going). */
   attackHeld: boolean
@@ -167,7 +176,7 @@ export interface Input {
   special: boolean
 }
 
-export const noInput = (): Input => ({ left: false, right: false, down: false, jump: false, attack: false, attackHeld: false, block: false, dash: false, special: false })
+export const noInput = (): Input => ({ left: false, right: false, down: false, jump: false, throw: false, attack: false, attackHeld: false, block: false, dash: false, special: false })
 
 /** Urns and chests to break in the arena. */
 export interface Prop {
@@ -253,6 +262,9 @@ export interface Sim {
   have: GearId[]
   /** A white flash over the screen (special, boss down). */
   flashT: number
+  /** Shuriken in hand, and the time toward the next one coming back. */
+  stars: number
+  starT: number
 }
 
 // ─── Moves ─────────────────────────────────────────────────────────────
@@ -284,7 +296,7 @@ const shockwaves = (s: Sim, f: Fighter, dmg: number) => {
 export const FOE_MOVES: Record<string, Move> = {
   slash: { id: 'slash', windup: 0.38, active: 0.1, recover: 0.45, reach: 54, back: 6, lo: 10, hi: 62, dmg: 1, kb: 170, swing: 'slash' },
   quick: { id: 'quick', windup: 0.22, active: 0.08, recover: 0.32, reach: 48, back: 6, lo: 10, hi: 60, dmg: 0.8, kb: 130, swing: 'slash' },
-  thrust: { id: 'thrust', windup: 0.45, active: 0.12, recover: 0.5, reach: 90, lo: 25, hi: 52, dmg: 1.1, kb: 190, swing: 'thrust' },
+  thrust: { id: 'thrust', windup: 0.45, active: 0.12, recover: 0.5, reach: 90, lo: 30, hi: 54, dmg: 1.1, kb: 190, swing: 'thrust' },
   heavy: { id: 'heavy', windup: 0.7, active: 0.14, recover: 0.7, reach: 72, back: 10, lo: 0, hi: 85, dmg: 1.6, kb: 380, lift: 220, armor: true, swing: 'slam' },
   star: {
     id: 'star', windup: 0.32, active: 0.05, recover: 0.42, reach: 0, lo: 0, hi: 0, dmg: 0, kb: 0, swing: 'throw',
@@ -553,6 +565,16 @@ export function heroMovesFor(sw: SwordDef, arts?: Arts): Record<string, Move> {
     s2: { id: 's2', windup: 0.06 * k, active: 0.09 * k, recover: 0.16 * k, reach: sw.reach, back: 8, lo: 6, hi: 68, dmg: 1.1, kb: 130, swing: 'up' },
     s3: { id: 's3', windup: 0.1 * k, active: 0.12 * k, recover: 0.28 * k, reach: sw.reach + 6, back: 8, lo: 0, hi: 68, dmg: 1.7, kb: 380, lift: 260, swing: 'slam' },
     air: { id: 'air', windup: 0.05, active: 0.13, recover: 0.12, reach: sw.reach, back: 10, lo: -16, hi: 60, dmg: 1.2, kb: 170, swing: 'slash' },
+    // A shuriken, thrown fast (low when crouching).
+    toss: {
+      id: 'toss', windup: 0.05, active: 0.05, recover: 0.16, reach: 0, lo: 0, hi: 0, dmg: 0, kb: 0, swing: 'throw',
+      spawn: (s, f) => {
+        shot(s, f, { kind: 'star', y: f.y + (f.crouch ? 16 : 38) * f.scale, vx: f.face * 640, r: 7, dmg: f.atk * 0.55, life: 1.5, kb: 80 })
+        s.events.push('throw')
+      },
+    },
+    // Crouching cut at the ankles: trips foes up.
+    sweep: { id: 'sweep', windup: 0.06 * k, active: 0.1 * k, recover: 0.22 * k, reach: sw.reach * 0.95, back: 6, lo: -4, hi: 24, dmg: 0.9, kb: 60, lift: 240, stun: 0.35, swing: 'thrust' },
     // Rising Dragon: an uppercut that hops you up with the foe.
     rise: {
       id: 'rise', windup: 0.07 * k, active: 0.16, recover: 0.28, reach: sw.reach, back: 10, lo: 0, hi: 96, dmg: 1.4, kb: 60, lift: 640, swing: 'up',
@@ -587,7 +609,7 @@ function fighter(s: Sim, kind: Fighter['kind'], team: 0 | 1, x: number, hp: numb
     uid: s.nextUid++, kind, team, x, y: 0, vx: 0, vy: 0, face: 1, hp, maxHp: hp, atk, speed, scale,
     move: null, moveT: 0, fired: false, seg: -1, hitIds: [], combo: 0, comboQueued: false, blockT: -1, hurtT: 0, stunT: 0, inv: 0,
     dashT: 0, dashCd: 0, jumps: 0, burnT: 0, burnDps: 0, cd: 0.8, intent: 0, sawMove: -1, dead: false, deadT: 0, flash: 0, enraged: false, fly: 0, age: 0,
-    chillT: 0, markT: 0, airT: 0,
+    chillT: 0, markT: 0, airT: 0, crouch: false,
   }
 }
 
@@ -634,7 +656,7 @@ export function createSim(stage: Stage, level: number, sword: SwordDef, rng: () 
     t: 0, stage, wave: 0, foes: [], shots: [], fx: [], sword, heroMoves: heroMovesFor(sword, arts), meter: 0, hitstop: 0, shake: 0, kills: 0, xp: 0, ryo: 0, chain: 0, chainT: 0, bestChain: 0,
     outcome: null, outcomeT: 0, banner: null, boss: null, rng, nextUid: 1, moveSerial: 0, events: [],
     armor, arts, meterMul: 1 + 0.1 * arts.rank('up:focus') + (armor.perk === 'focus' ? 0.25 : 0), spMul: 1 + 0.15 * arts.rank('up:power'),
-    barrier: 0, barrierT: 0, bufAtk: 0, bufJump: 0, slowT: 0, props: [], drops: [], found: [], have: load.have ?? [], flashT: 0,
+    barrier: 0, barrierT: 0, bufAtk: 0, bufJump: 0, slowT: 0, props: [], drops: [], found: [], have: load.have ?? [], flashT: 0, stars: MAX_STARS, starT: 0,
   } as unknown as Sim
   s.hero = fighter(s, 'hero', 0, ARENA / 2, st.hp + armor.hp, sword.dmg * st.atkMul, RUN * (armor.perk === 'swift' ? 1.15 : 1), 1)
   s.meter = Math.min(100, 15 * arts.rank('up:surge'))
@@ -862,7 +884,7 @@ function checkHits(s: Sim, f: Fighter) {
     if (rel + w < -(m.back ?? 0) * f.scale || rel - w > m.reach * f.scale) continue
     const lo = f.y + m.lo * f.scale
     const hi = f.y + m.hi * f.scale
-    if (hi < t.y || lo > t.y + BODY_H * t.scale) continue
+    if (hi < t.y || lo > t.y + bodyH(t)) continue
     f.hitIds.push(t.uid)
     hit(s, f, t, f.atk * m.dmg, { kb: m.kb, lift: m.lift, unblockable: m.unblockable, stun: m.stun, burn: f.team === 0 && s.sword.burn ? 3 : undefined, dir: f.face, sp: f.team === 0 && m.id === 'sp' })
   }
@@ -1041,9 +1063,13 @@ function heroControl(s: Sim, inp: Input, dt: number) {
   s.bufJump = inp.jump ? 0.14 : Math.max(0, s.bufJump - dt)
   if (h.dead || h.stunT > 0 || h.hurtT > 0) {
     h.blockT = -1
+    h.crouch = false
     return
   }
   const grounded = h.y <= 0
+  // Ducking: holding down on the ground (kept through a crouching attack or throw).
+  const ducking = grounded && inp.down && h.dashT <= 0
+  h.crouch = ducking && (!h.move || h.move.id === 'sweep' || h.move.id === 'toss')
   if (grounded) {
     h.jumps = 0
     h.airT = 0
@@ -1067,6 +1093,17 @@ function heroControl(s: Sim, inp: Input, dt: number) {
     s.events.push('dash')
     return
   }
+  // Shuriken: thrown straight away, even mid-air or crouched.
+  if (inp.throw && (!m || inRecovery) && h.dashT <= 0 && !m?.inv) {
+    if (s.stars >= 1) {
+      if (inp.left !== inp.right) h.face = inp.left ? -1 : 1
+      s.stars--
+      h.blockT = -1
+      startMove(s, h, s.heroMoves.toss)
+      return
+    }
+    s.events.push('empty')
+  }
   // Passing Cut: the dash cuts what it passes through.
   if (h.dashT > 0 && s.arts.rank('tech:dashcut') > 0) {
     for (const e of s.foes) {
@@ -1081,7 +1118,8 @@ function heroControl(s: Sim, inp: Input, dt: number) {
       if (inp.left) h.face = -1
       else if (inp.right) h.face = 1
       s.bufAtk = 0
-      const mv = inp.down && grounded && s.arts.rank('tech:rising') ? s.heroMoves.rise : inp.down && !grounded && s.arts.rank('tech:plunge') ? s.heroMoves.plunge : grounded ? s.heroMoves.s1 : s.heroMoves.air
+      const low = inp.down && grounded
+      const mv = low ? (s.arts.rank('tech:rising') ? s.heroMoves.rise : s.heroMoves.sweep) : inp.down && !grounded && s.arts.rank('tech:plunge') ? s.heroMoves.plunge : grounded ? s.heroMoves.s1 : s.heroMoves.air
       startMove(s, h, mv)
     } else if (m && (m.id === 's1' || m.id === 's2') && h.moveT >= m.windup * 0.5) {
       h.comboQueued = true
@@ -1089,7 +1127,7 @@ function heroControl(s: Sim, inp: Input, dt: number) {
     }
   }
   if (h.move || h.dashT > 0) return
-  if ((inp.block || inp.down) && grounded) {
+  if (inp.block && grounded) {
     if (h.blockT < 0) {
       // Raising the guard turns you toward the nearest foe, so it covers the attack that's coming.
       const near = s.foes.filter((e) => !e.dead).sort((a, b) => Math.abs(a.x - h.x) - Math.abs(b.x - h.x))[0]
@@ -1102,6 +1140,13 @@ function heroControl(s: Sim, inp: Input, dt: number) {
     return
   }
   h.blockT = -1
+  if (h.crouch) {
+    // Crouched: no walking, but left/right turns.
+    if (inp.left !== inp.right) h.face = inp.left ? -1 : 1
+    h.vx = 0
+    if (s.bufJump > 0) h.crouch = false
+    else return
+  }
   const dir = (inp.right ? 1 : 0) - (inp.left ? 1 : 0)
   h.vx = dir * h.speed
   if (dir) h.face = dir as 1 | -1
@@ -1232,7 +1277,7 @@ function updateShots(s: Sim, dt: number) {
       const targets = (sh.team === 0 ? s.foes : [s.hero]).filter((t) => !t.dead && !sh.hit.includes(t.uid))
       const t = targets.sort((a, b) => Math.abs(a.x - sh.x) - Math.abs(b.x - sh.x))[0]
       if (t) {
-        const ty = t.y + (BODY_H / 2) * t.scale
+        const ty = t.y + bodyH(t) / 2
         const sp = Math.hypot(sh.vx, sh.vy) || 200
         const want = Math.atan2(ty - sh.y, t.x - sh.x)
         const cur = Math.atan2(sh.vy, sh.vx)
@@ -1263,9 +1308,9 @@ function updateShots(s: Sim, dt: number) {
     const targets = sh.team === 0 ? s.foes : [s.hero]
     for (const t of targets) {
       if (t.dead || sh.hit.includes(t.uid)) continue
-      const cy = t.y + (BODY_H / 2) * t.scale
+      const cy = t.y + bodyH(t) / 2
       const near = Math.abs(t.x - sh.x) < sh.r + 12 * t.scale
-      const level = tall ? t.y < 110 : Math.abs(cy - (sh.y + (ground ? 10 : 0))) < sh.r + (BODY_H / 2) * t.scale
+      const level = tall ? t.y < 110 : Math.abs(cy - (sh.y + (ground ? 10 : 0))) < sh.r + bodyH(t) / 2
       if (near && level) {
         sh.hit.push(t.uid)
         const r = hit(s, null, t, sh.dmg, { kb: sh.kb, lift: sh.lift, dir: Math.sign(sh.vx) || (t.x >= sh.x ? 1 : -1), unblockable: sh.unblockable, burn: sh.burn, stun: sh.stun, lifesteal: sh.lifesteal, sp: sh.sp })
@@ -1323,6 +1368,13 @@ export function step(s: Sim, inp: Input, dt: number): boolean {
     s.barrierT -= dt
     if (s.barrierT <= 0) s.barrier = 0
   }
+  if (s.stars < MAX_STARS) {
+    s.starT += dt
+    if (s.starT >= STAR_REGEN) {
+      s.starT = 0
+      s.stars++
+    }
+  } else s.starT = 0
   if (s.outcome) {
     s.outcomeT += dt
     for (const f of [s.hero, ...s.foes]) physics(s, f, dt)

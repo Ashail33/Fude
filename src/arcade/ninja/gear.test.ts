@@ -20,7 +20,7 @@ import {
   WORLDS,
   type NinjaSave,
 } from './data'
-import { ARENA, createSim, FOE_MOVES, hit, noInput, step } from './sim'
+import { ARENA, createSim, FOE_MOVES, hit, MAX_STARS, noInput, step } from './sim'
 import { CACHES } from '../../story/tales/ninjaCaches'
 import { getMap } from '../../world/maps'
 import { tileSolid } from '../../world/mapdef'
@@ -219,11 +219,69 @@ describe('guarding', () => {
     expect(h.blockT).toBe(-1)
   })
 
-  it('holding the stick down guards too', () => {
+  it('holding down crouches (it no longer guards); crouched you cannot walk', () => {
+    const s = createSim(stageAt(0), 5, SWORD_BY_ID.katana, rng)
+    const x = s.hero.x
+    const inp = noInput()
+    inp.down = true
+    inp.right = true
+    for (let i = 0; i < 10; i++) step(s, inp, 1 / 60)
+    expect(s.hero.crouch).toBe(true)
+    expect(s.hero.blockT).toBe(-1)
+    expect(Math.abs(s.hero.x - x)).toBeLessThan(2)
+    step(s, noInput(), 1 / 60)
+    expect(s.hero.crouch).toBe(false)
+  })
+})
+
+describe('shuriken and crouching', () => {
+  it('throws a shuriken from the hand (six, and they come back)', () => {
+    const s = createSim(stageAt(0), 5, SWORD_BY_ID.katana, rng)
+    expect(s.stars).toBe(MAX_STARS)
+    const inp = noInput()
+    inp.throw = true
+    step(s, inp, 1 / 60)
+    for (let i = 0; i < 6; i++) step(s, noInput(), 1 / 60)
+    expect(s.stars).toBe(MAX_STARS - 1)
+    expect(s.shots.some((sh) => sh.team === 0 && sh.kind === 'star')).toBe(true)
+    for (let i = 0; i < 120; i++) step(s, noInput(), 1 / 60)
+    expect(s.stars).toBe(MAX_STARS)
+  })
+
+  it('no shuriken left: nothing is thrown', () => {
+    const s = createSim(stageAt(0), 5, SWORD_BY_ID.katana, rng)
+    s.stars = 0
+    const inp = noInput()
+    inp.throw = true
+    step(s, inp, 1 / 60)
+    expect(s.shots.filter((sh) => sh.team === 0)).toHaveLength(0)
+  })
+
+  it('a crouching hero ducks under a thrown star that would hit him standing', () => {
+    const run = (crouch: boolean) => {
+      const s = createSim(stageAt(0), 5, SWORD_BY_ID.katana, rng)
+      s.foes = s.foes.slice(0, 1)
+      const foe = s.foes[0]
+      foe.x = s.hero.x + 200
+      foe.face = -1
+      foe.cd = 99
+      s.shots.push({ kind: 'star', team: 1, x: foe.x - 20, y: 36, vx: -430, vy: 0, r: 7, dmg: 20, life: 2, age: 0, pierce: false, hit: [], kb: 90 })
+      const hp = s.hero.hp
+      const inp = noInput()
+      inp.down = crouch
+      for (let i = 0; i < 60; i++) step(s, inp, 1 / 60)
+      return hp - s.hero.hp
+    }
+    expect(run(false)).toBeGreaterThan(0)
+    expect(run(true)).toBe(0)
+  })
+
+  it('crouch + attack is a low sweep that trips', () => {
     const s = createSim(stageAt(0), 5, SWORD_BY_ID.katana, rng)
     const inp = noInput()
     inp.down = true
+    inp.attack = true
     step(s, inp, 1 / 60)
-    expect(s.hero.blockT).toBeGreaterThanOrEqual(0)
+    expect(s.hero.move?.id).toBe('sweep')
   })
 })

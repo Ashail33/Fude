@@ -1,7 +1,7 @@
 /**
  * A thumb joystick for Stick Ninja on touch screens. Push left or right to
- * run; hold it down to guard (or, with an attack, for the Ink Arts moves);
- * flick it up to jump. The knob follows the thumb inside its ring, and the
+ * run; hold it down to crouch (with an attack: a low sweep, or the Ink Arts
+ * moves); flick it up to jump. The knob follows the thumb inside its ring, and the
  * ring re-centres wherever the thumb first lands in the stick's zone, so it
  * works without looking.
  */
@@ -13,7 +13,7 @@ const RANGE = 44
 /** Deflection (0–1) that counts as a push in a direction. */
 const SIDE = 0.32
 const DOWN = 0.55
-const UP = 0.62
+const UP = 0.5
 
 export function Joystick({ input }: { input: React.MutableRefObject<Input> }) {
   const zone = useRef<HTMLDivElement>(null)
@@ -75,7 +75,7 @@ export function Joystick({ input }: { input: React.MutableRefObject<Input> }) {
       }}
       onPointerCancel={release}
       onContextMenu={(e) => e.preventDefault()}
-      aria-label="Move: push left or right, down to guard, up to jump"
+      aria-label="Move: push left or right, down to crouch, up to jump"
       role="application"
     >
       <div className={`nj-stick${knob.on ? ' on' : ''}`} style={knob.on ? { left: knob.cx, top: knob.cy } : undefined}>

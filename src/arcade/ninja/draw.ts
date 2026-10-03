@@ -7,7 +7,7 @@ import { hdAvailable } from '../../art/hd'
 import { hdUrl } from '../../art/hd/manifest'
 import { Fighters3D } from './fighters3d'
 import { ART_BY_ID, FOES, MOD_INFO, WORLDS, isSword, type Deco, type FoeKind, type Weapon } from './data'
-import { ARENA, type Fighter, type Move, type Shot, type Sim, type Swing } from './sim'
+import { ARENA, MAX_STARS, type Fighter, type Move, type Shot, type Sim, type Swing } from './sim'
 
 export const VW = 480
 export const VH = 270
@@ -608,7 +608,12 @@ function movePose(m: Move, t: number): Pose {
 }
 
 export function poseOf(f: Fighter): Pose {
-  if (f.move) return movePose(f.move, f.moveT)
+  if (f.move) {
+    const p = movePose(f.move, f.moveT)
+    return f.crouch ? { ...p, lean: p.lean + 0.3 } : p
+  }
+  if (f.crouch && f.blockT >= 0) return { phi: -0.1, psi: 1.4, ext: 0.75, lean: 0.25, live: false, spinning: false }
+  if (f.crouch) return { phi: -0.35, psi: 0.2, ext: 0.9, lean: 0.35, live: false, spinning: false }
   if (f.blockT >= 0) return { phi: -0.2, psi: 1.45, ext: 0.8, lean: -0.05, live: false, spinning: false }
   if (f.hurtT > 0 || f.stunT > 0) return { phi: -1.7, psi: -2.2, ext: 1, lean: -0.35, live: false, spinning: false }
   const moving = Math.abs(f.vx) > 30 && f.y <= 0
@@ -729,7 +734,9 @@ function rig(f: Fighter, pose: Pose, sx: number, sy: number, look: Look): Rig {
   else if (f.move || f.blockT >= 0 || f.dashT > 0) legs = [[0.5, 0.35], [-0.45, 0.2]]
   else legs = [[0.22, 0.12], [-0.22, 0.12]]
   if (f.kind === 'tengu' && f.y > 10) legs = [[0.3, 0.9], [0.1, 0.7]]
-  const hipY = 26 * sc + (moving ? Math.abs(Math.cos(ph)) * 2 : 0) - (f.move && pose.live ? 2 : 0) + (f.move || f.blockT >= 0 ? -1.5 : Math.sin(f.age * 2.2) * 0.5)
+  // Crouching: front knee up, back knee almost on the ground, hips low.
+  if (f.crouch) legs = [[1.1, 2.0], [-0.1, 1.39]]
+  const hipY = f.crouch ? 14 * sc : 26 * sc + (moving ? Math.abs(Math.cos(ph)) * 2 : 0) - (f.move && pose.live ? 2 : 0) + (f.move || f.blockT >= 0 ? -1.5 : Math.sin(f.age * 2.2) * 0.5)
   const hip = P(0, hipY)
   const legPts = legs.map(([a, bend]): [Pt, Pt, Pt] => {
     const knee: Pt = [hip[0] + Math.sin(a) * 13 * sc * f.face, hip[1] + Math.cos(a) * 13 * sc]
@@ -1093,25 +1100,129 @@ function blade(ctx: CanvasRenderingContext2D, s: Sim, f: Fighter, hand: Pt, psi:
   return tip
 }
 
+/** What the hero's chosen armour looks like on the stick figure. */
+function heroArmour(ctx: CanvasRenderingContext2D, s: Sim, f: Fighter, head: Pt, sc: number) {
+  const a = s.armor
+  const fc = f.face
+  const t = s.t
+  // the torso, roughly, from the head down
+  const neck: Pt = [head[0] - fc * 1, head[1] + 9 * sc]
+  const hip: Pt = [head[0] - fc * 3, head[1] + (f.crouch ? 26 : 31) * sc]
+  const plate = (fill: string) => {
+    ctx.fillStyle = fill
+    ctx.strokeStyle = 'rgba(0,0,0,0.5)'
+    ctx.lineWidth = 0.8
+  }
+  const pauldrons = (fill: string, big = false) => {
+    plate(fill)
+    ctx.beginPath()
+    ctx.roundRect(head[0] - (big ? 11 : 9) - fc, head[1] + 7, big ? 22 : 18, big ? 7 : 5, 2)
+    ctx.fill()
+    ctx.stroke()
+  }
+  const skirt = (fill: string, rows = 2) => {
+    plate(fill)
+    for (let r = 0; r < rows; r++) {
+      ctx.beginPath()
+      ctx.roundRect(hip[0] - 8 * sc, hip[1] - 4 * sc + r * 4 * sc, 16 * sc, 4 * sc, 1)
+      ctx.fill()
+      ctx.stroke()
+    }
+  }
+  const scarf = (color: string, len: number) => {
+    ctx.strokeStyle = color
+    ctx.lineWidth = 2.2
+    ctx.beginPath()
+    ctx.moveTo(neck[0], neck[1])
+    for (let i = 1; i <= len; i++) ctx.lineTo(neck[0] - fc * i * 5, neck[1] + i * 1.6 + Math.sin(t * 9 + i) * 2)
+    ctx.stroke()
+  }
+  switch (a.id) {
+    case 'kusari':
+      // chain mail glinting through the jacket
+      ctx.strokeStyle = 'rgba(200,210,220,0.55)'
+      ctx.lineWidth = 0.6
+      for (let k = 0; k < 4; k++) line(ctx, [neck[0] - 5 * sc, neck[1] + 4 + k * 4 * sc], [neck[0] + 5 * sc, neck[1] + 4 + k * 4 * sc])
+      break
+    case 'lacquer':
+      pauldrons(a.color)
+      plate(shade(a.color, 0.15))
+      ctx.beginPath()
+      ctx.roundRect(neck[0] - 6 * sc, neck[1] + 2, 12 * sc, 14 * sc, 3)
+      ctx.fill()
+      ctx.stroke()
+      break
+    case 'oyoroi':
+    case 'frost-mail':
+    case 'dragon-armour':
+      pauldrons(a.color, true)
+      skirt(a.id === 'dragon-armour' ? '#a8862a' : shade(a.color, -0.15), 3)
+      if (a.id === 'dragon-armour') {
+        ctx.fillStyle = '#ffd54f'
+        ctx.fillRect(neck[0] - 1, neck[1] + 4, 2, 8)
+      }
+      if (a.id === 'frost-mail') scarf('rgba(255,255,255,0.9)', 5)
+      break
+    case 'oni-hide':
+      pauldrons(a.color)
+      // shaggy fur at the shoulders
+      ctx.fillStyle = '#5d1a12'
+      for (let k = -2; k <= 2; k++) ctx.fillRect(head[0] + k * 3.5 - fc, head[1] + 12, 2, 3)
+      break
+    case 'tengu-cloak': {
+      // a black feather cape streaming behind
+      const flap = Math.sin(t * 7) * 2 + Math.min(1, Math.abs(f.vx) / 250) * 6
+      ctx.fillStyle = '#1b1f1c'
+      ctx.beginPath()
+      ctx.moveTo(neck[0], neck[1])
+      ctx.quadraticCurveTo(neck[0] - fc * (12 + flap), neck[1] + 12, hip[0] - fc * (14 + flap), hip[1] + 6)
+      ctx.lineTo(hip[0] - fc * 2, hip[1] + 2)
+      ctx.closePath()
+      ctx.fill()
+      break
+    }
+    case 'kage-garb':
+      scarf('#7c4dbd', 6)
+      break
+    case 'kappa-shell':
+      // a green shell on the back
+      plate('#2e6b46')
+      ctx.beginPath()
+      ctx.ellipse(neck[0] - fc * 6 * sc, neck[1] + 10 * sc, 6 * sc, 10 * sc, fc * 0.15, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.stroke()
+      ctx.strokeStyle = 'rgba(200,240,210,0.35)'
+      line(ctx, [neck[0] - fc * 6 * sc, neck[1] + 2], [neck[0] - fc * 6 * sc, neck[1] + 18 * sc])
+      break
+    case 'monk-robe':
+      // a long pale robe to the shins
+      ctx.fillStyle = 'rgba(224,214,194,0.92)'
+      ctx.beginPath()
+      ctx.moveTo(neck[0] - 5, neck[1])
+      ctx.lineTo(neck[0] + 5, neck[1])
+      ctx.lineTo(hip[0] + 9 * sc, hip[1] + 12 * sc)
+      ctx.lineTo(hip[0] - 9 * sc, hip[1] + 12 * sc)
+      ctx.closePath()
+      ctx.fill()
+      break
+    case 'tennin-robe':
+      // a heavenly scarf floating in loops
+      ctx.strokeStyle = 'rgba(248,187,208,0.9)'
+      ctx.lineWidth = 1.6
+      ctx.beginPath()
+      ctx.moveTo(neck[0] + fc * 6, neck[1])
+      ctx.bezierCurveTo(neck[0] + fc * 14, neck[1] - 10 + Math.sin(t * 2) * 3, neck[0] - fc * 18, neck[1] - 8, neck[0] - fc * 20, neck[1] + 14 + Math.sin(t * 2.5) * 3)
+      ctx.stroke()
+      break
+  }
+}
+
 function extras(ctx: CanvasRenderingContext2D, s: Sim, f: Fighter, head: Pt, sc: number, ink: string) {
   const fc = f.face
   ctx.save()
   switch (f.kind) {
     case 'hero': {
-      // Shoulder plates for real armour.
-      if (s.armor.def >= 0.12) {
-        ctx.fillStyle = s.armor.color
-        ctx.strokeStyle = 'rgba(0,0,0,0.5)'
-        ctx.lineWidth = 0.8
-        ctx.beginPath()
-        ctx.roundRect(head[0] - 9 - fc * 1, head[1] + 8, 18, 5, 2)
-        ctx.fill()
-        ctx.stroke()
-        if (s.armor.perk) {
-          ctx.fillStyle = '#ffd54f'
-          ctx.fillRect(head[0] - 1, head[1] + 9, 2, 3)
-        }
-      }
+      heroArmour(ctx, s, f, head, sc)
       // Red headband with trailing tails.
       ctx.strokeStyle = '#d32f2f'
       ctx.lineWidth = 2.4
@@ -1844,6 +1955,22 @@ function hud(ctx: CanvasRenderingContext2D, s: Sim, level: number) {
     ctx.fillText(el.icon, 27, 24)
   }
   if (s.barrier > 0) bar(ctx, 36, 26, 60 * Math.min(1, s.barrier / (h.maxHp * 0.21)), 3, 1, '#4dd0e1')
+  // Shuriken in hand (they come back over time).
+  for (let i = 0; i < MAX_STARS; i++) {
+    const x = 160 + i * 9
+    const y = 10.5
+    ctx.save()
+    ctx.translate(x, y)
+    ctx.rotate(Math.PI / 4)
+    ctx.fillStyle = i < s.stars ? '#e0e6ec' : 'rgba(255,255,255,0.18)'
+    ctx.beginPath()
+    for (let k = 0; k < 8; k++) {
+      const r = k % 2 ? 1.3 : 3.6
+      ctx.lineTo(Math.cos((k * Math.PI) / 4) * r, Math.sin((k * Math.PI) / 4) * r)
+    }
+    ctx.fill()
+    ctx.restore()
+  }
   if (full) {
     ctx.font = 'bold 7px system-ui, sans-serif'
     ctx.fillStyle = '#fff176'

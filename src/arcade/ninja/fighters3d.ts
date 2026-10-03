@@ -13,7 +13,7 @@
  */
 import * as THREE from 'three'
 import { glbReady, glbRigged, requestGlb, type Rig } from '../../world3d/models/glb'
-import type { FoeKind } from './data'
+import type { ArmorDef, ArmorId, FoeKind } from './data'
 import type { Pose } from './draw'
 import type { Fighter, Sim } from './sim'
 
@@ -32,12 +32,15 @@ interface Cast {
 
 /** Who is played by which model. Kinds not listed stay stick figures. */
 export const CAST3D: Partial<Record<Fighter['kind'], Cast>> = {
+  // The hero's model is his alone: no foe borrows it.
   hero: { id: 'ninja', weapon: 'sword' },
-  thrower: { id: 'ninja', tint: '#7d8fc4', weapon: 'sword', steel: '#cfd8dc' },
-  assassin: { id: 'ninja', tint: '#b48ad6', weapon: 'sword', steel: '#e0e0e0' },
-  shade: { id: 'ninja', tint: '#9a6be0', glow: '#4a2a80', opacity: 0.72, weapon: 'sword', steel: '#c9b6ff' },
-  kage: { id: 'ninja', tint: '#6a4a9a', glow: '#3d1f63', weapon: 'sword', steel: '#e0d4ff' },
-  quiet: { id: 'ninja', tint: '#2a2238', glow: '#4b2d7a', weapon: 'sword', steel: '#b388ff' },
+  thrower: { id: 'sailor', tint: '#9aa77a', weapon: 'sword', steel: '#cfd8dc' },
+  assassin: { id: 'karakuri', tint: '#c9a0e6', weapon: 'sword', steel: '#e0e0e0' },
+  // Kage and his shadow clones: Nurarihyon's model in deep violet (the clones see-through)
+  kage: { id: 'nurarihyon', tint: '#7a5aa8', glow: '#2a1240', weapon: 'sword', steel: '#e0d4ff' },
+  shade: { id: 'nurarihyon', tint: '#9a6be0', glow: '#4a2a80', opacity: 0.65, weapon: 'sword', steel: '#c9b6ff' },
+  // the Quiet: the mountain witch's model, drained to ink
+  quiet: { id: 'yamanba', tint: '#3a3048', glow: '#4b2d7a', weapon: 'sword', steel: '#b388ff' },
   bandit: { id: 'jailer', weapon: 'sword', steel: '#cfd3d6' },
   brute: { id: 'jailer', tint: '#e6a08a', weapon: 'club' },
   spear: { id: 'guard', weapon: 'spear' },
@@ -56,6 +59,57 @@ export const CAST3D: Partial<Record<Fighter['kind'], Cast>> = {
   tengu: { id: 'tengu', weapon: 'none' },
 }
 
+// ─── The hero's armour, worn on the 3D model ─────────────────────────────
+
+type Piece = 'chest' | 'pauldrons' | 'bigPauldrons' | 'skirt' | 'shell' | 'cape' | 'robe' | 'scarf'
+
+/** What each armour adds to the model (pieces in its colour) and how it tints the cloth. */
+const ARMOUR_LOOK: Record<ArmorId, { pieces: Piece[]; tint?: string; color?: string; scarf?: string }> = {
+  gi: { pieces: [] },
+  kusari: { pieces: [], tint: '#2a2f36' },
+  lacquer: { pieces: ['chest', 'pauldrons'] },
+  oyoroi: { pieces: ['chest', 'bigPauldrons', 'skirt'] },
+  'monk-robe': { pieces: ['robe'], tint: '#3a3428' },
+  'oni-hide': { pieces: ['chest', 'pauldrons'], tint: '#2a0806' },
+  'tengu-cloak': { pieces: ['cape'], color: '#1b1f1c' },
+  'kage-garb': { pieces: ['scarf'], tint: '#1c0e2e', scarf: '#7c4dbd' },
+  'kappa-shell': { pieces: ['shell'] },
+  'frost-mail': { pieces: ['chest', 'bigPauldrons', 'skirt', 'scarf'], tint: '#14222c', scarf: '#ffffff' },
+  'tennin-robe': { pieces: ['robe', 'scarf'], tint: '#2e2430', scarf: '#f8bbd0' },
+  'dragon-armour': { pieces: ['chest', 'bigPauldrons', 'skirt'], tint: '#2a1e04' },
+}
+
+interface Worn {
+  piece: Piece
+  mesh: THREE.Object3D
+}
+
+function armourMeshes(a: ArmorDef): Worn[] {
+  const look = ARMOUR_LOOK[a.id] ?? { pieces: [] }
+  const color = look.color ?? a.color
+  const mat = (c: string, opts: Partial<THREE.MeshToonMaterialParameters> = {}) => new THREE.MeshToonMaterial({ color: c, emissive: new THREE.Color(c).multiplyScalar(0.18), ...opts })
+  const out: Worn[] = []
+  for (const piece of look.pieces) {
+    let mesh: THREE.Object3D
+    if (piece === 'chest') mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), mat(color))
+    else if (piece === 'pauldrons' || piece === 'bigPauldrons') {
+      const g = new THREE.Group()
+      for (const side of [-1, 1]) {
+        const m = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), mat(color))
+        m.userData.side = side
+        g.add(m)
+      }
+      mesh = g
+    } else if (piece === 'skirt') mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.62, 1, 8, 1, true), mat(new THREE.Color(color).multiplyScalar(0.8).getStyle(), { side: THREE.DoubleSide }))
+    else if (piece === 'shell') mesh = new THREE.Mesh(new THREE.SphereGeometry(0.5, 12, 8), mat('#2e6b46'))
+    else if (piece === 'cape') mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1, 1, 4), mat(color, { side: THREE.DoubleSide }))
+    else if (piece === 'robe') mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.62, 1, 10, 1, true), mat(color, { side: THREE.DoubleSide }))
+    else mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), mat(look.scarf ?? '#ffffff'))
+    out.push({ piece, mesh })
+  }
+  return out
+}
+
 /** Logical height (canvas units) of a stick figure at scale 1, which a model is fitted to. */
 const FIG_H = 76
 
@@ -69,6 +123,8 @@ interface Inst {
   weapon: THREE.Group | null
   blade: THREE.Mesh | null
   cast: Cast
+  /** The hero's armour pieces (placed from the bones each frame). */
+  worn: Worn[]
 }
 
 const X = new THREE.Vector3(1, 0, 0)
@@ -151,7 +207,7 @@ export class Fighters3D {
     return !!this.renderer
   }
 
-  private make(f: Fighter, cast: Cast): Inst | null {
+  private make(s: Sim, f: Fighter, cast: Cast): Inst | null {
     // (cheap checks first: cloning a model just to find it has no skeleton is not)
     if (this.rigless.has(cast.id) || !glbReady(cast.id)) return null
     const g = glbRigged(cast.id)
@@ -172,6 +228,9 @@ export class Fighters3D {
           c.depthWrite = false
         }
         if (cast.glow) c.emissive.add(new THREE.Color(cast.glow))
+        // the hero's cloth takes on his armour's colour
+        const at = f.kind === 'hero' ? ARMOUR_LOOK[s.armor.id]?.tint : undefined
+        if (at) c.emissive.add(new THREE.Color(at))
         mats.push({ m: c, emissive: c.emissive.clone() })
         return c
       }
@@ -181,7 +240,9 @@ export class Fighters3D {
     const w = weaponMesh(cast.weapon, cast.steel ?? '#dfe6ee')
     if (w) this.scene.add(w.g)
     this.scene.add(g.root)
-    return { fighter: f, root: g.root, inner: g.inner, rig: g.rig, height: g.height, mats, weapon: w?.g ?? null, blade: w?.blade ?? null, cast }
+    const worn = f.kind === 'hero' ? armourMeshes(s.armor) : []
+    for (const p of worn) this.scene.add(p.mesh)
+    return { fighter: f, root: g.root, inner: g.inner, rig: g.rig, height: g.height, mats, weapon: w?.g ?? null, blade: w?.blade ?? null, cast, worn }
   }
 
   private drop(f: Fighter) {
@@ -189,6 +250,7 @@ export class Fighters3D {
     if (!i) return
     this.scene.remove(i.root)
     if (i.weapon) this.scene.remove(i.weapon)
+    for (const p of i.worn) this.scene.remove(p.mesh)
     for (const { m } of i.mats) m.dispose()
     this.insts.delete(f)
   }
@@ -208,7 +270,7 @@ export class Fighters3D {
       if (!cast) continue
       let inst = this.insts.get(f)
       if (!inst) {
-        const made = this.make(f, cast)
+        const made = this.make(s, f, cast)
         if (!made) continue
         inst = made
         this.insts.set(f, inst)
@@ -255,8 +317,14 @@ export class Fighters3D {
     rig.turn('lHand', Z, rig.lDrop)
     rig.turn('rHand', Z, -rig.rDrop)
 
-    // Legs: a fighting stance, a run cycle, a tuck in the air.
-    if (air) {
+    // Legs: a fighting stance, a run cycle, a tuck in the air, a crouch.
+    if (f.crouch && !air) {
+      rig.turn('lUp', X, -1.35)
+      rig.turn('lLeg', X, 2.0)
+      rig.turn('rUp', X, -0.15)
+      rig.turn('rLeg', X, 1.75)
+      inner.position.y = -0.42
+    } else if (air) {
       rig.turn('lUp', X, -1.0)
       rig.turn('rUp', X, -0.35)
       rig.turn('lLeg', X, 1.3)
@@ -281,7 +349,7 @@ export class Fighters3D {
     }
 
     // Body lean from the pose (into swings, back when hurt).
-    rig.turn('spine', X, p.lean * 0.9 + (moving ? 0.2 : 0))
+    rig.turn('spine', X, p.lean * 0.9 + (moving ? 0.2 : 0) + (f.crouch ? 0.15 : 0))
     rig.turn('chest', Y, p.live ? 0.25 : 0)
     if (f.hurtT > 0 || f.stunT > 0) {
       rig.turn('spine', X, -0.35)
@@ -333,6 +401,7 @@ export class Fighters3D {
     // The hero blinks while invulnerable after a hit.
     root.visible = !(f.team === 0 && f.inv > 0 && !f.move && Math.floor(f.inv * 20) % 2 === 0)
 
+    if (i.worn.length) this.wear(i)
     // Weapon: at the hand, along the blade angle (mirrored by facing).
     if (i.weapon) {
       root.updateMatrixWorld(true)
@@ -348,6 +417,68 @@ export class Fighters3D {
       if (i.blade && f.kind === 'hero') (i.blade.material as THREE.MeshToonMaterial).color.set(s.sword.color)
     }
     void Y
+  }
+
+  /** Put the hero's armour pieces on his body: from the bones, along his spine, facing his way. */
+  private wear(i: Inst) {
+    const f = i.fighter
+    const { rig, root } = i
+    root.updateMatrixWorld(true)
+    const H = FIG_H * f.scale
+    const at = (k: Parameters<Rig['joint']>[0], fallback: THREE.Vector3) => {
+      const b = rig.joint(k)
+      return b ? b.getWorldPosition(new THREE.Vector3()) : fallback
+    }
+    const base = root.position.clone()
+    const hip = at('hips', base.clone().add(new THREE.Vector3(0, H * 0.5, 0)))
+    const neck = at('neck', at('head', hip.clone().add(new THREE.Vector3(0, H * 0.35, 0))))
+    const up = neck.clone().sub(hip)
+    const len = Math.max(1, up.length())
+    up.divideScalar(len)
+    const yaw = root.rotation.y
+    const fwd = new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw))
+    const right = new THREE.Vector3().crossVectors(up, fwd).normalize()
+    const fw = new THREE.Vector3().crossVectors(right, up).normalize()
+    const q = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(right, up, fw))
+    const along = (u: number, f2 = 0, r = 0) => hip.clone().addScaledVector(up, len * u).addScaledVector(fw, H * f2).addScaledVector(right, H * r)
+    const t = f.age
+    for (const { piece, mesh } of i.worn) {
+      mesh.visible = root.visible && !(f.dead && f.deadT > 0.6)
+      mesh.quaternion.copy(q)
+      mesh.position.set(0, 0, 0)
+      mesh.scale.setScalar(1)
+      if (piece === 'chest') {
+        mesh.position.copy(along(0.62, 0.035))
+        mesh.scale.set(H * 0.24, len * 0.62, H * 0.15)
+      } else if (piece === 'pauldrons' || piece === 'bigPauldrons') {
+        const big = piece === 'bigPauldrons' ? 1.35 : 1
+        for (const c of mesh.children) {
+          const side = c.userData.side as number
+          const arm = at(side < 0 ? 'lArm' : 'rArm', along(0.92, 0, side * 0.14))
+          // children are placed in world terms: undo the group's own transform
+          c.position.copy(arm.addScaledVector(up, H * 0.015)).sub(mesh.position)
+          c.position.applyQuaternion(q.clone().invert())
+          c.scale.set(H * 0.13 * big, H * 0.045 * big, H * 0.13 * big)
+        }
+      } else if (piece === 'skirt') {
+        mesh.position.copy(along(-0.05))
+        mesh.scale.set(H * 0.28, H * 0.13, H * 0.2)
+      } else if (piece === 'shell') {
+        mesh.position.copy(along(0.55, -0.1))
+        mesh.scale.set(H * 0.3, len * 0.95, H * 0.12)
+      } else if (piece === 'cape') {
+        mesh.position.copy(along(0.35, -0.1))
+        mesh.scale.set(H * 0.28, len * 1.2, 1)
+        mesh.rotateX(-0.25 - Math.min(1, Math.abs(f.vx) / 250) * 0.5 - Math.sin(t * 6) * 0.05)
+      } else if (piece === 'robe') {
+        mesh.position.copy(along(-0.1))
+        mesh.scale.set(H * 0.3, H * 0.38, H * 0.24)
+      } else if (piece === 'scarf') {
+        mesh.position.copy(along(1.0, -0.12))
+        mesh.scale.set(H * 0.035, H * 0.035, H * 0.32)
+        mesh.rotateX(0.35 + Math.sin(t * 9) * 0.15)
+      }
+    }
   }
 
   /** Forget every model (a new fight is starting). */
