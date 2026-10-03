@@ -290,10 +290,14 @@ kbd {
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
+  /* face-button size, and the height the controls take below the canvas */
+  --nj-b: clamp(48px, 14vw, 62px);
+  --nj-pad-h: calc(var(--nj-b) * 3 + 64px);
+  overflow: hidden;
 }
 .nj-screen {
   position: relative;
-  width: min(100%, calc((100dvh - 190px) * 16 / 9), 1100px);
+  width: min(100%, calc((100dvh - var(--nj-pad-h)) * 16 / 9), 1100px);
   min-width: min(100%, 300px);
 }
 .nj-canvas {
@@ -305,8 +309,10 @@ kbd {
 }
 .nj-pause {
   position: absolute;
-  bottom: 8px;
-  left: 8px;
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
   font-weight: 900;
   letter-spacing: -1px;
   width: 34px;
@@ -332,76 +338,6 @@ kbd {
 .nj-paused h2 {
   margin: 0;
 }
-.nj-controls {
-  width: min(100%, 720px);
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: 12px;
-}
-.nj-dpad {
-  display: flex;
-  gap: 10px;
-}
-.nj-actions {
-  display: grid;
-  grid-template-columns: repeat(3, 58px);
-  grid-template-rows: 52px 62px;
-  gap: 8px;
-}
-.nj-pad {
-  width: 64px;
-  height: 64px;
-  border-radius: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.25);
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
-  font-size: 1.5rem;
-  cursor: pointer;
-  touch-action: none;
-  -webkit-tap-highlight-color: transparent;
-}
-.nj-pad:active {
-  background: rgba(255, 255, 255, 0.28);
-  transform: scale(0.95);
-}
-.nj-actions .nj-pad {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  font-size: 1.3rem;
-}
-.nj-pad.attack {
-  grid-column: 3;
-  grid-row: 1 / 3;
-  border-radius: 20px;
-  background: rgba(211, 47, 47, 0.35);
-  border-color: rgba(255, 120, 120, 0.6);
-  font-size: 1.8rem;
-}
-.nj-pad.jump {
-  grid-column: 2;
-  grid-row: 2;
-}
-.nj-pad.block {
-  grid-column: 1;
-  grid-row: 2;
-}
-.nj-pad.dash {
-  grid-column: 1;
-  grid-row: 1;
-}
-.nj-pad.special {
-  grid-column: 2;
-  grid-row: 1;
-  opacity: 0.5;
-}
-.nj-pad.special.ready {
-  opacity: 1;
-  border-color: #fff176;
-  box-shadow: 0 0 14px #fff176;
-  animation: nj-pulse 0.8s ease-in-out infinite;
-}
 .nj-keys {
   font-size: 0.75rem;
   text-align: center;
@@ -412,7 +348,7 @@ kbd {
     aspect-ratio: 10 / 9;
   }
   .nj-screen {
-    width: min(100%, calc((100dvh - 190px) * 10 / 9));
+    width: min(100%, calc((100dvh - var(--nj-pad-h)) * 10 / 9));
   }
 }
 @media (hover: none) {
@@ -420,34 +356,6 @@ kbd {
     display: none;
   }
 }
-@media (hover: hover) and (pointer: fine) {
-  .nj-controls {
-    opacity: 0.65;
-  }
-}
-@media (orientation: landscape) and (max-height: 520px) {
-  .nj-fight {
-    flex-direction: row;
-    flex-wrap: wrap;
-  }
-  .nj-screen {
-    width: min(calc(100% - 20px), calc((100dvh - 24px) * 16 / 9));
-  }
-  .nj-controls {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 10px;
-    width: auto;
-    padding: 0 14px;
-    pointer-events: none;
-    opacity: 0.6;
-  }
-  .nj-controls .nj-pad {
-    pointer-events: auto;
-  }
-}
-
 /* Results */
 .nj-result {
   min-height: 70dvh;
@@ -714,30 +622,6 @@ kbd {
   font-size: 1.05rem;
 }
 
-/* ── Controls: ▼ under the arrows ───────────────────────────────────── */
-.nj-dpad {
-  display: grid;
-  grid-template-columns: 64px 54px 64px;
-  grid-template-rows: 46px 46px;
-  gap: 6px;
-}
-.nj-dpad .nj-pad:first-child {
-  grid-column: 1;
-  grid-row: 1 / 3;
-  height: 100%;
-}
-.nj-dpad .nj-pad:last-child {
-  grid-column: 3;
-  grid-row: 1 / 3;
-  height: 100%;
-}
-.nj-pad.down {
-  grid-column: 2;
-  grid-row: 2;
-  width: 100%;
-  height: 100%;
-  font-size: 1.1rem;
-}
 .nj-unfound {
   color: #ffd54f;
   opacity: 0.75;
@@ -750,4 +634,185 @@ kbd {
 }
 .nj-3d.on {
   border-color: #80deea;
+}
+
+/* ── Touch controls: a thumb joystick and a face-button diamond ─────── */
+.nj-controls {
+  width: min(100%, 820px);
+  height: calc(var(--nj-b) * 3 + 24px);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 0 max(6px, env(safe-area-inset-right)) 0 max(6px, env(safe-area-inset-left));
+  box-sizing: border-box;
+  flex: none;
+}
+.nj-stick-zone {
+  position: relative;
+  width: min(46vw, 230px);
+  height: 100%;
+  touch-action: none;
+}
+.nj-stick {
+  position: absolute;
+  left: calc(var(--nj-b) * 1.25);
+  top: 50%;
+  width: calc(var(--nj-b) * 2.1);
+  height: calc(var(--nj-b) * 2.1);
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.11));
+  border: 2px solid rgba(255, 255, 255, 0.22);
+  pointer-events: none;
+  transition: border-color 0.15s;
+}
+.nj-stick.on {
+  border-color: rgba(128, 222, 234, 0.7);
+}
+.nj-knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(var(--nj-b) * 0.95);
+  height: calc(var(--nj-b) * 0.95);
+  margin: calc(var(--nj-b) * -0.475);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.6), rgba(160, 175, 200, 0.35));
+  border: 2px solid rgba(255, 255, 255, 0.45);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+}
+.nj-stick-arrows i {
+  position: absolute;
+  font-style: normal;
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.35);
+}
+.nj-stick-arrows i:nth-child(1) {
+  top: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.nj-stick-arrows i:nth-child(2) {
+  left: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.nj-stick-arrows i:nth-child(3) {
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.nj-stick-arrows i:nth-child(4) {
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+/* The diamond: special on top, attack left, dash right, jump below; guard as a shoulder button. */
+.nj-face {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, var(--nj-b));
+  grid-template-rows: repeat(3, var(--nj-b));
+  gap: 2px;
+  flex: none;
+}
+.nj-pad {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: calc(var(--nj-b) * 0.36);
+  line-height: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  padding: 0;
+  cursor: pointer;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.nj-pad small {
+  font-size: calc(var(--nj-b) * 0.16);
+  font-weight: 700;
+  opacity: 0.8;
+}
+.nj-pad:active {
+  background: rgba(255, 255, 255, 0.28);
+  transform: scale(0.94);
+}
+.nj-pad.special {
+  grid-column: 2;
+  grid-row: 1;
+  opacity: 0.55;
+  background: rgba(255, 213, 79, 0.12);
+}
+.nj-pad.special.ready {
+  opacity: 1;
+  border-color: #fff176;
+  box-shadow: 0 0 14px #fff176;
+  animation: nj-pulse 0.8s ease-in-out infinite;
+}
+.nj-pad.attack {
+  grid-column: 1;
+  grid-row: 2;
+  background: rgba(211, 47, 47, 0.38);
+  border-color: rgba(255, 120, 120, 0.7);
+  transform: scale(1.12);
+}
+.nj-pad.attack:active {
+  transform: scale(1.04);
+}
+.nj-pad.dash {
+  grid-column: 3;
+  grid-row: 2;
+  background: rgba(79, 195, 247, 0.16);
+}
+.nj-pad.jump {
+  grid-column: 2;
+  grid-row: 3;
+  background: rgba(124, 252, 154, 0.14);
+}
+.nj-pad.guard {
+  grid-column: 3;
+  grid-row: 1;
+  width: 86%;
+  height: 72%;
+  align-self: start;
+  justify-self: end;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.08);
+}
+/* Short landscape screens: the canvas fills the height and the controls float over its corners. */
+@media (orientation: landscape) and (max-height: 560px) {
+  .nj-fight {
+    --nj-b: clamp(44px, 11vh, 58px);
+    --nj-pad-h: 16px;
+  }
+  .nj-controls {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: max(4px, env(safe-area-inset-bottom));
+    width: auto;
+    padding: 0 max(10px, env(safe-area-inset-right)) 0 max(10px, env(safe-area-inset-left));
+    pointer-events: none;
+    opacity: 0.62;
+  }
+  .nj-stick-zone,
+  .nj-face {
+    pointer-events: auto;
+  }
+  .nj-stick-zone {
+    width: min(34vw, 260px);
+  }
+}
+@media (hover: hover) and (pointer: fine) {
+  .nj-controls {
+    opacity: 0.6;
+  }
 }

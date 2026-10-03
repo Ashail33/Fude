@@ -55,6 +55,7 @@ import {
 } from '../arcade/ninja/data'
 import { draw, resetCamera, setFighters3D } from '../arcade/ninja/draw'
 import { createSim, noInput, step, type Input, type Sim } from '../arcade/ninja/sim'
+import { Joystick } from '../arcade/ninja/Joystick'
 import { ninjaStageOpen, ninjaWorldGate } from '../arcade/story'
 import { BackLink, isOpen, Locked } from '../arcade/ui'
 import { useHdLoaded, useHdLoadedMany } from '../art/hd'
@@ -535,13 +536,13 @@ function HowTo() {
           <tr>
             <td>Move</td>
             <td>
-              <kbd>←</kbd> <kbd>→</kbd> / <kbd>A</kbd> <kbd>D</kbd> · ◀ ▶ · 🎮 stick / d-pad
+              <kbd>←</kbd> <kbd>→</kbd> / <kbd>A</kbd> <kbd>D</kbd> · 🕹️ touch stick · 🎮 stick / d-pad
             </td>
           </tr>
           <tr>
             <td>Jump (again in the air)</td>
             <td>
-              <kbd>↑</kbd> / <kbd>W</kbd> / <kbd>Space</kbd> · ⤒ · 🎮 A
+              <kbd>↑</kbd> / <kbd>W</kbd> / <kbd>Space</kbd> · ⤒ or flick the stick up · 🎮 A
             </td>
           </tr>
           <tr>
@@ -553,7 +554,7 @@ function HowTo() {
           <tr>
             <td>Guard (hold)</td>
             <td>
-              <kbd>K</kbd> / <kbd>X</kbd> / hold <kbd>↓</kbd> · 🛡️ · 🎮 LB / RB
+              <kbd>K</kbd> / <kbd>X</kbd> / hold <kbd>↓</kbd> · 🛡️ or hold the stick down · 🎮 LB / RB
             </td>
           </tr>
           <tr>
@@ -571,7 +572,7 @@ function HowTo() {
           <tr>
             <td>Rising Dragon / Falling Star (Ink Arts)</td>
             <td>
-              hold <kbd>↓</kbd> + attack · ▼ + ⚔️
+              hold <kbd>↓</kbd> + attack · stick down + ⚔️
             </td>
           </tr>
         </tbody>
@@ -786,10 +787,10 @@ function Fight({ stage, save, onEnd, onQuit }: { stage: number; save: NinjaSave;
     }
   }, [])
 
-  const pad = (k: keyof Input, label: string, cls = '') => (
+  const pad = (k: keyof Input, label: React.ReactNode, cls = '', name: string = k) => (
     <button
       className={`nj-pad ${cls}`}
-      aria-label={k}
+      aria-label={name}
       onPointerDown={(e) => {
         e.preventDefault()
         ;(e.target as HTMLElement).setPointerCapture?.(e.pointerId)
@@ -835,17 +836,13 @@ function Fight({ stage, save, onEnd, onQuit }: { stage: number; save: NinjaSave;
         )}
       </div>
       <div className="nj-controls">
-        <div className="nj-dpad">
-          {pad('left', '◀')}
-          {pad('down', '▼', 'down')}
-          {pad('right', '▶')}
-        </div>
-        <div className="nj-actions">
-          {pad('block', '🛡️', 'block')}
-          {pad('dash', '💨', 'dash')}
-          {pad('special', '✨', `special${ready ? ' ready' : ''}`)}
-          {pad('jump', '⤒', 'jump')}
-          {pad('attack', '⚔️', 'attack')}
+        <Joystick input={input} />
+        <div className="nj-face">
+          {pad('block', <>🛡️<small>Guard</small></>, 'guard', 'guard')}
+          {pad('special', <>✨<small>Special</small></>, `special${ready ? ' ready' : ''}`)}
+          {pad('attack', <>⚔️<small>Attack</small></>, 'attack')}
+          {pad('dash', <>💨<small>Dash</small></>, 'dash')}
+          {pad('jump', <>⤒<small>Jump</small></>, 'jump')}
         </div>
       </div>
       <p className="nj-keys muted">
