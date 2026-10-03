@@ -55,16 +55,22 @@ import {
 } from '../arcade/ninja/data'
 import { draw, resetCamera, setFighters3D } from '../arcade/ninja/draw'
 import { createSim, noInput, step, type Input, type Sim } from '../arcade/ninja/sim'
+import { GEMS_PER_TRIAL, settleTrial, TRIAL_COUNT, trialBonus, trialStage, trialUnlocked, TRIALS_PER_WORLD } from '../arcade/ninja/trials'
 import { Joystick } from '../arcade/ninja/Joystick'
-import { ninjaStageOpen, ninjaWorldGate } from '../arcade/story'
+import { ninjaStageOpen, ninjaWorldGate, ninjaWorldOpen } from '../arcade/story'
 import { BackLink, isOpen, Locked } from '../arcade/ui'
 import { useHdLoaded, useHdLoadedMany } from '../art/hd'
 import { sfx } from '../engine/sfx'
 import { grantRewards, setState, usePlayer } from '../engine/store'
 import './StickNinja.css'
 
-type View = { k: 'dojo' } | { k: 'fight'; stage: number; run: number } | { k: 'result'; stage: number; won: boolean; r: StageResult; kills: number; chain: number }
-type Tab = 'stages' | 'armory' | 'arts' | 'how'
+type View = { k: 'dojo' } | { k: 'fight'; stage: number; run: number } | { k: 'result'; stage: number; won: boolean; r: StageResult; kills: number; chain: number; gems: number; saved: number; cages: number }
+type Tab = 'stages' | 'trials' | 'armory' | 'arts' | 'how'
+
+/** Shadow Trials ride on the same stage numbers, from here up. */
+const TRIAL_BASE = 10000
+const isTrial = (stage: number) => stage >= TRIAL_BASE
+const stageOf = (stage: number) => (isTrial(stage) ? trialStage(stage - TRIAL_BASE) : stageAt(stage))
 
 const saveOf = (n: NinjaSave | undefined) => n ?? freshNinja()
 
@@ -115,11 +121,11 @@ export default function StickNinja() {
 
   const finish = (stage: number, s: Sim) => {
     const won = s.outcome === 'win'
-    const r = settleStage(save, stageAt(stage), won, s.xp, s.ryo, s.found)
+    const r = isTrial(stage) ? settleTrial(save, stage - TRIAL_BASE, won, s.xp, s.ryo, s.gems, s.saved, s.found) : settleStage(save, stageAt(stage), won, s.xp, s.ryo, s.found)
     setState((st) => ({ ...st, ninja: r.save }))
     if (r.shards) grantRewards(0, r.shards)
     if (r.levelsGained) sfx.levelUp()
-    setView({ k: 'result', stage, won, r, kills: s.kills, chain: s.bestChain })
+    setView({ k: 'result', stage, won, r, kills: s.kills, chain: s.bestChain, gems: s.gems, saved: s.saved, cages: s.lv?.cages.length ?? 0 })
   }
 
   if (!isOpen(p, 'dojo'))
@@ -194,11 +200,13 @@ export default function StickNinja() {
             🖌️ Ink Arts{free > 0 && <em className="nj-dot">{free}</em>}
           </>,
         )}
+        {tabBtn('trials', '🏯 Shadow Trials')}
         {tabBtn('how', '📜 How to play')}
       </nav>
       {tab === 'stages' && <Stages save={save} open={story} onStart={start} />}
       {tab === 'armory' && <Armory save={save} />}
       {tab === 'arts' && <InkArts save={save} />}
+      {tab === 'trials' && <Trials save={save} onStart={(i) => start(TRIAL_BASE + i)} />}
       {tab === 'how' && <HowTo />}
     </main>
   )
@@ -676,6 +684,7 @@ const SOUNDS: Record<string, () => void> = {
 }
 
 function Fight({ stage, save, onEnd, onQuit }: { stage: number; save: NinjaSave; onEnd: (s: Sim) => void; onQuit: () => void }) {
+  const trial = isTrial(stage)
   const canvas = useRef<HTMLCanvasElement>(null)
   const input = useRef<Input>(noInput())
   const paused = useRef(false)
@@ -687,7 +696,7 @@ function Fight({ stage, save, onEnd, onQuit }: { stage: number; save: NinjaSave;
   useEffect(() => {
     const c = canvas.current!
     const ctx = c.getContext('2d')!
-    const sim = createSim(stageAt(stage), save.level, SWORD_BY_ID[save.sword], Math.random, {
+    const sim = createSim(stageOf(stage), save.level, SWORD_BY_ID[save.sword], Math.random, {
       armor: armorOf(save),
       arts: artsOf(save),
       have: [...save.owned, ...armorsOf(save)],
@@ -856,11 +865,11 @@ function Fight({ stage, save, onEnd, onQuit }: { stage: number; save: NinjaSave;
       <div className="nj-controls">
         <Joystick input={input} />
         <div className="nj-face">
-          {pad('block', <>🛡️<small>Guard</small></>, 'guard', 'guard')}
+          {trial ? pad('throw', <>✴<small>Shuriken</small></>, 'guard', 'throw shuriken') : pad('block', <>🛡️<small>Guard</small></>, 'guard', 'guard')}
           {pad('special', <>✨<small>Special</small></>, `special${ready ? ' ready' : ''}`)}
           {pad('attack', <>⚔️<small>Attack</small></>, 'attack')}
           {pad('dash', <>💨<small>Dash</small></>, 'dash')}
-          {pad('throw', <>✴<small>Shuriken</small></>, 'throw', 'throw shuriken')}
+          {trial ? pad('jump', <>⤒<small>Jump</small></>, 'throw', 'jump') : pad('throw', <>✴<small>Shuriken</small></>, 'throw', 'throw shuriken')}
         </div>
       </div>
       <p className="nj-keys muted">
@@ -877,7 +886,8 @@ function ResultArt({ id }: { id: string }) {
 
 function Result({ view, save, open: storyOpen, onNext, onDojo }: { view: Extract<View, { k: 'result' }>; save: NinjaSave; open: (i: number) => boolean; onNext: (i: number) => void; onDojo: () => void }) {
   const { r, won, stage } = view
-  const st = stageAt(stage)
+  const st = stageOf(stage)
+  if (isTrial(stage)) return <TrialResult view={view} save={save} onNext={onNext} onDojo={onDojo} />
   const w = WORLDS[st.world]
   const abyss = st.abyss !== undefined
   const next = abyss ? (won ? stage + 1 : null) : stage + 1 < STAGE_COUNT && stageUnlocked(save, stage + 1) && storyOpen(stage + 1) ? stage + 1 : null
@@ -934,6 +944,115 @@ function Result({ view, save, open: storyOpen, onNext, onDojo }: { view: Extract
           {won && next !== null && (
             <button className="btn btn-primary" onClick={() => onNext(next)}>
               {abyss ? 'Descend ▼' : 'Next stage ▶'}
+            </button>
+          )}
+          <button className={`btn${won ? '' : ' btn-primary'}`} onClick={() => onNext(stage)}>
+            ↻ {won ? 'Play again' : 'Try again'}
+          </button>
+          <button className="btn" onClick={onDojo}>
+            ⛩️ Dojo
+          </button>
+        </div>
+      </section>
+    </main>
+  )
+}
+
+function Trials({ save, onStart }: { save: NinjaSave; onStart: (i: number) => void }) {
+  const p = usePlayer()
+  const bgs = useHdLoadedMany(WORLDS.map((_, i) => `nj-bg-${i}`))
+  const cleared = save.trials ?? 0
+  const gems = Object.values(save.trialGems ?? {}).reduce((a, b) => a + b, 0)
+  return (
+    <div className="nj-worlds">
+      <section className="card nj-trials-head">
+        <h2>
+          <span lang="ja">影の試練</span> Shadow Trials
+        </h2>
+        <small className="muted">
+          Side-scrolling levels: run, jump (and wall-jump), cross the pits, dodge the spikes and saws, and reach the torii gate. Free the caged hostages, find three hidden diamonds in every level, and catch foes from behind before they see you to
+          assassinate them. 💎 {gems} / {TRIAL_COUNT * GEMS_PER_TRIAL}
+        </small>
+      </section>
+      {WORLDS.map((w, wi) => {
+        const first = wi * TRIALS_PER_WORLD
+        const gate = ninjaWorldOpen(p, wi)
+        const open = gate && trialUnlocked(save, first)
+        const gateRegion = ninjaWorldGate(wi)
+        return (
+          <section
+            key={w.name}
+            className={`card nj-world nj-w${wi}${open ? '' : ' locked'}${bgs[wi] ? ' painted' : ''}`}
+            style={bgs[wi] ? { backgroundImage: `linear-gradient(90deg, rgba(8,7,13,0.88) 30%, rgba(8,7,13,0.35)), url(${bgs[wi]})` } : undefined}
+          >
+            <h2>
+              <span lang="ja">{w.jp}</span> {w.name}
+            </h2>
+            {!gate && gateRegion && (
+              <small className="nj-gate">
+                🔒 Opens when your journey reaches {gateRegion.emoji} {gateRegion.name}.
+              </small>
+            )}
+            <div className="nj-stage-row nj-trial-row">
+              {Array.from({ length: TRIALS_PER_WORLD }, (_, k) => {
+                const i = first + k
+                const done = i < cleared
+                const unlocked = gate && trialUnlocked(save, i)
+                const g = save.trialGems?.[i] ?? 0
+                return (
+                  <button key={i} className={`nj-stage${done ? ' done' : ''}${i === cleared ? ' next' : ''}`} disabled={!unlocked} onClick={() => onStart(i)} aria-label={`Trial ${wi + 1}-${k + 1}${done ? `, cleared, ${g} diamonds` : unlocked ? '' : ', locked'}`}>
+                    {!unlocked ? '🔒' : `${wi + 1}-${k + 1}`}
+                    {done && <i>✓</i>}
+                    {done && <b className="nj-stage-tag">{'💎'.repeat(g) || '·'}</b>}
+                  </button>
+                )
+              })}
+            </div>
+          </section>
+        )
+      })}
+    </div>
+  )
+}
+
+function TrialResult({ view, save, onNext, onDojo }: { view: Extract<View, { k: 'result' }>; save: NinjaSave; onNext: (i: number) => void; onDojo: () => void }) {
+  const { r, won, stage } = view
+  const i = stage - TRIAL_BASE
+  const st = trialStage(i)
+  const w = WORLDS[st.world]
+  const next = i + 1 < TRIAL_COUNT && trialUnlocked(save, i + 1) ? stage + 1 : null
+  return (
+    <main className="nj-page nj-result">
+      <section className={`card nj-res ${won ? 'won' : 'lost'}`}>
+        <h1>{won ? '⛩️ Trial clear!' : '💀 Defeated…'}</h1>
+        <p className="muted">
+          <span lang="ja">影の試練</span> Shadow Trials · <span lang="ja">{w.jp}</span> {w.name} {st.world + 1}-{st.n}
+        </p>
+        <ul className="nj-res-list">
+          {r.found.map((g) => (
+            <li key={g} className="nj-up nj-found">
+              🎁 Found: <b>{gearName(g)}</b>!
+            </li>
+          ))}
+          <li className={view.gems === GEMS_PER_TRIAL ? 'nj-up' : ''}>
+            💎 Diamonds: {'💎'.repeat(view.gems)}
+            {'·'.repeat(GEMS_PER_TRIAL - view.gems)} ({view.gems}/{GEMS_PER_TRIAL})
+          </li>
+          <li>
+            ⛓ Hostages freed: {view.saved}/{view.cages}
+          </li>
+          <li>⚔️ {view.kills} foes cut down</li>
+          <li>✨ +{r.xp} XP</li>
+          <li>
+            💰 +{r.ryo} ryō{won && <small> (incl. {trialBonus(i, view.saved)} clear bonus)</small>}
+            {!won && <small> (half kept)</small>}
+          </li>
+          {r.levelsGained > 0 && <li className="nj-up">⬆️ Level up! Now Lv {r.save.level}</li>}
+        </ul>
+        <div className="nj-res-btns">
+          {won && next !== null && (
+            <button className="btn btn-primary" onClick={() => onNext(next)}>
+              Next trial ▶
             </button>
           )}
           <button className={`btn${won ? '' : ' btn-primary'}`} onClick={() => onNext(stage)}>

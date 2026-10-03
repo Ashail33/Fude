@@ -7,9 +7,12 @@
  * into the next move, or carry super armour. The hero's moves come from the
  * equipped sword; each foe picks from its own list by distance.
  */
+import type { Level, Solid } from './trials'
 import { ART_BY_ID, ARMOR_BY_ID, FOES, gearName, heroStats, MOD_INFO, type ArmorDef, type Arts, type FoeKind, type GearId, type Special, type Stage, type SwordDef } from './data'
 
 export const ARENA = 960
+/** Width of the fight in play (the arena, or a Shadow Trials level). One fight runs at a time. */
+let W = ARENA
 export const GRAV = 1900
 const JUMP = 670
 const RUN = 250
@@ -107,6 +110,17 @@ export interface Fighter {
   airT: number
   /** Ducking low (projectiles and high attacks pass over). */
   crouch: boolean
+  /** Height of the ground under the feet (0 in the arena; terrain in a trial; -Infinity over a pit). */
+  gy: number
+  /** Touching a wall this frame (-1 left, 1 right, 0 none). */
+  wall: number
+  /** After a wall-jump, a moment when the stick can't cancel the kick-off. */
+  wallLock: number
+  /** Foes in a trial patrol until they notice the hero (and can be assassinated until then). */
+  aware: boolean
+  /** Patrol bounds (a foe stays on its own platform). */
+  px0: number
+  px1: number
 }
 
 export type ShotKind = 'star' | 'wave' | 'fire' | 'wind' | 'shock' | 'dragon' | 'flame' | 'water' | 'wisp' | 'arrow' | 'ice' | 'bolt' | 'ink' | 'bone' | 'firefly' | 'crow' | 'geyser' | 'tornado'
@@ -181,8 +195,10 @@ export const noInput = (): Input => ({ left: false, right: false, down: false, j
 /** Urns and chests to break in the arena. */
 export interface Prop {
   uid: number
-  kind: 'urn' | 'chest'
+  kind: 'urn' | 'chest' | 'cage'
   x: number
+  /** Height of the ground it stands on (0 in the arena). */
+  y: number
   hp: number
   gear?: GearId
   broken: boolean
@@ -193,7 +209,9 @@ export interface Prop {
 
 /** Things to pick up: ryō, onigiri, ink orbs, found gear. */
 export interface Drop {
-  kind: 'coin' | 'heal' | 'ink' | 'gear'
+  kind: 'coin' | 'heal' | 'ink' | 'gear' | 'gem'
+  /** Placed in the level (floats where it is until picked up). */
+  placed?: boolean
   x: number
   y: number
   vx: number
@@ -265,6 +283,14 @@ export interface Sim {
   /** Shuriken in hand, and the time toward the next one coming back. */
   stars: number
   starT: number
+  /** Width of this fight (arena or level). */
+  width: number
+  /** Shadow Trials: the level, the last lantern reached, hostages freed, diamonds found. */
+  lv: Level | null
+  checkpoint: { x: number; y: number }
+  saved: number
+  gems: number
+  falls: number
 }
 
 // ─── Moves ─────────────────────────────────────────────────────────────
@@ -375,7 +401,7 @@ export const FOE_MOVES: Record<string, Move> = {
       f.fired = true
     },
     tick: (s, f) => {
-      if (f.y <= 0 && f.vy <= 0 && f.moveT > f.move!.windup + 0.15 && f.seg !== 99) {
+      if (f.y <= f.gy && f.vy <= 0 && f.moveT > f.move!.windup + 0.15 && f.seg !== 99) {
         f.seg = 99
         shockwaves(s, f, f.atk * 0.8)
         f.vx = 0
@@ -589,7 +615,7 @@ export function heroMovesFor(sw: SwordDef, arts?: Arts): Record<string, Move> {
       tick: (s, f) => {
         f.vx *= 0.9
         f.vy = -1150
-        if (f.y <= 0 && f.seg !== 99) {
+        if (f.y <= f.gy + 0.5 && f.seg !== 99) {
           f.seg = 99
           for (const d of [-1, 1]) shot(s, f, { kind: 'shock', x: f.x + d * 26, y: 0, vx: d * 400, r: 15, dmg: f.atk * 1.2, pierce: true, life: 0.7, kb: 220 })
           s.shake = Math.max(s.shake, 0.3)
@@ -609,7 +635,7 @@ function fighter(s: Sim, kind: Fighter['kind'], team: 0 | 1, x: number, hp: numb
     uid: s.nextUid++, kind, team, x, y: 0, vx: 0, vy: 0, face: 1, hp, maxHp: hp, atk, speed, scale,
     move: null, moveT: 0, fired: false, seg: -1, hitIds: [], combo: 0, comboQueued: false, blockT: -1, hurtT: 0, stunT: 0, inv: 0,
     dashT: 0, dashCd: 0, jumps: 0, burnT: 0, burnDps: 0, cd: 0.8, intent: 0, sawMove: -1, dead: false, deadT: 0, flash: 0, enraged: false, fly: 0, age: 0,
-    chillT: 0, markT: 0, airT: 0, crouch: false,
+    chillT: 0, markT: 0, airT: 0, crouch: false, gy: 0, wall: 0, wallLock: 0, aware: true, px0: -Infinity, px1: Infinity,
   }
 }
 
@@ -627,7 +653,7 @@ export function spawnFoe(s: Sim, kind: FoeKind, x: number, elite = false): Fight
 }
 
 function spawnWave(s: Sim) {
-  const kinds = s.stage.waves[s.wave]
+  const kinds = s.stage.waves[s.wave] ?? []
   const elites = s.stage.elites?.[s.wave] ?? []
   kinds.forEach((k, i) => {
     const right = i % 2 === 0 ? s.hero.x < ARENA / 2 : s.hero.x >= ARENA / 2
@@ -657,12 +683,63 @@ export function createSim(stage: Stage, level: number, sword: SwordDef, rng: () 
     outcome: null, outcomeT: 0, banner: null, boss: null, rng, nextUid: 1, moveSerial: 0, events: [],
     armor, arts, meterMul: 1 + 0.1 * arts.rank('up:focus') + (armor.perk === 'focus' ? 0.25 : 0), spMul: 1 + 0.15 * arts.rank('up:power'),
     barrier: 0, barrierT: 0, bufAtk: 0, bufJump: 0, slowT: 0, props: [], drops: [], found: [], have: load.have ?? [], flashT: 0, stars: MAX_STARS, starT: 0,
+    width: stage.lv?.width ?? ARENA, lv: stage.lv ?? null, checkpoint: stage.lv ? { ...stage.lv.start } : { x: ARENA / 2, y: 0 }, saved: 0, gems: 0, falls: 0,
   } as unknown as Sim
+  W = s.width
   s.hero = fighter(s, 'hero', 0, ARENA / 2, st.hp + armor.hp, sword.dmg * st.atkMul, RUN * (armor.perk === 'swift' ? 1.15 : 1), 1)
   s.meter = Math.min(100, 15 * arts.rank('up:surge'))
-  placeProps(s)
-  spawnWave(s)
+  if (s.lv) setupTrial(s, s.lv)
+  else {
+    placeProps(s)
+    spawnWave(s)
+  }
   return s
+}
+
+/** Shadow Trials: the hero at the start, foes on their platforms, cages, coins and diamonds in place. */
+function setupTrial(s: Sim, lv: Level) {
+  s.hero.x = lv.start.x
+  s.hero.y = lv.start.y
+  s.hero.gy = lv.start.y
+  for (const f of lv.foes) {
+    const e = spawnFoe(s, f.kind, f.x, f.elite)
+    e.y = f.y + (FOES[f.kind].fly ?? 0)
+    e.gy = f.y
+    e.aware = false
+    e.px0 = f.px0
+    e.px1 = f.px1
+    e.face = s.rng() < 0.5 ? 1 : -1
+  }
+  for (const c of lv.cages) s.props.push({ uid: s.nextUid++, kind: 'cage', x: c.x, y: c.y, hp: 2, broken: false, shake: 0, lastHit: -1 })
+  for (const c of lv.coins) s.drops.push({ kind: 'coin', x: c.x, y: c.y, vx: 0, vy: 0, value: Math.max(2, Math.round(2 * s.stage.power)), age: 1, taken: false, placed: true })
+  for (const c of lv.gems) s.drops.push({ kind: 'gem', x: c.x, y: c.y, vx: 0, vy: 0, value: 1, age: 1, taken: false, placed: true })
+  s.banner = { text: 'Reach the gate!', sub: `⛩️ ${lv.cages.length} hostage${lv.cages.length === 1 ? '' : 's'} to free · 💎 3 diamonds`, t: 2.4 }
+}
+
+// ─── Terrain (Shadow Trials) ───────────────────────────────────────────
+
+/** The highest ground at x that a fighter at height `fromY` would land on (or -Infinity over a pit). */
+export function groundAt(lv: Level, x: number, fromY: number): number {
+  let g = -Infinity
+  for (const sd of lv.solids) if (x >= sd.x && x <= sd.x + sd.w && sd.top <= fromY + 1 && sd.top > g) g = sd.top
+  return g
+}
+
+/** Solid walls the body runs into (one-way platforms never block sideways). */
+function blockSide(lv: Level, f: Fighter, nx: number): number {
+  const R = 9 * f.scale
+  f.wall = 0
+  for (const sd of lv.solids as Solid[]) {
+    if (sd.oneWay || f.y >= sd.top - 1) continue
+    if (f.x + R <= sd.x + 0.5 && nx + R > sd.x) {
+      nx = sd.x - R
+      f.wall = 1
+    } else if (f.x - R >= sd.x + sd.w - 0.5 && nx - R < sd.x + sd.w) {
+      nx = sd.x + sd.w + R
+      f.wall = -1
+    }
+  }
+  return nx
 }
 
 /** Urns scattered about the arena, and a chest in a far corner if the stage hides one. */
@@ -671,15 +748,15 @@ function placeProps(s: Sim) {
   for (let i = 0; i < s.stage.urns; i++) {
     const x = 60 + r(i) * (ARENA - 120)
     if (Math.abs(x - ARENA / 2) < 60) continue
-    s.props.push({ uid: s.nextUid++, kind: 'urn', x, hp: 1, broken: false, shake: 0, lastHit: -1 })
+    s.props.push({ uid: s.nextUid++, kind: 'urn', x, y: 0, hp: 1, broken: false, shake: 0, lastHit: -1 })
   }
   const g = s.stage.chest
-  if (g && !s.have.includes(g)) s.props.push({ uid: s.nextUid++, kind: 'chest', x: s.stage.index % 2 ? 44 : ARENA - 44, hp: 3, gear: g, broken: false, shake: 0, lastHit: -1 })
+  if (g && !s.have.includes(g)) s.props.push({ uid: s.nextUid++, kind: 'chest', x: s.stage.index % 2 ? 44 : ARENA - 44, y: 0, hp: 3, gear: g, broken: false, shake: 0, lastHit: -1 })
 }
 
 // ─── Combat ────────────────────────────────────────────────────────────
 
-const clampX = (x: number) => Math.max(20, Math.min(ARENA - 20, x))
+const clampX = (x: number) => Math.max(20, Math.min(W - 20, x))
 
 function inkBurst(s: Sim, x: number, y: number, color: string, n: number) {
   for (let i = 0; i < n; i++) {
@@ -741,6 +818,15 @@ export function hit(s: Sim, src: Fighter | null, t: Fighter, dmg: number, opts: 
     }
   }
   if (t.markT > 0) dmg *= 1.25
+  // Shadow Trials: a foe that hasn't seen you yet is cut down from the shadows.
+  if (s.lv && t.team === 1) {
+    if (!t.aware && src?.team === 0 && !FOES[t.kind as FoeKind]?.boss) {
+      dmg *= 4
+      text(s, t.x, t.y + 90 * t.scale, 'ASSASSINATE!', '#ff5252', 12)
+      s.events.push('parry')
+    }
+    t.aware = true
+  }
   if (t.blockT >= 0 && !o.unblockable && facesToward(t, sx)) {
     if (t.blockT < 0.16 && src) {
       src.stunT = FOES[src.kind as FoeKind]?.boss ? 0.6 : 1
@@ -892,38 +978,46 @@ function checkHits(s: Sim, f: Fighter) {
 
 // ─── Urns, chests and pick-ups ─────────────────────────────────────────
 
-function drop(s: Sim, kind: Drop['kind'], x: number, value: number, gear?: GearId) {
-  s.drops.push({ kind, x, y: 20, vx: (s.rng() - 0.5) * 160, vy: 260 + s.rng() * 120, value, gear, age: 0, taken: false })
+function drop(s: Sim, kind: Drop['kind'], x: number, value: number, gear?: GearId, y = 0) {
+  s.drops.push({ kind, x, y: y + 20, vx: (s.rng() - 0.5) * 160, vy: 260 + s.rng() * 120, value, gear, age: 0, taken: false })
 }
 
 /** A swing (or the hero's shot) knocks any urn or chest in its band. */
 function hitProps(s: Sim, x: number, face: number, reach: number, back: number, lo: number, serial: number) {
-  if (lo > 40) return
   for (const p of s.props) {
     if (p.broken || p.lastHit === serial) continue
+    if (lo > p.y + 40 || lo + 80 < p.y) continue
     const rel = (p.x - x) * face
     if (rel + 12 < -back || rel - 12 > reach) continue
     p.lastHit = serial
     p.hp--
     p.shake = 0.25
-    sparks(s, p.x, 16, p.kind === 'chest' ? '#ffd54f' : '#e0b080', 6)
+    sparks(s, p.x, p.y + 16, p.kind === 'urn' ? '#e0b080' : '#ffd54f', 6)
     if (p.hp > 0) {
       s.events.push('block')
       continue
     }
     p.broken = true
-    s.events.push(p.kind === 'chest' ? 'chest' : 'urn')
-    inkBurst(s, p.x, 14, p.kind === 'chest' ? '#b71c1c' : '#a0643c', 10)
+    s.events.push(p.kind === 'urn' ? 'urn' : 'chest')
+    inkBurst(s, p.x, p.y + 14, p.kind === 'chest' ? '#b71c1c' : p.kind === 'cage' ? '#6d4c2b' : '#a0643c', 10)
     const worth = Math.max(2, Math.round(3 * s.stage.power))
+    if (p.kind === 'cage') {
+      // a hostage freed
+      s.saved++
+      text(s, p.x, p.y + 60, 'Saved!', '#7CFC9A', 13)
+      s.xp += Math.round(15 * s.stage.power)
+      drop(s, 'heal', p.x, 0.15, undefined, p.y)
+      continue
+    }
     if (p.kind === 'chest') {
-      if (p.gear) drop(s, 'gear', p.x, 0, p.gear)
-      for (let i = 0; i < 6; i++) drop(s, 'coin', p.x, worth * 2)
+      if (p.gear) drop(s, 'gear', p.x, 0, p.gear, p.y)
+      for (let i = 0; i < 6; i++) drop(s, 'coin', p.x, worth * 2, undefined, p.y)
       continue
     }
     const roll = s.rng()
-    if (roll < 0.55) for (let i = 0; i < 3 + Math.floor(s.rng() * 3); i++) drop(s, 'coin', p.x, worth)
-    else if (roll < 0.8) drop(s, 'heal', p.x, 0.15)
-    else drop(s, 'ink', p.x, 30)
+    if (roll < 0.55) for (let i = 0; i < 3 + Math.floor(s.rng() * 3); i++) drop(s, 'coin', p.x, worth, undefined, p.y)
+    else if (roll < 0.8) drop(s, 'heal', p.x, 0.15, undefined, p.y)
+    else drop(s, 'ink', p.x, 30, undefined, p.y)
   }
 }
 
@@ -942,6 +1036,10 @@ function collect(s: Sim, d: Drop) {
     gain(s, d.value)
     text(s, h.x, h.y + 80, 'INK!', '#64b5f6')
     s.events.push('heal')
+  } else if (d.kind === 'gem') {
+    s.gems++
+    s.banner = { text: `Diamond ${s.gems}/3`, sub: '💎', t: 1.4 }
+    s.events.push('gear')
   } else if (d.gear && !s.found.includes(d.gear)) {
     s.found.push(d.gear)
     s.banner = { text: `Found: ${gearName(d.gear)}!`, sub: 'みつけた！', t: 2.6 }
@@ -957,21 +1055,31 @@ function updateDrops(s: Sim, dt: number) {
     if (d.taken) continue
     d.age += dt
     const dx = h.x - d.x
-    // Close to the hero (or once the fight is won), pick-ups fly to you.
-    if (d.age > 0.45 && (Math.abs(dx) < 70 || s.outcome === 'win')) {
+    const dy = h.y + 30 - d.y
+    // Close to the hero (or once the fight is won), pick-ups fly to you. Coins and
+    // diamonds placed in a level hang where they are until you're right by them.
+    const near = d.placed ? Math.abs(dx) < 34 && Math.abs(dy) < 56 : Math.abs(dx) < 70 || (s.outcome === 'win' && !s.lv)
+    if (d.age > 0.45 && near) {
+      d.placed = false
       d.vx += Math.sign(dx) * 1600 * dt
       d.vx *= 0.92
-      d.vy += ((h.y + 30 - d.y) * 6 - d.vy) * Math.min(1, dt * 6)
+      d.vy += (dy * 6 - d.vy) * Math.min(1, dt * 6)
+    } else if (d.placed) {
+      continue
     } else {
       d.vy -= GRAV * 0.7 * dt
       d.vx *= Math.pow(0.15, dt)
     }
+    const prevY = d.y
     d.x = clampX(d.x + d.vx * dt)
     d.y += d.vy * dt
-    if (d.y <= 0) {
-      d.y = 0
+    const floor = s.lv ? groundAt(s.lv, d.x, prevY) : 0
+    if (d.y <= floor) {
+      d.y = floor
       d.vy = Math.abs(d.vy) > 120 ? -d.vy * 0.35 : 0
     }
+    // (lost down a pit)
+    if (d.y < -150) d.taken = true
     if (d.age > 0.45 && Math.abs(dx) < 20 && Math.abs(h.y + 30 - d.y) < 50) collect(s, d)
   }
   s.drops = s.drops.filter((d) => !d.taken)
@@ -1066,7 +1174,7 @@ function heroControl(s: Sim, inp: Input, dt: number) {
     h.crouch = false
     return
   }
-  const grounded = h.y <= 0
+  const grounded = h.y <= h.gy + 0.5
   // Ducking: holding down on the ground (kept through a crouching attack or throw).
   const ducking = grounded && inp.down && h.dashT <= 0
   h.crouch = ducking && (!h.move || h.move.id === 'sweep' || h.move.id === 'toss')
@@ -1148,8 +1256,23 @@ function heroControl(s: Sim, inp: Input, dt: number) {
     else return
   }
   const dir = (inp.right ? 1 : 0) - (inp.left ? 1 : 0)
-  h.vx = dir * h.speed
-  if (dir) h.face = dir as 1 | -1
+  h.wallLock = Math.max(0, h.wallLock - dt)
+  if (h.wallLock <= 0) {
+    h.vx = dir * h.speed
+    if (dir) h.face = dir as 1 | -1
+  }
+  // Wall-jump: kick off a wall you're pressed against in mid-air (and get your air jump back).
+  if (s.bufJump > 0 && s.lv && !grounded && h.wall && dir === h.wall) {
+    h.vy = JUMP * 0.95
+    h.vx = -h.wall * 380
+    h.face = -h.wall as 1 | -1
+    h.wallLock = 0.16
+    h.jumps = 0
+    h.airT = 1
+    s.bufJump = 0
+    s.events.push('jump')
+    return
+  }
   if (s.bufJump > 0) {
     // A little grace after running off the ground still counts as a ground jump.
     const fromGround = grounded || (h.airT < 0.1 && h.jumps === 0 && h.vy <= 0)
@@ -1168,6 +1291,29 @@ function think(s: Sim, f: Fighter, dt: number) {
   const d = FOES[f.kind as FoeKind]
   const h = s.hero
   if (f.dead || f.move || f.hurtT > 0 || f.stunT > 0) return
+  if (s.lv) {
+    const adx = Math.abs(h.x - f.x)
+    const ady = Math.abs(h.y - f.y)
+    // far away: asleep until the hero comes near
+    if (adx > 560) {
+      f.intent = 0
+      return
+    }
+    if (!f.aware) {
+      const sees = !h.dead && ((Math.sign(h.x - f.x) === f.face && adx < 230 && ady < 80) || (adx < 30 && ady < 50))
+      if (!sees) {
+        // patrol its platform, slowly
+        if (f.x <= f.px0 + 3) f.face = 1
+        else if (f.x >= f.px1 - 3) f.face = -1
+        f.intent = f.face * 0.4
+        return
+      }
+      f.aware = true
+      f.cd = Math.max(f.cd, 0.45)
+      text(s, f.x, f.y + 80 * f.scale, '!', '#ffeb3b', 16)
+      s.events.push('spot')
+    }
+  }
   f.cd -= dt * (f.enraged ? 1.4 : 1) * (f.chillT > 0 ? 0.5 : 1)
   const dx = h.x - f.x
   const dist = Math.abs(dx)
@@ -1219,12 +1365,12 @@ function think(s: Sim, f: Fighter, dt: number) {
     s.shake = 0.4
     s.events.push('boss')
     if (f.kind === 'kage') for (const side of [-1, 1]) spawnFoe(s, 'shade', clampX(h.x + side * 200))
-    if (f.kind === 'shogun') for (const side of [-1, 1]) spawnFoe(s, 'bandit', side < 0 ? 30 : ARENA - 30)
-    if (f.kind === 'oni') for (const side of [-1, 1]) spawnFoe(s, 'bandit', side < 0 ? 30 : ARENA - 30)
-    if (f.kind === 'kappaking') for (const side of [-1, 1]) spawnFoe(s, 'kappa', side < 0 ? 30 : ARENA - 30)
+    if (f.kind === 'shogun') for (const side of [-1, 1]) spawnFoe(s, 'bandit', side < 0 ? 30 : W - 30)
+    if (f.kind === 'oni') for (const side of [-1, 1]) spawnFoe(s, 'bandit', side < 0 ? 30 : W - 30)
+    if (f.kind === 'kappaking') for (const side of [-1, 1]) spawnFoe(s, 'kappa', side < 0 ? 30 : W - 30)
     if (f.kind === 'gasha') for (const side of [-1, 1]) spawnFoe(s, 'yurei', clampX(h.x + side * 220))
-    if (f.kind === 'frost') for (const side of [-1, 1]) spawnFoe(s, 'samurai', side < 0 ? 30 : ARENA - 30)
-    if (f.kind === 'storm') for (const side of [-1, 1]) spawnFoe(s, 'archer', side < 0 ? 30 : ARENA - 30)
+    if (f.kind === 'frost') for (const side of [-1, 1]) spawnFoe(s, 'samurai', side < 0 ? 30 : W - 30)
+    if (f.kind === 'storm') for (const side of [-1, 1]) spawnFoe(s, 'archer', side < 0 ? 30 : W - 30)
     if (f.kind === 'quiet') for (const side of [-1, 1, -1, 1]) spawnFoe(s, 'shade', clampX(h.x + side * (180 + s.rng() * 120)))
   }
 }
@@ -1247,11 +1393,23 @@ function physics(s: Sim, f: Fighter, dt: number) {
   }
   if (f.dead) f.deadT += dt
   const flying = f.fly > 0 && !f.dead && f.stunT <= 0
+  const lv = s.lv
   if (flying) {
-    f.vy = (f.fly + Math.sin(f.age * 2) * 10 - f.y) * 4
+    f.vy = (f.gy + f.fly + Math.sin(f.age * 2) * 10 - f.y) * 4
   } else f.vy -= GRAV * dt
+  const prevY = f.y
   f.y += f.vy * dt
-  if (f.y <= 0) {
+  if (lv) {
+    // land on whatever is under the feet (one-way platforms only from above)
+    const g = groundAt(lv, f.x, prevY)
+    if (f.vy <= 0 && f.y <= g) {
+      f.y = g
+      f.vy = 0
+    }
+    if (!flying) f.gy = g
+    // wall sliding: falling slowly while pressed against a wall
+    if (f.team === 0 && f.wall && f.y > f.gy + 1 && f.vy < -150 && !f.move) f.vy = -150
+  } else if (f.y <= 0) {
     f.y = 0
     if (f.vy < 0) f.vy = 0
   }
@@ -1260,11 +1418,17 @@ function physics(s: Sim, f: Fighter, dt: number) {
     const target = f.intent * f.speed * (f.chillT > 0 ? 0.5 : 1)
     f.vx += (target - f.vx) * Math.min(1, dt * 10)
   } else if (f.team === 0 && (f.hurtT > 0 || f.stunT > 0 || f.dead || (f.move && !f.move.dash))) {
-    f.vx *= f.y > 0 ? 0.99 : Math.pow(0.002, dt)
+    f.vx *= f.y > f.gy ? 0.99 : Math.pow(0.002, dt)
   } else if (f.team === 1 && (f.hurtT > 0 || f.dead || f.stunT > 0 || (f.move && !f.move.dash))) {
-    f.vx *= f.y > 0 ? 0.99 : Math.pow(0.002, dt)
+    f.vx *= f.y > f.gy ? 0.99 : Math.pow(0.002, dt)
   }
-  f.x = clampX(f.x + f.vx * dt)
+  let nx = f.x + f.vx * dt
+  if (lv) {
+    nx = blockSide(lv, f, nx)
+    // foes keep to their own platform
+    if (f.team === 1 && !f.dead && f.hurtT <= 0) nx = Math.max(f.px0, Math.min(f.px1, nx))
+  }
+  f.x = clampX(nx)
 }
 
 function updateShots(s: Sim, dt: number) {
@@ -1292,7 +1456,7 @@ function updateShots(s: Sim, dt: number) {
     }
     sh.x += sh.vx * dt
     sh.y += sh.vy * dt
-    if (sh.grav && sh.y <= 0) sh.life = 0
+    if (sh.grav && sh.y <= (s.lv ? groundAt(s.lv, sh.x, sh.y + 20) : 0)) sh.life = 0
     if (sh.rehit) {
       sh.rehitT = (sh.rehitT ?? 0) + dt
       if (sh.rehitT >= sh.rehit) {
@@ -1323,7 +1487,7 @@ function updateShots(s: Sim, dt: number) {
       }
     }
   }
-  s.shots = s.shots.filter((sh) => sh.age < sh.life && sh.x > -60 && sh.x < ARENA + 60 && sh.y > -40 && sh.y < 600)
+  s.shots = s.shots.filter((sh) => sh.age < sh.life && sh.x > -60 && sh.x < W + 60 && sh.y > -200 && sh.y < 600)
 }
 
 function updateFx(s: Sim, dt: number) {
@@ -1340,6 +1504,59 @@ function updateFx(s: Sim, dt: number) {
   }
   s.fx = s.fx.filter((p) => p.life > 0)
   if (s.fx.length > 400) s.fx.splice(0, s.fx.length - 400)
+}
+
+/** Shadow Trials each frame: pits, spikes and saws, lanterns, and the gate. */
+function trialTick(s: Sim, lv: Level) {
+  const h = s.hero
+  // Falling into a pit: it hurts, and you're back at the last lantern.
+  if (h.y < -90 && !h.dead) {
+    s.falls++
+    const loss = Math.round(h.maxHp * 0.2)
+    h.hp -= loss
+    if (h.hp <= 0) {
+      kill(s, h, 1)
+      return
+    }
+    h.x = s.checkpoint.x
+    h.y = s.checkpoint.y + 40
+    h.vx = h.vy = 0
+    h.inv = 1.2
+    h.move = null
+    text(s, h.x, h.y + 70, `-${loss}`, '#ff6b6b', 13)
+    s.events.push('hurt')
+  }
+  for (const f of s.foes) if (!f.dead && f.y < -90) kill(s, f, 1)
+  // Spikes and saws.
+  if (h.inv <= 0 && !h.dead) {
+    for (const sp of lv.spikes)
+      if (h.x > sp.x - 6 && h.x < sp.x + sp.w + 6 && h.y <= sp.top + 4 && h.y >= sp.top - 8) {
+        hit(s, null, h, h.maxHp * 0.12, { kb: 0, lift: 560, unblockable: true, dir: h.face })
+        break
+      }
+    for (const sw of lv.saws) {
+      const u = Math.sin(s.t * sw.speed)
+      const cx = sw.x + sw.ax * u
+      const cy = sw.y + sw.ay * u
+      if (Math.hypot(h.x - cx, h.y + bodyH(h) / 2 - cy) < sw.r + 11) {
+        hit(s, null, h, h.maxHp * 0.15, { kb: 280, lift: 300, unblockable: true, dir: h.x >= cx ? 1 : -1 })
+        break
+      }
+    }
+  }
+  // Lanterns: the place you come back to.
+  for (const cp of lv.checkpoints)
+    if (h.x >= cp.x && s.checkpoint.x < cp.x) {
+      s.checkpoint = { x: cp.x, y: cp.y }
+      s.banner = { text: 'Checkpoint', sub: '🏮', t: 1.4 }
+      s.events.push('heal')
+    }
+  // The gate.
+  if (h.x >= lv.exit && !h.dead) {
+    s.outcome = 'win'
+    s.banner = { text: 'Trial clear!', sub: `💎 ${s.gems}/3 · ⛓️ ${s.saved}/${lv.cages.length}`, t: 3 }
+    s.events.push('win')
+  }
 }
 
 /**
@@ -1409,6 +1626,10 @@ export function step(s: Sim, inp: Input, dt: number): boolean {
   if (s.hero.dead) {
     s.outcome = 'lose'
     s.banner = { text: 'Defeated…', t: 3 }
+    return true
+  }
+  if (s.lv) {
+    trialTick(s, s.lv)
     return true
   }
   if (s.foes.every((f) => f.dead)) {

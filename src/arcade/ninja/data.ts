@@ -1,3 +1,5 @@
+import type { Level } from './trials'
+
 /**
  * Stick Ninja (ぼうにんじゃ): the data behind the side-on sword fighter.
  * Ten worlds of five stages, each ending in a boss, then the endless Ink
@@ -151,6 +153,10 @@ export interface Stage {
   bossDrop?: GearId
   /** Breakable urns in the arena. */
   urns: number
+  /** A Shadow Trials platform level (see ./trials) instead of an arena. */
+  lv?: Level
+  /** Shadow Trials index, for trial stages. */
+  trial?: number
 }
 
 /** A small deterministic generator so each stage is the same every time. */
@@ -464,6 +470,11 @@ export interface NinjaSave {
   scrolls?: number
   /** Highest Ink Abyss floor reached (0 = only the first is open). */
   abyss?: number
+  /** Shadow Trials cleared in order (trial `trials` is the next one open). */
+  trials?: number
+  /** Most diamonds found in each trial, and hostages freed, by trial index. */
+  trialGems?: Record<number, number>
+  trialSaved?: Record<number, number>
 }
 
 export const freshNinja = (): NinjaSave => ({ level: 1, xp: 0, ryo: 0, owned: ['bokken'], sword: 'bokken', cleared: 0, armors: ['gi'], armor: 'gi', arts: {}, scrolls: 0, abyss: 0 })

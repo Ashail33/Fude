@@ -816,3 +816,9 @@ kbd {
     opacity: 0.6;
   }
 }
+.nj-trial-row {
+  grid-template-columns: repeat(4, 1fr);
+}
+.nj-trials-head h2 {
+  margin: 0 0 4px;
+}

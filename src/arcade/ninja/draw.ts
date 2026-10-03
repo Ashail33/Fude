@@ -6,6 +6,7 @@
 import { hdAvailable } from '../../art/hd'
 import { hdUrl } from '../../art/hd/manifest'
 import { Fighters3D } from './fighters3d'
+import { groundUnder, type Level } from './trials'
 import { ART_BY_ID, FOES, MOD_INFO, WORLDS, isSword, type Deco, type FoeKind, type Weapon } from './data'
 import { ARENA, MAX_STARS, type Fighter, type Move, type Shot, type Sim, type Swing } from './sim'
 
@@ -326,12 +327,12 @@ export function paint(id: string): HTMLImageElement | null {
 }
 
 /** The painted backdrop if there is one (panning slowly as you cross the arena), else the drawn one. */
-function scenery(ctx: CanvasRenderingContext2D, world: number, cam: number, t: number) {
+function scenery(ctx: CanvasRenderingContext2D, world: number, cam: number, t: number, width = ARENA) {
   const img = paint(`nj-bg-${world}`)
   if (img) {
     const h = Math.max(292, (vw * 1.15 * img.naturalHeight) / img.naturalWidth)
     const w = (h * img.naturalWidth) / img.naturalHeight
-    const pan = ARENA > vw ? cam / (ARENA - vw) : 0
+    const pan = width > vw ? cam / (width - vw) : 0
     ctx.drawImage(img, -pan * Math.max(0, w - vw), GY - 0.82 * h, w, h)
     // Settle the fighters onto the painted ground.
     const g = ctx.createLinearGradient(0, GY - 8, 0, VH)
@@ -465,8 +466,10 @@ function feet(s: Sim, dt: number) {
     if (f.dead || f.fly > 0) continue
     const was = lastY.get(f) ?? 0
     lastY.set(f, f.y)
-    if (was > 12 && f.y <= 0) for (let i = 0; i < 6; i++) puffs.push({ x: f.x + (i - 2.5) * 5, y: 0, vx: (i - 2.5) * 22, r: 3 + Math.random() * 3, life: 0.5 })
-    else if (f.y <= 0 && Math.abs(f.vx) > 200 && Math.random() < dt * 14) puffs.push({ x: f.x - Math.sign(f.vx) * 6, y: 0, vx: -Math.sign(f.vx) * 20, r: 2 + Math.random() * 2, life: 0.4 })
+    const g = Number.isFinite(f.gy) ? f.gy : -999
+    const down = f.y <= g + 0.5
+    if (was > g + 12 && down) for (let i = 0; i < 6; i++) puffs.push({ x: f.x + (i - 2.5) * 5, y: g, vx: (i - 2.5) * 22, r: 3 + Math.random() * 3, life: 0.5 })
+    else if (down && Math.abs(f.vx) > 200 && Math.random() < dt * 14) puffs.push({ x: f.x - Math.sign(f.vx) * 6, y: g, vx: -Math.sign(f.vx) * 20, r: 2 + Math.random() * 2, life: 0.4 })
   }
   for (const p of puffs) {
     p.life -= dt
@@ -478,7 +481,7 @@ function feet(s: Sim, dt: number) {
 }
 
 function drawPuffs(ctx: CanvasRenderingContext2D, cam: number, world: number) {
-  const col = ['200,190,160', '120,90,80', '220,220,225', '150,130,170', '170,110,80'][world]
+  const col = ['200,190,160', '120,90,80', '220,220,225', '150,130,170', '170,110,80', '160,180,160', '120,140,160', '235,240,245', '210,210,220', '200,190,215'][world] ?? '200,200,200'
   for (const p of puffs) {
     ctx.fillStyle = `rgba(${col},${Math.max(0, p.life) * 0.7})`
     ctx.beginPath()
@@ -778,13 +781,14 @@ function drawFighter(ctx: CanvasRenderingContext2D, s: Sim, f: Fighter, cam: num
   const ghost = !!at
 
   ctx.save()
-  if (!ghost && mode !== 'fx') {
-    const sh = ctx.createRadialGradient(sx, GY + 2, 1, sx, GY + 2, 20 * sc)
-    sh.addColorStop(0, `rgba(0,0,0,${0.38 * Math.max(0.3, 1 - fy / 260)})`)
+  if (!ghost && mode !== 'fx' && Number.isFinite(f.gy)) {
+    const gy = GY + 2 - f.gy
+    const sh = ctx.createRadialGradient(sx, gy, 1, sx, gy, 20 * sc)
+    sh.addColorStop(0, `rgba(0,0,0,${0.38 * Math.max(0.3, 1 - (fy - f.gy) / 260)})`)
     sh.addColorStop(1, 'rgba(0,0,0,0)')
     ctx.fillStyle = sh
     ctx.beginPath()
-    ctx.ellipse(sx, GY + 2, 20 * sc, 4.5, 0, 0, Math.PI * 2)
+    ctx.ellipse(sx, gy, 20 * sc, 4.5, 0, 0, Math.PI * 2)
     ctx.fill()
   }
   if (mode === 'shadow') {
@@ -1722,6 +1726,141 @@ function drawShot(ctx: CanvasRenderingContext2D, sh: Shot, cam: number, t: numbe
   ctx.restore()
 }
 
+// ─── Shadow Trials terrain ─────────────────────────────────────────────
+
+function drawTerrain(ctx: CanvasRenderingContext2D, s: Sim, lv: Level, cam: number) {
+  const th = THEMES[s.stage.world]
+  const t = s.t
+  // the chasm: pits fall away into dark mist (covers the painted ground strip)
+  const mist = ctx.createLinearGradient(0, GY - 30, 0, VH)
+  mist.addColorStop(0, 'rgba(8,8,16,0)')
+  mist.addColorStop(0.35, 'rgba(8,8,16,0.85)')
+  mist.addColorStop(1, 'rgba(4,4,10,1)')
+  ctx.fillStyle = mist
+  ctx.fillRect(0, GY - 30, vw, VH - GY + 30)
+  for (const sd of lv.solids) {
+    const x = sd.x - cam
+    if (x > vw + 10 || x + sd.w < -10) continue
+    const y = GY - sd.top
+    if (sd.oneWay) {
+      // a wooden plank platform on two posts
+      ctx.fillStyle = '#3e2a18'
+      ctx.fillRect(x + 6, y + 6, 4, 22)
+      ctx.fillRect(x + sd.w - 10, y + 6, 4, 22)
+      ctx.fillStyle = '#7a5532'
+      ctx.fillRect(x, y, sd.w, 7)
+      ctx.fillStyle = 'rgba(255,230,180,0.35)'
+      ctx.fillRect(x, y, sd.w, 1.5)
+      ctx.fillStyle = 'rgba(0,0,0,0.25)'
+      for (let k = 12; k < sd.w; k += 14) ctx.fillRect(x + k, y + 1, 1, 6)
+      continue
+    }
+    // solid ground: earth or stone in the world's colours, a lit top edge
+    const g = ctx.createLinearGradient(0, y, 0, VH)
+    g.addColorStop(0, th.ground)
+    g.addColorStop(1, shade(th.ground.startsWith('#') ? th.ground : '#333333', -0.55))
+    ctx.fillStyle = g
+    ctx.fillRect(x, y, sd.w, VH - y + 2)
+    ctx.fillStyle = th.edge
+    ctx.fillRect(x, y, sd.w, 3)
+    ctx.fillStyle = 'rgba(255,255,255,0.12)'
+    ctx.fillRect(x, y, sd.w, 1)
+    ctx.fillStyle = 'rgba(0,0,0,0.18)'
+    ctx.fillRect(x, y, 2, VH - y)
+    ctx.fillRect(x + sd.w - 2, y, 2, VH - y)
+    for (let k = 0; k < sd.w / 30; k++) {
+      const sx = x + ((k * 37 + sd.x) % Math.max(1, sd.w - 16))
+      const sy = y + 10 + ((k * 23) % 40)
+      if (sy < VH) ctx.fillRect(sx, sy, 10 + (k % 3) * 4, 2)
+    }
+  }
+  // spikes
+  for (const sp of lv.spikes) {
+    const x = sp.x - cam
+    if (x > vw + 10 || x + sp.w < -10) continue
+    const y = GY - sp.top
+    ctx.fillStyle = '#cfd8dc'
+    ctx.strokeStyle = '#455a64'
+    ctx.lineWidth = 0.8
+    for (let k = 0; k < sp.w; k += 8) {
+      ctx.beginPath()
+      ctx.moveTo(x + k, y)
+      ctx.lineTo(x + k + 4, y - 11)
+      ctx.lineTo(x + k + 8, y)
+      ctx.closePath()
+      ctx.fill()
+      ctx.stroke()
+    }
+  }
+  // saws on their tracks
+  for (const sw of lv.saws) {
+    const u = Math.sin(t * sw.speed)
+    const cx = sw.x + sw.ax * u - cam
+    const cy = GY - (sw.y + sw.ay * u)
+    if (cx < -40 || cx > vw + 40) continue
+    ctx.strokeStyle = 'rgba(30,30,30,0.6)'
+    ctx.lineWidth = 2
+    line(ctx, [sw.x - sw.ax - cam, GY - (sw.y - sw.ay)], [sw.x + sw.ax - cam, GY - (sw.y + sw.ay)])
+    ctx.save()
+    ctx.translate(cx, cy)
+    ctx.rotate(t * 14)
+    ctx.fillStyle = '#b0bec5'
+    ctx.beginPath()
+    for (let k = 0; k < 24; k++) {
+      const r = k % 2 ? sw.r * 0.78 : sw.r
+      ctx.lineTo(Math.cos((k * Math.PI) / 12) * r, Math.sin((k * Math.PI) / 12) * r)
+    }
+    ctx.fill()
+    ctx.fillStyle = '#37474f'
+    ctx.beginPath()
+    ctx.arc(0, 0, sw.r * 0.25, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.restore()
+  }
+  // lanterns (checkpoints): lit once reached
+  for (const cp of lv.checkpoints) {
+    const x = cp.x - cam
+    if (x < -20 || x > vw + 20) continue
+    const y = GY - cp.y
+    const lit = s.checkpoint.x >= cp.x
+    ctx.fillStyle = '#2b2b2b'
+    ctx.fillRect(x - 2, y - 40, 4, 40)
+    ctx.fillRect(x - 8, y - 42, 16, 3)
+    ctx.fillStyle = lit ? '#ff7043' : '#5d4037'
+    ctx.beginPath()
+    ctx.ellipse(x, y - 50, 7, 9, 0, 0, Math.PI * 2)
+    ctx.fill()
+    if (lit) {
+      ctx.globalCompositeOperation = 'lighter'
+      const g = ctx.createRadialGradient(x, y - 50, 0, x, y - 50, 30)
+      g.addColorStop(0, 'rgba(255,170,90,0.6)')
+      g.addColorStop(1, 'rgba(255,170,90,0)')
+      ctx.fillStyle = g
+      ctx.fillRect(x - 30, y - 80, 60, 60)
+      ctx.globalCompositeOperation = 'source-over'
+    }
+  }
+  // the gate at the end: a glowing torii
+  const gx = lv.exit - cam
+  if (gx > -80 && gx < vw + 80) {
+    const gy = GY - (groundUnder(lv, lv.exit) ?? 0)
+    ctx.globalCompositeOperation = 'lighter'
+    const g = ctx.createRadialGradient(gx, gy - 40, 4, gx, gy - 40, 70)
+    g.addColorStop(0, `rgba(255,220,140,${0.35 + 0.15 * Math.sin(t * 3)})`)
+    g.addColorStop(1, 'rgba(255,220,140,0)')
+    ctx.fillStyle = g
+    ctx.fillRect(gx - 70, gy - 110, 140, 120)
+    ctx.globalCompositeOperation = 'source-over'
+    ctx.fillStyle = '#c62828'
+    ctx.fillRect(gx - 26, gy - 72, 6, 72)
+    ctx.fillRect(gx + 20, gy - 72, 6, 72)
+    ctx.fillRect(gx - 38, gy - 80, 76, 7)
+    ctx.fillRect(gx - 30, gy - 62, 60, 4)
+    ctx.fillStyle = '#1a1a1a'
+    ctx.fillRect(gx - 40, gy - 83, 80, 3)
+  }
+}
+
 // ─── Urns, chests and pick-ups ─────────────────────────────────────────
 
 function drawProps(ctx: CanvasRenderingContext2D, s: Sim, cam: number) {
@@ -1730,6 +1869,38 @@ function drawProps(ctx: CanvasRenderingContext2D, s: Sim, cam: number) {
     const x = p.x - cam + (p.shake > 0 ? Math.sin(p.shake * 80) * 2 : 0)
     if (x < -30 || x > vw + 30) continue
     ctx.save()
+    ctx.translate(0, -p.y)
+    if (p.kind === 'cage') {
+      // a bamboo cage with a hostage waving inside
+      ctx.fillStyle = 'rgba(0,0,0,0.3)'
+      ctx.beginPath()
+      ctx.ellipse(x, GY + 2, 16, 3, 0, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.strokeStyle = '#1a1a1a'
+      ctx.lineWidth = 2.6
+      const wave = Math.sin(s.t * 6) * 0.6
+      line(ctx, [x, GY - 2], [x, GY - 18])
+      line(ctx, [x, GY - 14], [x + 6, GY - 22 - wave * 4])
+      line(ctx, [x, GY - 14], [x - 5, GY - 9])
+      ctx.fillStyle = '#1a1a1a'
+      ctx.beginPath()
+      ctx.arc(x, GY - 22, 4, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.strokeStyle = '#8d6e3f'
+      ctx.lineWidth = 2
+      for (let k = -2; k <= 2; k++) line(ctx, [x + k * 6, GY], [x + k * 6, GY - 34])
+      ctx.fillStyle = '#6d4c2b'
+      ctx.fillRect(x - 15, GY - 36, 30, 4)
+      ctx.fillRect(x - 15, GY - 2, 30, 3)
+      if (Math.floor(s.t * 2) % 2 === 0) {
+        ctx.font = 'bold 8px system-ui, sans-serif'
+        ctx.textAlign = 'center'
+        ctx.fillStyle = '#fff'
+        ctx.fillText('たすけて!', x, GY - 42)
+      }
+      ctx.restore()
+      continue
+    }
     ctx.fillStyle = 'rgba(0,0,0,0.3)'
     ctx.beginPath()
     ctx.ellipse(x, GY + 2, 13, 3, 0, 0, Math.PI * 2)
@@ -1812,6 +1983,26 @@ function drawDrops(ctx: CanvasRenderingContext2D, s: Sim, cam: number) {
       ctx.fill()
       ctx.fillStyle = '#263238'
       ctx.fillRect(x - 4, y, 8, 4)
+    } else if (d.kind === 'gem') {
+      const by = y - 4 + Math.sin(s.t * 3 + d.x) * 2
+      ctx.globalCompositeOperation = 'lighter'
+      const g = ctx.createRadialGradient(x, by, 0, x, by, 14)
+      g.addColorStop(0, 'rgba(160,240,255,0.8)')
+      g.addColorStop(1, 'rgba(120,200,255,0)')
+      ctx.fillStyle = g
+      ctx.fillRect(x - 14, by - 14, 28, 28)
+      ctx.globalCompositeOperation = 'source-over'
+      ctx.fillStyle = '#7fe7ff'
+      ctx.strokeStyle = '#e0f7ff'
+      ctx.lineWidth = 0.8
+      ctx.beginPath()
+      ctx.moveTo(x, by - 7)
+      ctx.lineTo(x + 6, by - 2)
+      ctx.lineTo(x, by + 7)
+      ctx.lineTo(x - 6, by - 2)
+      ctx.closePath()
+      ctx.fill()
+      ctx.stroke()
     } else if (d.kind === 'ink') {
       const g = ctx.createRadialGradient(x, y, 0, x, y, 8)
       g.addColorStop(0, '#e3f2fd')
@@ -1987,7 +2178,7 @@ function hud(ctx: CanvasRenderingContext2D, s: Sim, level: number) {
   ctx.textAlign = 'right'
   ctx.font = 'bold 9px system-ui, sans-serif'
   const w = WORLDS[s.stage.world]
-  const st = `${w.jp} ${s.stage.world + 1}-${s.stage.n}   ⚔ ${s.kills}`
+  const st = s.lv ? `影 ${s.stage.world + 1}-${s.stage.n}   💎 ${s.gems}/3   ⛓ ${s.saved}/${s.lv.cages.length}` : `${w.jp} ${s.stage.world + 1}-${s.stage.n}   ⚔ ${s.kills}`
   ctx.strokeText(st, vw - 8, 14)
   ctx.fillStyle = '#fff'
   ctx.fillText(st, vw - 8, 14)
@@ -2043,6 +2234,8 @@ function hud(ctx: CanvasRenderingContext2D, s: Sim, level: number) {
     if (f.dead) continue
     const x = f.x - cam
     if (x >= 0 && x <= vw) continue
+    // in a trial, only foes that have spotted you and are close get an arrow
+    if (s.lv && (!f.aware || Math.abs(f.x - s.hero.x) > 600)) continue
     const left = x < 0
     ctx.fillStyle = FOES[f.kind as FoeKind].boss ? '#ff5252' : 'rgba(255,255,255,0.85)'
     ctx.beginPath()
@@ -2056,8 +2249,11 @@ function hud(ctx: CanvasRenderingContext2D, s: Sim, level: number) {
 }
 
 let camX = -1
+/** Where the camera wants to be: on the hero (looking a little ahead in a trial). */
+const camTarget = (s: Sim) => Math.max(0, Math.min(s.width - vw, s.hero.x - vw / 2 + (s.lv ? s.hero.face * vw * 0.12 : 0)))
+
 export function camOf(s: Sim) {
-  const target = Math.max(0, Math.min(ARENA - vw, s.hero.x - vw / 2))
+  const target = camTarget(s)
   if (camX < 0 || Math.abs(camX - target) > 300) camX = target
   return camX
 }
@@ -2065,7 +2261,7 @@ export function camOf(s: Sim) {
 /** Draw a frame. `width`/`height` are the canvas's pixel size. */
 export function draw(ctx: CanvasRenderingContext2D, s: Sim, level: number, width: number, height: number, dt: number) {
   vw = Math.max(260, Math.min(640, Math.round((VH * width) / height)))
-  const target = Math.max(0, Math.min(ARENA - vw, s.hero.x - vw / 2))
+  const target = camTarget(s)
   camX = camX < 0 ? target : camX + (target - camX) * Math.min(1, dt * 6)
   const k = height / VH
   ctx.setTransform(k, 0, 0, k, 0, 0)
@@ -2076,7 +2272,8 @@ export function draw(ctx: CanvasRenderingContext2D, s: Sim, level: number, width
   const shake = s.shake > 0 ? s.shake * 10 : 0
   ctx.save()
   if (shake) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake)
-  scenery(ctx, s.stage.world, camX, s.t)
+  scenery(ctx, s.stage.world, camX, s.t, s.width)
+  if (s.lv) drawTerrain(ctx, s, s.lv, camX)
   drawPuffs(ctx, camX, s.stage.world)
   drawProps(ctx, s, camX)
   const all = [...s.foes.filter((f) => f.dead), ...s.foes.filter((f) => !f.dead), s.hero]
