@@ -121,12 +121,12 @@ export class Fighters3D {
   private hemi = new THREE.HemisphereLight(0xffffff, 0x404858, 1.4)
   private sun = new THREE.DirectionalLight(0xfff2dd, 1.6)
   private rim = new THREE.DirectionalLight(0xbfd8ff, 0.9)
-  /** (public for dev checks) */
-  readonly insts = new Map<number, Inst>()
+  /** One model per fighter object (never by id: ids restart every fight). (public for dev checks) */
+  readonly insts = new Map<Fighter, Inst>()
   /** Models that loaded without a usable skeleton (they stay stick figures). */
   private rigless = new Set<string>()
   /** Fighters drawn in 3D this frame (draw.ts skips their stick bodies). */
-  readonly drawn = new Set<number>()
+  readonly drawn = new Set<Fighter>()
 
   constructor() {
     if (typeof document === 'undefined') return
@@ -184,13 +184,13 @@ export class Fighters3D {
     return { fighter: f, root: g.root, inner: g.inner, rig: g.rig, height: g.height, mats, weapon: w?.g ?? null, blade: w?.blade ?? null, cast }
   }
 
-  private drop(uid: number) {
-    const i = this.insts.get(uid)
+  private drop(f: Fighter) {
+    const i = this.insts.get(f)
     if (!i) return
     this.scene.remove(i.root)
     if (i.weapon) this.scene.remove(i.weapon)
     for (const { m } of i.mats) m.dispose()
-    this.insts.delete(uid)
+    this.insts.delete(f)
   }
 
   /**
@@ -201,31 +201,24 @@ export class Fighters3D {
     this.drawn.clear()
     const r = this.renderer
     if (!r || !enabled) return null
-    const live = new Set<number>()
+    const live = new Set<Fighter>()
     const all = [...s.foes, s.hero]
     for (const f of all) {
       const cast = CAST3D[f.kind]
       if (!cast) continue
-      let inst = this.insts.get(f.uid)
-      // Fighter ids restart with every fight: never pose a model from a fight that's over.
-      if (inst && inst.fighter !== f) {
-        if (inst.cast.id === cast.id && inst.cast === cast) inst.fighter = f
-        else {
-          this.drop(f.uid)
-          inst = undefined
-        }
-      }
+      let inst = this.insts.get(f)
       if (!inst) {
         const made = this.make(f, cast)
         if (!made) continue
         inst = made
-        this.insts.set(f.uid, inst)
+        this.insts.set(f, inst)
       }
-      live.add(f.uid)
-      this.drawn.add(f.uid)
+      live.add(f)
+      this.drawn.add(f)
       this.poseOne(s, inst, poseOf(f), cam, vh, gy)
     }
-    for (const uid of [...this.insts.keys()]) if (!live.has(uid)) this.drop(uid)
+    // (fighters gone from the fight, or from a fight that's over)
+    for (const f of [...this.insts.keys()]) if (!live.has(f)) this.drop(f)
     if (!this.drawn.size) return null
     if (r.domElement.width !== pxW || r.domElement.height !== pxH) r.setSize(pxW, pxH, false)
     this.camera.left = 0
@@ -359,11 +352,11 @@ export class Fighters3D {
 
   /** Forget every model (a new fight is starting). */
   clear() {
-    for (const uid of [...this.insts.keys()]) this.drop(uid)
+    for (const f of [...this.insts.keys()]) this.drop(f)
   }
 
   dispose() {
-    for (const uid of [...this.insts.keys()]) this.drop(uid)
+    for (const f of [...this.insts.keys()]) this.drop(f)
     this.renderer?.dispose()
   }
 }

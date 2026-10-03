@@ -1958,7 +1958,7 @@ export function draw(ctx: CanvasRenderingContext2D, s: Sim, level: number, width
   const f3 = use3d ? (fighters3d ??= new Fighters3D()) : null
   if (import.meta.env?.DEV && f3) (globalThis as { __nj3d?: Fighters3D }).__nj3d = f3
   const layer = f3?.render(s, camX, vw, VH, GY, width, height, poseOf, THEMES[s.stage.world].sky[1], true) ?? null
-  const in3d = (f: Fighter) => !!layer && f3!.drawn.has(f.uid)
+  const in3d = (f: Fighter) => !!layer && f3!.drawn.has(f)
   for (const f of all) if (in3d(f)) drawFighter(ctx, s, f, camX, undefined, 'shadow')
   for (const f of all) if (!in3d(f)) drawFighter(ctx, s, f, camX)
   if (layer) ctx.drawImage(layer, 0, 0, vw, VH)
