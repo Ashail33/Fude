@@ -107,6 +107,21 @@ describe('the Sealed Road', () => {
     expect(talk('v-oni').lines.some((l) => l.includes('ward'))).toBe(false)
   })
 
+  it('the Tower’s last ward needs all three parts', () => {
+    setState((s) => ({ ...s, progress: Object.fromEntries(['r1-boss', 'r2-boss', 'r3-boss', 'r4-boss', 'r6-boss', 'r7-boss', 'r8-boss', 'r9-boss', 'r10-boss'].map((id) => [id, { stars: 1, best: 70, plays: 1, lastPlayed: 0 }])) }))
+    talk('tp-chimera')
+    expect(taleStage(getState(), roadTale(5))).toBe(0)
+    finish('fk5-kaguya')
+    finish('fk10-hagoromo')
+    talk('fk5-kaguya')
+    talk('fk10-tennin')
+    expect(['road-moon-bamboo', 'road-heaven-thread'].every((k) => hasKeyItem(getState(), k))).toBe(true)
+    // two is not enough here
+    expect(taleStage(getState(), roadTale(5))).toBe(0)
+    expect(talk('tp-chimera').lines.some((l) => l.includes('Voices of the Valley'))).toBe(true)
+    expect(wardOpen(getState(), 5)).toBe(false)
+  })
+
   it('saves that already beat a boss keep the road open', () => {
     setState((s) => ({ ...passAll(s, 1), progress: { ...passAll(s, 1).progress, 'r1-boss': { stars: 1, best: 70, plays: 1, lastPlayed: 0 } } }))
     expect(wardOpen(getState(), 1)).toBe(true)

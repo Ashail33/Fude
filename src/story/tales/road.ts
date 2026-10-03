@@ -11,7 +11,8 @@
  *  - one from a game keeper: Master Sumi's Ink Dojo (Stick Ninja), Hayato's
  *    Bamboo Bridge, or Granny Tane's Hidden Village.
  *
- * Carry any two back to the ward and Fude weaves them into the key; cast
+ * Carry any two back to the ward (all three for the Tower's last ward) and
+ * Fude weaves them into the key; cast
  * the right word through it and the ward shatters. The boss can't be fought
  * (in the world or from the region menu) until then. Saves that already beat
  * a boss keep their road open.
@@ -58,6 +59,8 @@ export interface Gate {
   key: KeyItem
   /** The word to cast through the key (a vocabulary id). */
   word: string
+  /** Parts it takes (default: any two of the three). */
+  needs?: 2 | 3
 }
 
 const item = (id: string, name: string, jp: string, kana: string, emoji: string, desc: string): KeyItem => ({ id: `road-${id}`, name, jp, kana, emoji, desc })
@@ -486,14 +489,16 @@ export const GATES: Gate[] = [
       },
     ],
     gather: ['ふでの ざいりょう：つきの たけ（かぐやひめ）・てんの いと（くもの みやこの てんにょ）・たにの こえ（かざぐるまの おかの タネばあちゃん）', 'Gather the brush: moon bamboo (Kaguya-hime), heavenly thread (the tennin, back in the Cloud Capital) and the valley’s voices (Granny Tane, Windmill Hill)'],
-    bring: ['ふたつ そろったら、とうの てっぺんの けっかいへ', 'Take two of them to the ward at the top of the Tower'],
+    bring: ['みっつ そろったら、とうの てっぺんの けっかいへ', 'Take all three to the ward at the top of the Tower'],
     key: item('many-brush', 'Brush of Many Voices', 'みんなの ふで', 'ふで', '🖌️', 'Bamboo from the moon, thread from heaven, and a whole valley’s laughter. Kotone would have loved it.'),
     word: 'kotoba',
+    // the last ward of all takes every voice
+    needs: 3,
   },
 ]
 
-/** Parts of the three it takes to weave a key. */
-export const NEEDED = 2
+/** Parts of the three it takes to weave a gate's key. */
+export const needs = (g: Gate) => g.needs ?? 2
 
 export const roadTale = (region: number) => `road-r${region}`
 
@@ -539,12 +544,14 @@ function wardTalk(c: Ctx, g: Gate): Step[] | null {
   if (wardOpen(s, g.region)) return null
   const id = roadTale(g.region)
   const st = c.stage(id)
-  if (st < 0) return [c.narrate('ブウウン…', 'Vmmmmm…'), ...g.ward.map(([jp, en]) => c.fude(jp, en)), c.fude('みっつの うち、ふたつ あれば なんとか なるよ！', 'Any two of the three should do!'), ...c.start(id)]
+  if (st < 0) return [c.narrate('ブウウン…', 'Vmmmmm…'), ...g.ward.map(([jp, en]) => c.fude(jp, en)), needs(g) < 3 ? c.fude('みっつの うち、ふたつ あれば なんとか なるよ！', 'Any two of the three should do!') : c.fude('さいごの けっかいだ… みっつ ぜんぶ ひつようだよ！', 'The last ward of all… we’ll need every one of them!'), ...c.start(id)]
   if (st === 0) {
     const missing = g.parts.filter((p) => !c.has(p.item.id))
     return [
       c.narrate('けっかいが ブウウンと うなって いる…', 'The ward hums, solid as ever…'),
-      c.fude(`あと ${NEEDED - (g.parts.length - missing.length)}つ！ どれでも いいよ：${missing.map((p) => p.item.jp).join('・')}`, `${NEEDED - (g.parts.length - missing.length)} more to go! Any of these: ${missing.map((p) => `the ${p.item.name}`).join(', ')}.`),
+      needs(g) - (g.parts.length - missing.length) < missing.length
+        ? c.fude(`あと ${needs(g) - (g.parts.length - missing.length)}つ！ どれでも いいよ：${missing.map((p) => p.item.jp).join('・')}`, `${needs(g) - (g.parts.length - missing.length)} more to go! Any of these: ${missing.map((p) => `the ${p.item.name}`).join(', ')}.`)
+        : c.fude(`まだ たりないよ：${missing.map((p) => p.item.jp).join('・')}`, `We’re still missing: ${missing.map((p) => `the ${p.item.name}`).join(', ')}.`),
       ...missing.map((p) => c.fude(p.hint[0], p.hint[1])),
     ]
   }
@@ -561,8 +568,8 @@ function handOver(c: Ctx, from: string): Step[] {
       if (p.from !== from || c.has(p.item.id) || !p.ready(c)) continue
       out.push(c.fude('あっ！ それ、けっかいを やぶるのに つかえるかも！', 'Oh! That could help us break the ward!'))
       out.push(...p.give.map(([jp, en]) => c.say(jp, en)), ...c.give(p.item.id))
-      if (g.parts.filter((q) => c.has(q.item.id)).length >= NEEDED) {
-        out.push(c.fude('これで ふたつ そろった！ けっかいへ いそごう！', 'That’s two! To the ward, quick!'), ...c.advance(id))
+      if (g.parts.filter((q) => c.has(q.item.id)).length >= needs(g)) {
+        out.push(needs(g) < 3 ? c.fude('これで ふたつ そろった！ けっかいへ いそごう！', 'That’s two! To the ward, quick!') : c.fude('これで みっつ そろった！ けっかいへ いそごう！', 'That’s all three! To the ward, quick!'), ...c.advance(id))
         break
       }
     }
@@ -606,7 +613,9 @@ const tales: Tale[] = GATES.map((g) => ({
   giver: g.boss,
   available: (s) => regionUnlocked(s, g.region) && !isPassed(s, g.activity),
   stages: [
-    { jp: `${g.gather[0]}（どれか ふたつで OK）`, en: `${g.gather[1]}. Any two will do`, target: g.parts.map((p) => p.from) },
+    needs(g) < 3
+      ? { jp: `${g.gather[0]}（どれか ふたつで OK）`, en: `${g.gather[1]}. Any two will do`, target: g.parts.map((p) => p.from) }
+      : { jp: `${g.gather[0]}（みっつ ぜんぶ）`, en: `${g.gather[1]}. This last ward needs all three`, target: g.parts.map((p) => p.from) },
     { jp: g.bring[0], en: g.bring[1], target: [g.boss] },
   ],
 }))
