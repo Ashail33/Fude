@@ -183,6 +183,8 @@ export class Fighters3D {
   private rigless = new Set<string>()
   /** Fighters drawn in 3D this frame (draw.ts skips their stick bodies). */
   readonly drawn = new Set<Fighter>()
+  /** The GPU took the WebGL context away (phones do under memory pressure): stick figures until it's back. */
+  private lost = false
 
   constructor() {
     if (typeof document === 'undefined') return
@@ -193,6 +195,14 @@ export class Fighters3D {
       r.outputColorSpace = THREE.SRGBColorSpace
       this.renderer = r
       ;(this as { canvas: HTMLCanvasElement }).canvas = c
+      c.addEventListener('webglcontextlost', (e) => {
+        e.preventDefault()
+        this.lost = true
+        this.forget()
+      })
+      c.addEventListener('webglcontextrestored', () => {
+        this.lost = false
+      })
     } catch {
       this.renderer = null
     }
@@ -204,7 +214,18 @@ export class Fighters3D {
   }
 
   get ok() {
-    return !!this.renderer
+    return !!this.renderer && !this.lost
+  }
+
+  /** Drop every model (rebuilt next frame) without touching the GPU. */
+  private forget() {
+    for (const i of this.insts.values()) {
+      this.scene.remove(i.root)
+      if (i.weapon) this.scene.remove(i.weapon)
+      for (const p of i.worn) this.scene.remove(p.mesh)
+    }
+    this.insts.clear()
+    this.drawn.clear()
   }
 
   private make(s: Sim, f: Fighter, cast: Cast): Inst | null {
@@ -262,7 +283,12 @@ export class Fighters3D {
   render(s: Sim, cam: number, vw: number, vh: number, gy: number, pxW: number, pxH: number, poseOf: (f: Fighter) => Pose, sky: string, enabled: boolean): HTMLCanvasElement | null {
     this.drawn.clear()
     const r = this.renderer
-    if (!r || !enabled) return null
+    if (!r || !enabled || this.lost) return null
+    if (r.getContext().isContextLost()) {
+      this.lost = true
+      this.forget()
+      return null
+    }
     const live = new Set<Fighter>()
     const all = [...s.foes, s.hero]
     for (const f of all) {
@@ -276,13 +302,19 @@ export class Fighters3D {
         this.insts.set(f, inst)
       }
       live.add(f)
-      this.drawn.add(f)
       this.poseOne(s, inst, poseOf(f), cam, vh, gy)
+      // (a model that can't be placed stays a stick figure rather than vanishing)
+      if (Number.isFinite(inst.root.position.x) && Number.isFinite(inst.root.scale.x) && inst.root.scale.x > 0) this.drawn.add(f)
+      else inst.root.visible = false
     }
     // (fighters gone from the fight, or from a fight that's over)
     for (const f of [...this.insts.keys()]) if (!live.has(f)) this.drop(f)
     if (!this.drawn.size) return null
-    if (r.domElement.width !== pxW || r.domElement.height !== pxH) r.setSize(pxW, pxH, false)
+    // At most twice the logical size: phone screens are 3x, and a full-size layer eats GPU memory.
+    const k = Math.min(1, (vw * 2) / Math.max(1, pxW))
+    const w = Math.max(1, Math.round(pxW * k))
+    const h = Math.max(1, Math.round(pxH * k))
+    if (r.domElement.width !== w || r.domElement.height !== h) r.setSize(w, h, false)
     this.camera.left = 0
     this.camera.right = vw
     this.camera.top = vh
