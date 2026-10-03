@@ -184,3 +184,46 @@ describe('secret caches on the journey', () => {
     for (const g of gear) expect(CHESTS.includes(g) || BOSS_DROPS.includes(g)).toBe(false)
   })
 })
+
+describe('guarding', () => {
+  it('raising the guard turns toward the nearest foe, so a hit from behind is blocked', () => {
+    const s = createSim(stageAt(0), 5, SWORD_BY_ID.katana, rng)
+    const h = s.hero
+    s.foes = s.foes.slice(0, 1)
+    const foe = s.foes[0]
+    foe.x = h.x - 40
+    h.face = 1 // facing away
+    const inp = noInput()
+    inp.block = true
+    step(s, inp, 1 / 60)
+    expect(h.blockT).toBeGreaterThanOrEqual(0)
+    expect(h.face).toBe(-1)
+    // let the parry window pass, then take a hit: blocked (chip damage only)
+    for (let i = 0; i < 20; i++) step(s, inp, 1 / 60)
+    const before = h.hp
+    hit(s, foe, h, 40, { kb: 100 })
+    expect(before - h.hp).toBeLessThan(10)
+  })
+
+  it('left/right while guarding turns without moving; letting go drops the guard', () => {
+    const s = createSim(stageAt(0), 5, SWORD_BY_ID.katana, rng)
+    const h = s.hero
+    const x = h.x
+    const inp = noInput()
+    inp.block = true
+    inp.right = true
+    for (let i = 0; i < 10; i++) step(s, inp, 1 / 60)
+    expect(h.face).toBe(1)
+    expect(Math.abs(h.x - x)).toBeLessThan(2)
+    step(s, noInput(), 1 / 60)
+    expect(h.blockT).toBe(-1)
+  })
+
+  it('holding the stick down guards too', () => {
+    const s = createSim(stageAt(0), 5, SWORD_BY_ID.katana, rng)
+    const inp = noInput()
+    inp.down = true
+    step(s, inp, 1 / 60)
+    expect(s.hero.blockT).toBeGreaterThanOrEqual(0)
+  })
+})

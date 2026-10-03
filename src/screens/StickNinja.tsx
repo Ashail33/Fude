@@ -678,6 +678,9 @@ function Fight({ stage, save, onEnd, onQuit }: { stage: number; save: NinjaSave;
       have: [...save.owned, ...armorsOf(save)],
     })
     resetCamera()
+    // (dev builds: the live fight, for poking at in the console and in tests)
+    if (import.meta.env.DEV) (window as unknown as { __njSim?: Sim; __njInput?: { current: Input } }).__njSim = sim
+    if (import.meta.env.DEV) (window as unknown as { __njInput?: { current: Input } }).__njInput = input
     let raf = 0
     let last = performance.now()
     let ended = false

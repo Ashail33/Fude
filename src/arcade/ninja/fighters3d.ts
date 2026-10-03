@@ -50,6 +50,10 @@ export const CAST3D: Partial<Record<Fighter['kind'], Cast>> = {
   oni: { id: 'oni', weapon: 'club' },
   storm: { id: 'raijin', glow: '#3a3000', weapon: 'none' },
   yurei: { id: 'yuki-onna', tint: '#d8f2ff', glow: '#1c3e4e', opacity: 0.6, weapon: 'none' },
+  // (their own models carry their weapons: the Kappa King's anchor, the Tengu Lord's fan)
+  kappa: { id: 'kappa', tint: '#cfe9d6', weapon: 'none' },
+  kappaking: { id: 'kappa', weapon: 'none' },
+  tengu: { id: 'tengu', weapon: 'none' },
 }
 
 /** Logical height (canvas units) of a stick figure at scale 1, which a model is fitted to. */

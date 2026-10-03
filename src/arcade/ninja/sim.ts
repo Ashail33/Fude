@@ -1090,6 +1090,13 @@ function heroControl(s: Sim, inp: Input, dt: number) {
   }
   if (h.move || h.dashT > 0) return
   if ((inp.block || inp.down) && grounded) {
+    if (h.blockT < 0) {
+      // Raising the guard turns you toward the nearest foe, so it covers the attack that's coming.
+      const near = s.foes.filter((e) => !e.dead).sort((a, b) => Math.abs(a.x - h.x) - Math.abs(b.x - h.x))[0]
+      if (near) h.face = near.x >= h.x ? 1 : -1
+    }
+    // Left/right while guarding turns without moving.
+    if (inp.left !== inp.right) h.face = inp.left ? -1 : 1
     h.blockT = h.blockT < 0 ? 0 : h.blockT + dt
     h.vx = 0
     return

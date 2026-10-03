@@ -53,8 +53,10 @@ const FIT: Record<string, { h: number; yaw?: number; float?: boolean; quad?: boo
   nurarihyon: { h: 1.6 },
   'yuki-onna': { h: 1.8 },
   raijin: { h: 2.0 },
-  // Stick Ninja's hero (rigged; posed by arcade/ninja/fighters3d)
+  // Stick Ninja's fighters (rigged; posed by arcade/ninja/fighters3d)
   ninja: { h: 1.6 },
+  kappa: { h: 1.5 },
+  tengu: { h: 1.75 },
 }
 
 let available: Set<string> | null = null
