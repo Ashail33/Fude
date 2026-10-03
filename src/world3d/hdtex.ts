@@ -23,9 +23,14 @@ export const GROUND_TEX: Partial<Record<TileId, string>> = {
   water: 'water',
   'water-deep': 'water',
   lily: 'water',
+  // v3 grounds: frozen ponds, hot springs, the sky city's cloud floor and the open sky below it
+  ice: 'ice',
+  onsen: 'onsen',
+  cloud: 'cloud',
+  sky: 'sky',
 }
-/** Water tiles animate; deep water is darker. */
-export const WATER = new Set<TileId>(['water', 'water-deep', 'lily'])
+/** Water tiles animate (and get a foam line at the shore); deep water is darker. Hot springs and the open sky drift the same way. */
+export const WATER = new Set<TileId>(['water', 'water-deep', 'lily', 'onsen', 'sky'])
 
 /** Block and roof faces → HD texture. */
 export const FACE_TEX: Partial<Record<TileId, string>> = {

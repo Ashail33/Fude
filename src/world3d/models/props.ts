@@ -193,6 +193,83 @@ const PROPS: Partial<Record<TileId, Build>> = {
     m.add(G.cyl, P.gold, T(at(o, 0, 0.8, 0), [0.03, 0.05, 0.03]))
     m.add(G.cyl, P.vermilion, T(at(o, 0, 0.45, 0.02), [0.015, 0.4, 0.015]))
   },
+  // ── v3 tiles: the harbour, hot springs, snow temple and sky city ──
+  boat(m, o, { x, y }) {
+    // a small wooden fishing boat drawn up on the shore, mast and furled sail
+    const yaw = (rnd(x, y, 1) - 0.5) * 0.5
+    const R = (r: [number, number, number]): [number, number, number] => [r[0], r[1] + yaw, r[2]]
+    const p = (dx: number, dy: number, dz: number) => at(o, dx * Math.cos(yaw) + dz * Math.sin(yaw), dy, -dx * Math.sin(yaw) + dz * Math.cos(yaw))
+    m.add(G.capsule, P.wood, T(p(0, 0.12, 0), [0.17, 0.62, 0.15], R([0, 0, Math.PI / 2])))
+    m.add(G.box, P.woodDark, T(p(0, 0.2, 0), [0.66, 0.03, 0.2], R([0, 0, 0])))
+    for (const s of [-1, 1]) m.add(G.box, P.woodLight, T(p(0, 0.225, s * 0.135), [0.78, 0.035, 0.03], R([0, 0, 0])))
+    m.add(G.box, P.vermilion, T(p(0, 0.13, 0), [0.9, 0.04, 0.315], R([0, 0, 0])))
+    m.add(G.box, P.woodLight, T(p(-0.12, 0.23, 0), [0.04, 0.03, 0.26], R([0, 0, 0])))
+    m.add(G.cyl, P.woodDark, T(p(0.05, 0.6, 0), [0.025, 0.78, 0.025]), { sway: 0.02 })
+    m.add(G.capsule, P.paper, T(p(0.05, 0.42, 0.02), [0.05, 0.36, 0.05], R([0, 0, Math.PI / 2])), { sway: 0.02 })
+    m.add(G.cone, P.crimson, T(p(0.12, 0.95, 0), [0.05, 0.14, 0.012], R([0, 0, -Math.PI / 2])), { sway: 0.05 })
+    m.add(G.torus, P.sand, T(p(-0.28, 0.23, 0), 0.06, [Math.PI / 2, 0, 0]))
+    m.add(G.cyl, P.woodLight, T(p(0.15, 0.24, 0.06), [0.015, 0.6, 0.015], R([Math.PI / 2, 0, 0.5])))
+  },
+  net(m, o, { x, y }) {
+    // a fishing net hung out to dry between two poles, with floats along the bottom
+    const twine = mix(P.woodDark, P.leafDark, 0.45)
+    for (const s of [-1, 1]) {
+      m.add(G.cyl, P.woodDark, T(at(o, s * 0.4, 0.42, 0), [0.03, 0.84, 0.03]))
+      m.add(G.cyl, P.wood, T(at(o, s * 0.4, 0.86, 0), [0.04, 0.03, 0.04]))
+    }
+    m.add(G.cyl, P.wood, T(at(o, 0, 0.8, 0), [0.022, 0.86, 0.022], [0, 0, Math.PI / 2]))
+    const sag = 0.05 + rnd(x, y, 2) * 0.03
+    for (let i = 0; i <= 6; i++) {
+      const u = -0.36 + (i / 6) * 0.72
+      m.add(G.box, twine, T(at(o, u, 0.53 - Math.cos(u * 4) * sag * 0.3, 0), [0.012, 0.52, 0.012]), { sway: 0.025 })
+    }
+    for (let j = 0; j < 5; j++) {
+      const h = 0.76 - j * 0.12
+      m.add(G.box, twine, T(at(o, 0, h - (j / 4) * sag, 0.005), [0.74, 0.012, 0.012]), { sway: 0.02 + j * 0.006 })
+    }
+    for (let i = 0; i < 5; i++) m.add(G.sphere, i % 2 ? P.orange : P.paper, T(at(o, -0.3 + i * 0.15, 0.26 - sag, 0.02), 0.035), { sway: 0.03 })
+    m.add(G.box, P.woodDark, T(at(o, 0.24, 0.07, 0.2), [0.22, 0.14, 0.16]))
+    m.add(G.torus, P.sand, T(at(o, -0.25, 0.04, 0.22), 0.08, [Math.PI / 2, 0, 0]))
+  },
+  chochin(m, o) {
+    // a red paper lantern hanging from a little wooden post
+    m.add(G.box, P.stoneDark, T(at(o, -0.12, 0.04, 0), [0.18, 0.08, 0.18]))
+    m.add(G.cyl, P.woodDark, T(at(o, -0.12, 0.5, 0), [0.03, 0.96, 0.03]))
+    m.add(G.box, P.woodDark, T(at(o, 0.0, 0.95, 0), [0.3, 0.03, 0.03]))
+    m.add(G.cyl, P.ink, T(at(o, 0.1, 0.88, 0), [0.006, 0.12, 0.006]), { sway: 0.03 })
+    m.add(G.sphere, P.vermilion, T(at(o, 0.1, 0.7, 0), [0.13, 0.17, 0.13]), { glow: 0.55, sway: 0.04 })
+    for (const h of [-0.09, 0, 0.09]) m.add(G.torus, P.crimson, T(at(o, 0.1, 0.7 + h, 0), [0.125 * Math.cos(h * 5), 0.125 * Math.cos(h * 5), 0.06], [Math.PI / 2, 0, 0]), { sway: 0.04 })
+    for (const h of [0.86, 0.54]) m.add(G.cyl, P.ink, T(at(o, 0.1, h, 0), [0.07, 0.035, 0.07]), { sway: 0.04 })
+    m.add(G.box, P.ink, T(at(o, 0.1, 0.7, 0.128), [0.05, 0.12, 0.005]), { sway: 0.04 })
+    m.add(G.cone, P.gold, T(at(o, 0.1, 0.48, 0), [0.025, 0.08, 0.025], [Math.PI, 0, 0]), { sway: 0.05 })
+  },
+  snowman(m, o, { x, y }) {
+    const turn = (rnd(x, y, 1) - 0.5) * 0.8
+    const f = (dx: number, dy: number, dz: number) => at(o, dx * Math.cos(turn) + dz * Math.sin(turn), dy, -dx * Math.sin(turn) + dz * Math.cos(turn))
+    m.add(G.sphere, P.white, T(at(o, 0, 0.19, 0), [0.22, 0.2, 0.22]))
+    m.add(G.sphere, P.white, T(at(o, 0, 0.46, 0), 0.16))
+    m.add(G.sphere, P.white, T(at(o, 0, 0.68, 0), 0.115))
+    m.add(G.torus, P.crimson, T(at(o, 0, 0.58, 0), [0.12, 0.12, 0.16], [Math.PI / 2, 0, 0]))
+    m.add(G.box, P.crimson, T(f(0.07, 0.5, 0.12), [0.05, 0.14, 0.02], [0, turn, 0.2]))
+    for (const s of [-1, 1]) m.add(G.sphere, P.ink, T(f(s * 0.04, 0.71, 0.1), 0.014))
+    m.add(G.cone, P.orange, T(f(0, 0.67, 0.15), [0.018, 0.09, 0.018], [Math.PI / 2, turn, 0]))
+    for (const h of [0.5, 0.42, 0.3]) m.add(G.sphere, P.ink, T(f(0, h, 0.155 + (h < 0.4 ? 0.05 : 0)), 0.012))
+    m.add(G.cyl, P.vermilion, T(at(o, 0, 0.8, 0), [0.075, 0.1, 0.075], [0, 0, 0.15]))
+    for (const s of [-1, 1]) m.add(G.cyl, P.woodDark, T(f(s * 0.22, 0.52, 0), [0.012, 0.26, 0.012], [0, turn, s * 1.0]))
+  },
+  'snow-pine'(m, o, { x, y }) {
+    const s = 0.9 + rnd(x, y, 1) * 0.3
+    m.add(G.cyl, P.woodDark, T(at(o, 0, 0.15, 0), [0.06, 0.3, 0.06]))
+    for (let i = 0; i < 3; i++) {
+      const r = (0.42 - i * 0.1) * s
+      const h = (0.4 + i * 0.28) * s
+      const spin = rnd(x, y, i)
+      m.add(G.cone, i % 2 ? P.leafDark : mix(P.leafDark, P.leaf, 0.3), T(at(o, 0, h, 0), [r, 0.5 * s, r], [0, spin, 0]), { sway: 0.015 + i * 0.01 })
+      // snow lying on each tier
+      m.add(G.cone, P.white, T(at(o, 0, h + 0.1 * s, 0), [r * 0.82, 0.3 * s, r * 0.82], [0, spin + 0.4, 0]), { sway: 0.015 + i * 0.01 })
+    }
+    m.add(G.sphere, P.white, T(at(o, 0, 0.02, 0), [0.32 * s, 0.05, 0.3 * s]))
+  },
   fence(m, o, { nb }) {
     // bits: N=1… use horizontal unless only vertical neighbours
     const horiz = (nb & (4 | 64)) !== 0 || (nb & (1 | 16)) === 0
@@ -204,7 +281,7 @@ const PROPS: Partial<Record<TileId, Build>> = {
 
 /** Add the smooth model of a tile object at `o`; false if none exists. */
 /** Props are built at tile scale, then enlarged to sit with the (chibi, 1.3×) characters. */
-const SCALE: Partial<Record<TileId, number>> = { tree: 1.45, sakura: 1.45, pine: 1.5, bamboo: 1.3, bush: 1.3, boulder: 1.25, torii: 1.15, fence: 1 }
+const SCALE: Partial<Record<TileId, number>> = { tree: 1.45, sakura: 1.45, pine: 1.5, 'snow-pine': 1.5, bamboo: 1.3, bush: 1.3, boulder: 1.25, torii: 1.15, fence: 1, boat: 1.25, net: 1.2 }
 
 export function addProp(m: Mesher, id: TileId, o: Vec3, k: { v: number; x: number; y: number; nb: number }): boolean {
   const b = PROPS[id]

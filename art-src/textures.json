@@ -39,5 +39,9 @@
     "tile": false
   },
   "water": "https://d8j0ntlcm91z4.cloudfront.net/user_32Gtaw5yTeqBNRnW1bKP181bgml/hf_20261001_101436_d6a1a0b3-0a89-4738-9b53-7f0b54a4ed12.png",
-  "wood-floor": "https://d8j0ntlcm91z4.cloudfront.net/user_32Gtaw5yTeqBNRnW1bKP181bgml/hf_20261001_101435_47da350b-6280-4af5-9b8f-2fcc5a1bb2fc.png"
+  "wood-floor": "https://d8j0ntlcm91z4.cloudfront.net/user_32Gtaw5yTeqBNRnW1bKP181bgml/hf_20261001_101435_47da350b-6280-4af5-9b8f-2fcc5a1bb2fc.png",
+  "ice": "https://d8j0ntlcm91z4.cloudfront.net/user_32Gtaw5yTeqBNRnW1bKP181bgml/hf_20261003_074816_b7785de6-3801-4d61-9f61-815708202d74.png",
+  "onsen": "https://d8j0ntlcm91z4.cloudfront.net/user_32Gtaw5yTeqBNRnW1bKP181bgml/hf_20261003_074817_934710f7-818e-4b47-8785-101f660a881f.png",
+  "cloud": "https://d8j0ntlcm91z4.cloudfront.net/user_32Gtaw5yTeqBNRnW1bKP181bgml/hf_20261003_074816_d1912de6-fbb7-41b1-a0e8-84c7ec059892.png",
+  "sky": "https://d8j0ntlcm91z4.cloudfront.net/user_32Gtaw5yTeqBNRnW1bKP181bgml/hf_20261003_074816_6d16b124-2200-468b-ad05-8d94d0cfcdd7.png"
 }
