@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buySword, canBuy, freshNinja, settleStage, stageAt, STAGE_COUNT, SWORD_BY_ID, SWORDS, xpToNext, type NinjaSave } from './data'
+import { ARMOR_BY_ID, ARMORS, armorOf, armorsOf, artsOf, buyArmor, buySword, canBuy, canBuyArmor, canLearn, freshNinja, learnArt, settleStage, stageAt, STAGE_COUNT, SWORD_BY_ID, SWORDS, xpToNext, type ArtId, type NinjaSave } from './data'
 import { ARENA, createSim, FOE_MOVES, noInput, step, type Input, type Sim } from './sim'
 
 function rng(seed: number) {
@@ -41,7 +41,7 @@ function bot(s: Sim, r: () => number, skill: number): Input {
 
 function play(save: NinjaSave, index: number, seed: number, skill = 0.6) {
   const r = rng(seed)
-  const s = createSim(stageAt(index), save.level, SWORD_BY_ID[save.sword], rng(seed + 7))
+  const s = createSim(stageAt(index), save.level, SWORD_BY_ID[save.sword], rng(seed + 7), { armor: armorOf(save), arts: artsOf(save), have: [...save.owned, ...armorsOf(save)] })
   let t = 0
   while (!s.outcome && t < 240) {
     step(s, bot(s, r, skill), 1 / 60)
@@ -51,8 +51,8 @@ function play(save: NinjaSave, index: number, seed: number, skill = 0.6) {
 }
 
 describe('stick ninja data', () => {
-  it('builds 25 stages, a boss closing each world', () => {
-    expect(STAGE_COUNT).toBe(25)
+  it('builds 50 stages, a boss closing each world', () => {
+    expect(STAGE_COUNT).toBe(50)
     for (let i = 0; i < STAGE_COUNT; i++) {
       const st = stageAt(i)
       expect(st.waves.length).toBeGreaterThanOrEqual(2)
@@ -140,6 +140,23 @@ describe('stick ninja fight', () => {
   })
 })
 
+/** What a sensible player does between fights: best sword and armour in reach, Ink Arts points spent. */
+function shop(save: NinjaSave): NinjaSave {
+  for (const sw of [...SWORDS].reverse()) {
+    if (canBuy(save, sw.id) === 'ok' && sw.dmg > SWORD_BY_ID[save.sword].dmg) {
+      save = buySword(save, sw.id)!
+      break
+    }
+  }
+  for (const a of [...ARMORS].reverse()) if (canBuyArmor(save, a.id) === 'ok' && a.def > armorOf(save).def) save = buyArmor(save, a.id)!
+  const best = save.owned.reduce((a, b) => (SWORD_BY_ID[b].dmg > SWORD_BY_ID[a].dmg ? b : a), save.sword)
+  const armor = armorsOf(save).reduce((a, b) => (ARMOR_BY_ID[b].def > ARMOR_BY_ID[a].def ? b : a), save.armor ?? 'gi')
+  save = { ...save, sword: best, armor }
+  const plan: ArtId[] = ['up:power', 'up:focus', 'el:thunder', 'up:mend', 'up:power', 'up:focus', 'up:power', 'up:barrier', 'up:mend', 'up:surge', 'up:focus', 'up:barrier', 'up:mend', 'up:surge', 'up:barrier', 'up:surge']
+  for (const id of plan) if (canLearn(save, id) === 'ok') save = learnArt(save, id)!
+  return save
+}
+
 describe('stick ninja campaign (simulated player)', () => {
   it('a middling player can finish the campaign by levelling and buying swords, without it being a walkover', () => {
     let save = freshNinja()
@@ -148,21 +165,15 @@ describe('stick ninja campaign (simulated player)', () => {
     const log: string[] = []
     for (let i = 0; i < STAGE_COUNT; ) {
       attempts++
-      expect(attempts, log.join('\n')).toBeLessThan(140)
+      expect(attempts, log.join('\n')).toBeLessThan(300)
       const { s, won } = play(save, i, attempts * 31)
       if (!won) losses++
-      save = settleStage(save, stageAt(i), won, s.xp, s.ryo).save
-      // Spend on the best sword in reach.
-      for (const sw of [...SWORDS].reverse()) {
-        if (canBuy(save, sw.id) === 'ok' && sw.cost > SWORD_BY_ID[save.sword].cost) {
-          save = buySword(save, sw.id)!
-          break
-        }
-      }
+      save = settleStage(save, stageAt(i), won, s.xp, s.ryo, s.found).save
+      save = shop(save)
       log.push(`${i} ${won ? 'W' : 'L'} lv${save.level} ${save.sword} ryo${save.ryo} hp${Math.round(s.hero.hp)}`)
       if (won) i++
     }
-    console.log(log.filter((l) => / L /.test(l) || /^(4|9|14|19|24) /.test(l)).join('\n'), `\nattempts ${attempts} losses ${losses} level ${save.level}`)
+    console.log(log.filter((l) => / L /.test(l) || /^(4|9|14|19|24|29|34|39|44|49) /.test(l)).join('\n'), `\nattempts ${attempts} losses ${losses} level ${save.level}`)
     expect(save.cleared).toBe(STAGE_COUNT)
     expect(losses).toBeGreaterThan(0)
   })

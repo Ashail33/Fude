@@ -33,6 +33,8 @@ import { HINT_FLAG as TRAVEL_HINT, isTravelWord, TRAVEL_WORDS, travelReady, trav
 import { TravelMap } from './TravelMap'
 import { castScript, taleLog, entityGhost, entityMoved, entityVisible, fizzle, makeCtx, mapCastScript, storyMarkers, talkScript } from '../story/tales/engine'
 import { roadTale } from '../story/tales/road'
+import { claimCache } from '../arcade/story'
+import type { CacheLoot } from '../arcade/ninja/data'
 import { makeEntities } from './entities'
 import { tileSolid } from './mapdef'
 import { getMap, locateActivity } from './maps'
@@ -316,6 +318,7 @@ export default function Overworld() {
     const steps: Step[] = []
     if (it) steps.push({ kind: 'say', portrait: it.icon, line: { jp: `${it.jp}（${it.kana}）を ${c.n ?? 1}こ てに いれた！`, en: `You got ${c.n ?? 1} × ${it.name}!` }, voice: false })
     if (c.shards) steps.push({ kind: 'say', portrait: 'shard', line: { jp: `ことだまの かけら ${c.shards}こ！`, en: `${c.shards} spirit shards!` }, voice: false })
+    if (c.ninja) steps.push({ kind: 'say', line: claimCache(c.ninja as CacheLoot), voice: false })
     return steps
   }, [])
 

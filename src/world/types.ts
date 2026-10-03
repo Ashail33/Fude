@@ -24,6 +24,8 @@ export interface ChestSpec {
   xp?: number
   /** Word lock: type `answer` (kana) to open. */
   lock?: { answer: string; jp: string; en: string }
+  /** Stick Ninja loot: gear, or an Ink Scroll (one more Ink Arts point). */
+  ninja?: { gear: string } | { scroll: true }
 }
 
 export type EntityKind = 'npc' | 'activity' | 'chest' | 'landmark' | 'sign' | 'boss'

@@ -12,6 +12,7 @@ import { TOWER_FOLK } from './folk-r5'
 import { EXTRA_AREAS } from './extra-areas'
 import { MINIGAMES } from './minigames'
 import { ROAD } from './road'
+import { NINJA_CACHES } from './ninjaCaches'
 import type { TaleContent } from './types'
 import { PACK_CONTENT } from '../../regions/story'
 
@@ -30,4 +31,5 @@ export const CONTENT: TaleContent[] = [
   EXTRA_AREAS,
   MINIGAMES,
   ROAD,
+  NINJA_CACHES,
 ]

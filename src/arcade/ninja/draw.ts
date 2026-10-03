@@ -5,7 +5,7 @@
  */
 import { hdAvailable } from '../../art/hd'
 import { hdUrl } from '../../art/hd/manifest'
-import { FOES, WORLDS, type FoeKind, type Weapon } from './data'
+import { ART_BY_ID, FOES, MOD_INFO, WORLDS, isSword, type Deco, type FoeKind, type Weapon } from './data'
 import { ARENA, type Fighter, type Move, type Shot, type Sim, type Swing } from './sim'
 
 export const VW = 480
@@ -22,7 +22,7 @@ interface Theme {
   mid: string
   ground: string
   edge: string
-  deco: 'bamboo' | 'torii' | 'pines' | 'castle' | 'pagoda'
+  deco: Deco
   moon?: string
   motes?: string
 }
@@ -33,6 +33,11 @@ const THEMES: Theme[] = [
   { sky: ['#86c2e6', '#eef7fb'], far: '#a8bfcf', mid: '#5d7a8c', ground: '#6e6a66', edge: '#3f4a52', deco: 'pines', motes: '#ffffff' },
   { sky: ['#0d0a22', '#3f2c6b'], far: '#291d47', mid: '#130d25', ground: '#1f1a33', edge: '#0b0816', deco: 'castle', moon: '#f4ecff', motes: '#b79cff' },
   { sky: ['#2a0e08', '#ff8c42'], far: '#6a2a16', mid: '#2a110a', ground: '#3c1f14', edge: '#1a0a05', deco: 'pagoda', moon: '#ffd27a', motes: '#ffb04d' },
+  { sky: ['#2c4a48', '#a9cfae'], far: '#5f8a7a', mid: '#21423a', ground: '#4a5a48', edge: '#2b3b2c', deco: 'willows', motes: '#d4ff6a' },
+  { sky: ['#04060d', '#1f3550'], far: '#18283a', mid: '#0b121b', ground: '#2a2e33', edge: '#11151a', deco: 'temple', moon: '#e6f4ff', motes: '#7fe7ff' },
+  { sky: ['#465c84', '#cbdaea'], far: '#9fb2c8', mid: '#55698a', ground: '#e3ebf3', edge: '#9fb4c7', deco: 'snowpass', motes: '#ffffff' },
+  { sky: ['#191c28', '#5b5f78'], far: '#373b52', mid: '#20233a', ground: '#cfd4dd', edge: '#8d94a6', deco: 'drums', motes: '#ffe066' },
+  { sky: ['#ece7f3', '#b6a3d8'], far: '#8a7aa8', mid: '#1b1030', ground: '#efeae0', edge: '#1b1030', deco: 'void', motes: '#3d2a5c' },
 ]
 
 function seeded(seed: number) {
@@ -110,6 +115,123 @@ function backdrop(ctx: CanvasRenderingContext2D, world: number, cam: number, t: 
       for (let k = 0; k < 6; k++) ctx.fillRect(x - 1, 70 + k * 28 + r() * 6, w + 2, 2)
       ctx.beginPath()
       ctx.ellipse(x + 10, 60 + r() * 50, 12, 3, -0.5, 0, Math.PI * 2)
+      ctx.fill()
+    }
+  } else if (th.deco === 'willows') {
+    // A slow river behind the bank, and willows trailing into it.
+    ctx.fillStyle = 'rgba(120,180,170,0.55)'
+    ctx.fillRect(0, GY - 20, vw, 20)
+    ctx.fillStyle = 'rgba(255,255,255,0.35)'
+    for (let i = 0; i < 16; i++) ctx.fillRect(((i * 61 - cam * 0.6 + t * 12) % (vw + 40) + vw + 40) % (vw + 40) - 20, GY - 16 + (i % 3) * 5, 10 + (i % 4) * 4, 1)
+    ctx.fillStyle = th.mid
+    ctx.strokeStyle = th.mid
+    for (let i = 0; i < 12; i++) {
+      const x = i * 110 + r() * 40 - pm
+      if (x < -80 || x > vw + 80) continue
+      const top = 70 + r() * 30
+      ctx.lineWidth = 6
+      line(ctx, [x, GY - 18], [x + 6, top])
+      ctx.lineWidth = 1.2
+      for (let k = 0; k < 16; k++) {
+        const bx = x - 40 + k * 6
+        const sway = Math.sin(t * 1.2 + k + i) * 4
+        ctx.beginPath()
+        ctx.moveTo(x + 6, top)
+        ctx.quadraticCurveTo(bx, top - 10, bx + sway, top + 50 + ((k * 13) % 30))
+        ctx.stroke()
+      }
+    }
+  } else if (th.deco === 'snowpass') {
+    for (let i = 0; i < 30; i++) {
+      const x = i * 40 + r() * 20 - pm
+      const h = 50 + r() * 60
+      ctx.fillStyle = th.mid
+      ctx.beginPath()
+      ctx.moveTo(x, GY - h - 30)
+      ctx.lineTo(x - 18, GY - 20)
+      ctx.lineTo(x + 18, GY - 20)
+      ctx.fill()
+      ctx.fillStyle = 'rgba(255,255,255,0.85)'
+      ctx.beginPath()
+      ctx.moveTo(x, GY - h - 30)
+      ctx.lineTo(x - 8, GY - h - 8)
+      ctx.lineTo(x + 8, GY - h - 8)
+      ctx.fill()
+    }
+  } else if (th.deco === 'drums') {
+    // Floating taiko drums on banks of cloud; now and then the sky flashes.
+    const flash = Math.max(0, Math.sin(t * 0.9) * Math.sin(t * 7.3)) > 0.93
+    if (flash) {
+      ctx.fillStyle = 'rgba(255,250,220,0.35)'
+      ctx.fillRect(0, 0, vw, GY)
+    }
+    for (let i = 0; i < 6; i++) {
+      const x = 60 + i * 190 - pm
+      if (x < -60 || x > vw + 60) continue
+      const y = 90 + Math.sin(t * 0.8 + i) * 8 + (i % 2) * 30
+      ctx.fillStyle = th.mid
+      ctx.beginPath()
+      ctx.ellipse(x, y, 22, 26, 0, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.strokeStyle = '#c9a227'
+      ctx.lineWidth = 2
+      ctx.beginPath()
+      ctx.ellipse(x, y, 22, 26, 0, 0, Math.PI * 2)
+      ctx.stroke()
+      ctx.fillStyle = '#b71c1c'
+      ctx.beginPath()
+      ctx.arc(x, y, 10, 0, Math.PI * 2)
+      ctx.fill()
+    }
+    ctx.fillStyle = 'rgba(220,224,235,0.9)'
+    for (let i = 0; i < 9; i++) {
+      const x = ((i * 140 - cam * 0.5 + t * 6) % (vw + 160)) - 80
+      ctx.beginPath()
+      ctx.ellipse(x, GY - 6, 60, 16, 0, 0, Math.PI * 2)
+      ctx.ellipse(x + 40, GY - 14, 34, 14, 0, 0, Math.PI * 2)
+      ctx.fill()
+    }
+  } else if (th.deco === 'void') {
+    // A vast ink torii, and written characters drifting apart.
+    const x = 300 - pm * 0.4
+    ctx.fillStyle = th.mid
+    ctx.fillRect(x - 70, GY - 170, 12, 170)
+    ctx.fillRect(x + 58, GY - 170, 12, 170)
+    ctx.fillRect(x - 96, GY - 186, 192, 14)
+    ctx.fillRect(x - 80, GY - 150, 160, 8)
+    ctx.font = '14px serif'
+    ctx.textAlign = 'center'
+    const chars = '言葉心字文音声名話語'
+    for (let i = 0; i < 22; i++) {
+      const cx = ((i * 83 - cam * (0.2 + (i % 4) * 0.1)) % (vw + 40) + vw + 40) % (vw + 40) - 20
+      const cy = (GY - ((t * (6 + (i % 5) * 3) + i * 37) % GY))
+      ctx.globalAlpha = 0.15 + 0.3 * ((i * 7) % 10) / 10
+      ctx.fillText(chars[i % chars.length], cx, cy)
+    }
+    ctx.globalAlpha = 1
+  } else if (th.deco === 'temple') {
+    for (let i = 0; i < 4; i++) {
+      const x = 120 + i * 260 - pm
+      if (x < -140 || x > vw + 140) continue
+      ctx.fillStyle = th.mid
+      ctx.fillRect(x - 60, GY - 70, 120, 70)
+      ctx.beginPath()
+      ctx.moveTo(x - 90, GY - 66)
+      ctx.quadraticCurveTo(x, GY - 120, x + 90, GY - 66)
+      ctx.fill()
+      // Torn paper doors glowing ghost-blue.
+      ctx.fillStyle = `rgba(127,231,255,${0.35 + 0.15 * Math.sin(t * 2 + i)})`
+      for (let k = 0; k < 4; k++) ctx.fillRect(x - 48 + k * 25, GY - 56, 20, 40)
+    }
+    for (let i = 0; i < 9; i++) {
+      const x = 40 + i * 130 - cam * 0.75
+      if (x < -20 || x > vw + 20) continue
+      ctx.fillStyle = '#1a2129'
+      ctx.fillRect(x - 4, GY - 30, 8, 30)
+      ctx.fillRect(x - 8, GY - 38, 16, 9)
+      ctx.fillStyle = `rgba(127,231,255,${0.6 + 0.3 * Math.sin(t * 5 + i)})`
+      ctx.beginPath()
+      ctx.arc(x, GY - 44 + Math.sin(t * 2 + i) * 2, 3.5, 0, Math.PI * 2)
       ctx.fill()
     }
   } else if (th.deco === 'pines') {
@@ -227,6 +349,11 @@ const ATMOS = [
   { rays: '255,255,255', fog: '245,250,255', motes: '#ffffff', fall: 'snow' },
   { rays: '', fog: '120,80,200', motes: '#ffb7d5', fall: 'petal' },
   { rays: '255,170,80', fog: '120,40,10', motes: '#ffb04d', fall: 'ember' },
+  { rays: '', fog: '170,215,195', motes: '#cfe8e4', fall: 'rain' },
+  { rays: '', fog: '110,190,255', motes: '#7fe7ff', fall: 'ember' },
+  { rays: '255,255,255', fog: '240,248,255', motes: '#ffffff', fall: 'blizzard' },
+  { rays: '255,230,120', fog: '200,200,220', motes: '#dfe6ff', fall: 'rain' },
+  { rays: '', fog: '70,40,100', motes: '#2a1840', fall: 'ink' },
 ] as const
 
 function atmosphere(ctx: CanvasRenderingContext2D, world: number, cam: number, t: number) {
@@ -259,16 +386,29 @@ function atmosphere(ctx: CanvasRenderingContext2D, world: number, cam: number, t
     ctx.fillStyle = g
     ctx.fillRect(x - 110, GY - 60, 220, 90)
   }
-  // Falling leaves, snow, petals or rising embers.
-  const n = a.fall === 'ember' ? 26 : 20
+  // Falling leaves, snow, petals or rain; rising embers or ink.
+  if (a.fall === 'rain') {
+    ctx.strokeStyle = a.motes
+    ctx.lineWidth = 0.8
+    ctx.globalAlpha = 0.45
+    for (let i = 0; i < 70; i++) {
+      const x = ((i * 53.7 + t * 40 - cam * 0.9) % (vw + 40) + vw + 40) % (vw + 40) - 20
+      const y = (i * 41 + t * (260 + (i % 5) * 30)) % (GY + 20)
+      line(ctx, [x, y], [x - 3, y + 9])
+    }
+    ctx.restore()
+    return
+  }
+  const n = a.fall === 'ember' ? 26 : a.fall === 'blizzard' ? 60 : a.fall === 'ink' ? 30 : 20
   ctx.fillStyle = a.motes
   for (let i = 0; i < n; i++) {
     const r = (i * 97.13) % 1
-    const speed = 10 + ((i * 37) % 23)
-    const rise = a.fall === 'ember'
+    const speed = (a.fall === 'blizzard' ? 40 : 10) + ((i * 37) % 23)
+    const rise = a.fall === 'ember' || a.fall === 'ink'
     let y = ((i * 53 + t * speed) % (GY + 40)) - 20
     if (rise) y = GY - y
-    const x = ((i * 131 + Math.sin(t * 0.8 + i) * 18 - cam * (0.3 + r * 0.5)) % (vw + 40) + vw + 40) % (vw + 40) - 20
+    const drift = a.fall === 'blizzard' ? -t * 90 : 0
+    const x = ((i * 131 + drift + Math.sin(t * 0.8 + i) * 18 - cam * (0.3 + r * 0.5)) % (vw + 40) + vw + 40) % (vw + 40) - 20
     ctx.globalAlpha = rise ? 0.55 + 0.4 * Math.sin(t * 5 + i) : 0.75
     if (a.fall === 'leaf' || a.fall === 'petal') {
       ctx.save()
@@ -285,7 +425,7 @@ function atmosphere(ctx: CanvasRenderingContext2D, world: number, cam: number, t
 
 /** Dark grass and stones in front of the fighters, moving faster than the camera for depth. */
 function foreground(ctx: CanvasRenderingContext2D, world: number, cam: number, t: number) {
-  const col = ['#14261a', '#1a0b08', '#2a3036', '#0b0814', '#1c0905'][world]
+  const col = ['#14261a', '#1a0b08', '#2a3036', '#0b0814', '#1c0905', '#12291f', '#05080d', '#b8c7d6', '#171a26', '#1b1030'][world] ?? '#111'
   ctx.fillStyle = col
   const span = vw + 120
   for (let i = 0; i < 14; i++) {
@@ -519,22 +659,25 @@ function lookOf(s: Sim, f: Fighter): Look {
   if (f.kind === 'hero') {
     const sw = s.sword
     const glow = sw.burn || sw.lifesteal || sw.special === 'lightning' ? sw.color : undefined
-    return { body: '#141418', cloth: '#1f2b4d', trim: '#c62828', hakama: true, weapon: 'sword', blade: sw.color, len: sw.reach * 0.66, thick: 1, twin: sw.twin, glow }
+    const el = s.arts.element ? ART_BY_ID[`el:${s.arts.element}`].color : undefined
+    return { body: '#141418', cloth: s.armor.color, trim: '#c62828', hakama: true, weapon: 'sword', blade: sw.color, len: sw.reach * 0.66, thick: 1, twin: sw.twin, glow: glow ?? (s.meter >= 100 ? el : undefined) }
   }
   const d = FOES[f.kind as FoeKind]
-  const len = d.weapon === 'spear' ? 70 : d.weapon === 'club' ? 38 : d.weapon === 'kunai' ? 14 : d.weapon === 'fan' ? 16 : 36
-  const hakama = ['spear', 'ronin', 'shogun', 'kage', 'tengu'].includes(f.kind)
-  const trim = f.kind === 'shogun' ? '#ffd54f' : f.kind === 'brute' ? '#e8d9b8' : f.kind === 'oni' ? '#f5c542' : shade(d.color, 0.45)
+  const len = d.weapon === 'spear' ? 70 : d.weapon === 'club' ? 38 : d.weapon === 'kunai' ? 14 : d.weapon === 'fan' ? 16 : d.weapon === 'bow' ? 26 : d.weapon === 'claw' ? 9 : 36
+  const hakama = ['spear', 'ronin', 'shogun', 'kage', 'tengu', 'samurai', 'monk', 'frost', 'quiet', 'gasha', 'yurei'].includes(f.kind)
+  const trim = f.kind === 'shogun' ? '#ffd54f' : f.kind === 'brute' ? '#e8d9b8' : f.kind === 'oni' ? '#f5c542' : f.kind === 'samurai' ? '#ffd54f' : f.kind === 'quiet' ? '#b388ff' : shade(d.color, 0.45)
+  const BODY: Partial<Record<FoeKind, string>> = { oni: '#9e1c14', brute: '#6e2626', kappa: '#2e6b46', kappaking: '#225c3a', yurei: '#e8f6fc', gasha: '#efe9d8', storm: '#8a5a2b', quiet: '#0a0612' }
+  const GLOW: Partial<Record<FoeKind, string>> = { kage: '#a26bff', shade: '#a26bff', shogun: '#ff9800', yurei: '#7fe7ff', gasha: '#7fe7ff', frost: '#bfe9ff', storm: '#ffe066', quiet: '#b388ff' }
   return {
-    body: f.kind === 'oni' ? '#9e1c14' : f.kind === 'brute' ? '#6e2626' : shade(d.color, -0.55),
+    body: BODY[f.kind as FoeKind] ?? shade(d.color, -0.55),
     cloth: d.color,
     trim,
     hakama,
     weapon: d.weapon,
     blade: d.weapon === 'club' ? '#3b2a1a' : '#d8dde4',
     len,
-    thick: f.kind === 'brute' || f.kind === 'oni' ? 1.5 : 1,
-    glow: f.kind === 'kage' || f.kind === 'shade' ? '#a26bff' : f.kind === 'shogun' ? '#ff9800' : undefined,
+    thick: f.kind === 'brute' || f.kind === 'oni' || f.kind === 'kappaking' ? 1.5 : f.kind === 'gasha' ? 0.75 : 1,
+    glow: f.elite ? '#ffd54f' : GLOW[f.kind as FoeKind],
   }
 }
 
@@ -639,12 +782,23 @@ function drawFighter(ctx: CanvasRenderingContext2D, s: Sim, f: Fighter, cam: num
   }
   if (ghost) ctx.globalAlpha = at.alpha
   if (f.kind === 'shade') ctx.globalAlpha *= 0.7
+  if (f.kind === 'yurei') ctx.globalAlpha *= 0.62 + 0.15 * Math.sin(s.t * 3 + f.uid)
+  // A gold aura for elites; the hero's element shimmering when the special is ready.
+  const aura = !ghost && !f.dead ? (f.elite ? '#ffd54f' : f.kind === 'hero' && s.meter >= 100 && s.arts.element ? ART_BY_ID[`el:${s.arts.element}`].color : null) : null
+  if (aura) {
+    const ag = ctx.createRadialGradient(sx, sy - 34 * sc, 4, sx, sy - 34 * sc, 46 * sc)
+    ag.addColorStop(0, hexA(aura, 0.35 + 0.1 * Math.sin(s.t * 6)))
+    ag.addColorStop(1, hexA(aura, 0))
+    ctx.fillStyle = ag
+    ctx.fillRect(sx - 50 * sc, sy - 84 * sc, 100 * sc, 100 * sc)
+  }
   if (!ghost && f.inv > 0 && f.team === 0 && !f.move && Math.floor(f.inv * 20) % 2 === 0) ctx.globalAlpha *= 0.45
   const fullMeter = f.kind === 'hero' && s.meter >= 100
   const glow = look.glow ?? (fullMeter ? s.sword.color : undefined)
   const flash = f.flash > 0
-  const body = ghost ? at.tint! : flash ? '#ffffff' : look.body
-  const cloth = ghost ? at.tint! : flash ? '#ffffff' : look.cloth
+  const chilled = f.chillT > 0 || (f.stunT > 0.6 && f.chillT > 0)
+  const body = ghost ? at.tint! : flash ? '#ffffff' : chilled ? '#9fd8f5' : look.body
+  const cloth = ghost ? at.tint! : flash ? '#ffffff' : chilled ? '#cdeefc' : look.cloth
   const back = ghost ? at.tint! : flash ? '#f0f0f0' : shade(look.body.startsWith('#') ? look.body : '#202020', -0.35)
   ctx.lineCap = 'round'
   ctx.lineJoin = 'round'
@@ -730,6 +884,38 @@ function drawFighter(ctx: CanvasRenderingContext2D, s: Sim, f: Fighter, cam: num
   }
   const tip = blade(ctx, s, f, R.hand, pose.psi, look.len * sc, look, ghost)
   if (!ghost) extras(ctx, s, f, R.head, sc, body)
+  if (!ghost && !f.dead) {
+    // Shadow's mark: a violet sigil over the head.
+    if (f.markT > 0) {
+      ctx.strokeStyle = `rgba(179,136,255,${0.6 + 0.3 * Math.sin(s.t * 8)})`
+      ctx.lineWidth = 1.5
+      ctx.beginPath()
+      ctx.arc(R.head[0], R.head[1] - 16 * sc, 5, 0, Math.PI * 2)
+      ctx.moveTo(R.head[0] - 5, R.head[1] - 16 * sc)
+      ctx.lineTo(R.head[0] + 5, R.head[1] - 16 * sc)
+      ctx.stroke()
+    }
+    // Frozen solid: an ice shell.
+    if (f.stunT > 0 && f.chillT > 0) {
+      ctx.fillStyle = 'rgba(190,235,255,0.35)'
+      ctx.strokeStyle = 'rgba(230,250,255,0.8)'
+      ctx.lineWidth = 1
+      ctx.beginPath()
+      ctx.roundRect(sx - 15 * sc, sy - 72 * sc, 30 * sc, 74 * sc, 4)
+      ctx.fill()
+      ctx.stroke()
+    }
+    // The Ink Barrier around the hero.
+    if (f.kind === 'hero' && s.barrier > 0) {
+      ctx.strokeStyle = `rgba(77,208,225,${0.45 + 0.25 * Math.sin(s.t * 10)})`
+      ctx.fillStyle = 'rgba(77,208,225,0.08)'
+      ctx.lineWidth = 1.5
+      ctx.beginPath()
+      ctx.ellipse(sx, sy - 34, 26, 40, 0, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.stroke()
+    }
+  }
   ctx.restore()
   if (ghost) return
 
@@ -815,6 +1001,23 @@ function blade(ctx: CanvasRenderingContext2D, s: Sim, f: Fighter, hand: Pt, psi:
         for (const side of [-1, 1]) ctx.fillRect(hand[0] + dx * len * u + nx * side * 4 * f.scale - 1.5, hand[1] + dy * len * u + ny * side * 4 * f.scale - 1.5, 3, 3)
       }
     }
+  } else if (look.weapon === 'bow') {
+    // A tall yumi bow held upright, string drawn back on the throw.
+    const a0 = Math.atan2(dy, dx)
+    ctx.strokeStyle = '#5d3a1a'
+    ctx.lineWidth = 2 * f.scale
+    ctx.beginPath()
+    ctx.arc(hand[0] - dx * 8, hand[1] - dy * 8, len * 0.9, a0 - 1.1, a0 + 1.1)
+    ctx.stroke()
+    ctx.strokeStyle = 'rgba(240,240,240,0.8)'
+    ctx.lineWidth = 0.7
+    const c = [hand[0] - dx * 8, hand[1] - dy * 8]
+    line(ctx, [c[0] + Math.cos(a0 - 1.1) * len * 0.9, c[1] + Math.sin(a0 - 1.1) * len * 0.9], [c[0] + Math.cos(a0 + 1.1) * len * 0.9, c[1] + Math.sin(a0 + 1.1) * len * 0.9])
+  } else if (look.weapon === 'claw') {
+    // Clawed hands (kappa, ghosts, bones).
+    ctx.strokeStyle = f.kind === 'gasha' ? '#efe9d8' : f.kind === 'yurei' ? 'rgba(232,246,252,0.8)' : '#1d4a2f'
+    ctx.lineWidth = 1.4 * f.scale
+    for (const k of [-0.5, 0, 0.5]) line(ctx, hand, [hand[0] + Math.cos(Math.atan2(dy, dx) + k) * len, hand[1] + Math.sin(Math.atan2(dy, dx) + k) * len])
   } else if (look.weapon === 'fan') {
     ctx.fillStyle = '#f2e7c9'
     ctx.strokeStyle = '#7a1f1f'
@@ -881,6 +1084,20 @@ function extras(ctx: CanvasRenderingContext2D, s: Sim, f: Fighter, head: Pt, sc:
   ctx.save()
   switch (f.kind) {
     case 'hero': {
+      // Shoulder plates for real armour.
+      if (s.armor.def >= 0.12) {
+        ctx.fillStyle = s.armor.color
+        ctx.strokeStyle = 'rgba(0,0,0,0.5)'
+        ctx.lineWidth = 0.8
+        ctx.beginPath()
+        ctx.roundRect(head[0] - 9 - fc * 1, head[1] + 8, 18, 5, 2)
+        ctx.fill()
+        ctx.stroke()
+        if (s.armor.perk) {
+          ctx.fillStyle = '#ffd54f'
+          ctx.fillRect(head[0] - 1, head[1] + 9, 2, 3)
+        }
+      }
       // Red headband with trailing tails.
       ctx.strokeStyle = '#d32f2f'
       ctx.lineWidth = 2.4
@@ -978,6 +1195,144 @@ function extras(ctx: CanvasRenderingContext2D, s: Sim, f: Fighter, head: Pt, sc:
       }
       break
     }
+    case 'kappa':
+    case 'kappaking': {
+      // The water dish on the head (and the king's reed crown), and a shell.
+      ctx.fillStyle = '#d8efe4'
+      ctx.beginPath()
+      ctx.ellipse(head[0], head[1] - 6 * sc, 6 * sc, 2.2 * sc, 0, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.fillStyle = '#5fb3d0'
+      ctx.beginPath()
+      ctx.ellipse(head[0], head[1] - 6.5 * sc, 4 * sc, 1.2 * sc, 0, 0, Math.PI * 2)
+      ctx.fill()
+      if (f.kind === 'kappaking') {
+        ctx.strokeStyle = '#c9a227'
+        ctx.lineWidth = 1.4
+        for (let k = -3; k <= 3; k++) line(ctx, [head[0] + k * 2 * sc, head[1] - 7 * sc], [head[0] + k * 2.6 * sc, head[1] - 13 * sc])
+      }
+      ctx.fillStyle = '#5b4a2a'
+      ctx.beginPath()
+      ctx.ellipse(head[0] - fc * 7 * sc, head[1] + 22 * sc, 7 * sc, 12 * sc, fc * 0.2, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.fillStyle = '#ffe14d'
+      ctx.fillRect(head[0] + fc * 3 * sc - 1, head[1] - 1, 2.4, 2.4)
+      break
+    }
+    case 'yurei':
+      // Long black hair over a pale face; a triangular headband.
+      ctx.fillStyle = '#0d0d12'
+      ctx.beginPath()
+      ctx.moveTo(head[0] - 7 * sc, head[1] - 4 * sc)
+      ctx.quadraticCurveTo(head[0], head[1] - 10 * sc, head[0] + 7 * sc, head[1] - 4 * sc)
+      ctx.lineTo(head[0] + fc * 3 * sc, head[1] + 20 * sc)
+      ctx.lineTo(head[0] - fc * 9 * sc, head[1] + 16 * sc)
+      ctx.fill()
+      ctx.fillStyle = '#ffffff'
+      ctx.beginPath()
+      ctx.moveTo(head[0] - 2, head[1] - 7 * sc)
+      ctx.lineTo(head[0] + 2, head[1] - 7 * sc)
+      ctx.lineTo(head[0], head[1] - 11 * sc)
+      ctx.fill()
+      break
+    case 'archer':
+      ctx.fillStyle = '#3a2e18'
+      ctx.beginPath()
+      ctx.ellipse(head[0], head[1] - 4 * sc, 10 * sc, 3 * sc, 0, Math.PI, 0)
+      ctx.fill()
+      // Quiver.
+      ctx.fillStyle = '#5d3a1a'
+      ctx.fillRect(head[0] - fc * 7 * sc - 2, head[1] + 10 * sc, 4, 16 * sc)
+      ctx.fillStyle = '#eee'
+      for (let k = 0; k < 3; k++) ctx.fillRect(head[0] - fc * 7 * sc - 2 + k * 1.4, head[1] + 6 * sc, 1, 4)
+      break
+    case 'monk':
+      // A white hood wrapped round the head.
+      ctx.fillStyle = '#f5f5f5'
+      ctx.beginPath()
+      ctx.arc(head[0], head[1], 8.4 * sc, Math.PI * 0.9, Math.PI * 2.1)
+      ctx.lineTo(head[0] - fc * 6 * sc, head[1] + 10 * sc)
+      ctx.fill()
+      break
+    case 'samurai':
+    case 'frost': {
+      // Kabuto helmet with a crest.
+      ctx.fillStyle = f.kind === 'frost' ? '#bcd8ea' : '#2b0d16'
+      ctx.beginPath()
+      ctx.arc(head[0], head[1] - 1, 8.4 * sc, Math.PI, 0)
+      ctx.fill()
+      ctx.fillRect(head[0] - 10 * sc, head[1] - 1, 20 * sc, 2.4 * sc)
+      ctx.strokeStyle = f.kind === 'frost' ? '#ffffff' : '#ffd54f'
+      ctx.lineWidth = 1.8
+      ctx.beginPath()
+      ctx.moveTo(head[0] - 6 * sc, head[1] - 14 * sc)
+      ctx.lineTo(head[0], head[1] - 6 * sc)
+      ctx.lineTo(head[0] + 6 * sc, head[1] - 14 * sc)
+      ctx.stroke()
+      if (f.kind === 'frost') {
+        // A long white scarf.
+        ctx.strokeStyle = 'rgba(255,255,255,0.9)'
+        ctx.lineWidth = 2
+        ctx.beginPath()
+        ctx.moveTo(head[0] - fc * 3, head[1] + 8 * sc)
+        for (let i = 1; i <= 5; i++) ctx.lineTo(head[0] - fc * (3 + i * 6), head[1] + 8 * sc + i * 1.2 + Math.sin(s.t * 9 + i) * 2.4)
+        ctx.stroke()
+      }
+      break
+    }
+    case 'gasha':
+      // A skull: dark sockets with ghost-fire.
+      ctx.fillStyle = '#1a1a1a'
+      ctx.beginPath()
+      ctx.arc(head[0] + fc * 1.5 * sc, head[1] - 1, 1.8 * sc, 0, Math.PI * 2)
+      ctx.arc(head[0] + fc * 5 * sc, head[1] - 1, 1.6 * sc, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.fillStyle = `rgba(127,231,255,${0.7 + 0.3 * Math.sin(s.t * 9)})`
+      ctx.fillRect(head[0] + fc * 1.5 * sc - 0.8, head[1] - 1.8, 1.6, 1.6)
+      ctx.fillRect(head[0] + fc * 5 * sc - 0.8, head[1] - 1.8, 1.6, 1.6)
+      // Ribs.
+      ctx.strokeStyle = 'rgba(40,36,30,0.6)'
+      ctx.lineWidth = 0.8
+      for (let k = 0; k < 4; k++) line(ctx, [head[0] - 5 * sc, head[1] + (12 + k * 4) * sc], [head[0] + 5 * sc, head[1] + (12 + k * 4) * sc])
+      break
+    case 'storm': {
+      // Wild golden hair and a ring of drums.
+      ctx.strokeStyle = '#f2c94c'
+      ctx.lineWidth = 1.6
+      for (let k = -4; k <= 4; k++) line(ctx, [head[0] + k * 1.6 * sc, head[1] - 6 * sc], [head[0] + k * 3 * sc, head[1] - (14 + Math.abs(Math.sin(s.t * 12 + k)) * 4) * sc])
+      for (let k = 0; k < 6; k++) {
+        const a = (k / 6) * Math.PI * 2 + s.t * 0.6
+        const x = head[0] + Math.cos(a) * 26 * sc
+        const y = head[1] + 14 * sc + Math.sin(a) * 10 * sc
+        ctx.fillStyle = '#5d2a12'
+        ctx.beginPath()
+        ctx.arc(x, y, 4 * sc, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.fillStyle = '#f2c94c'
+        ctx.beginPath()
+        ctx.arc(x, y, 1.6 * sc, 0, Math.PI * 2)
+        ctx.fill()
+      }
+      break
+    }
+    case 'quiet': {
+      // A hood with no face, peeling into ink.
+      ctx.fillStyle = '#0a0612'
+      ctx.beginPath()
+      ctx.arc(head[0], head[1], 9 * sc, Math.PI * 0.85, Math.PI * 2.15)
+      ctx.lineTo(head[0] - fc * 10 * sc, head[1] + 12 * sc)
+      ctx.fill()
+      ctx.fillStyle = '#b388ff'
+      ctx.font = `${7 * sc}px serif`
+      ctx.textAlign = 'center'
+      for (let k = 0; k < 3; k++) {
+        const u = (s.t * 0.6 + k / 3) % 1
+        ctx.globalAlpha = 1 - u
+        ctx.fillText('言葉心'[k], head[0] - fc * (8 + u * 30), head[1] - u * 26)
+      }
+      ctx.globalAlpha = 1
+      break
+    }
     case 'shogun':
       ctx.fillStyle = '#5a3d0c'
       ctx.beginPath()
@@ -1004,7 +1359,176 @@ function drawShot(ctx: CanvasRenderingContext2D, sh: Shot, cam: number, t: numbe
   const y = GY - sh.y
   const dir = Math.sign(sh.vx) || 1
   ctx.save()
+  // A telegraph while the shot waits: a warning mark where it will strike.
+  if (sh.delay && sh.age < sh.delay) {
+    const u = sh.age / sh.delay
+    const col = sh.team === 0 ? '120,230,255' : sh.kind === 'bolt' ? '255,230,90' : '255,80,60'
+    ctx.strokeStyle = `rgba(${col},${0.35 + 0.5 * u})`
+    ctx.fillStyle = `rgba(${col},${0.12 + 0.2 * u})`
+    ctx.lineWidth = 1.5
+    ctx.beginPath()
+    ctx.ellipse(x, GY + 1, sh.r * (1.4 - 0.4 * u), 4, 0, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.stroke()
+    if (sh.kind === 'bolt') {
+      ctx.fillStyle = `rgba(255,240,150,${0.1 + 0.25 * u})`
+      ctx.fillRect(x - 2, 0, 4, GY)
+    }
+    ctx.restore()
+    return
+  }
+  const tint = sh.tint
+  if (tint) {
+    ctx.shadowColor = tint
+    ctx.shadowBlur = 12
+  }
   switch (sh.kind) {
+    case 'water':
+      ctx.fillStyle = 'rgba(120,200,230,0.9)'
+      ctx.beginPath()
+      ctx.arc(x, y, sh.r * 0.8, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.fillStyle = 'rgba(255,255,255,0.7)'
+      ctx.fillRect(x - 2, y - 3, 2, 2)
+      break
+    case 'wisp': {
+      const g = ctx.createRadialGradient(x, y, 1, x, y, sh.r * 1.8)
+      g.addColorStop(0, 'rgba(230,255,255,0.95)')
+      g.addColorStop(0.4, 'rgba(127,231,255,0.7)')
+      g.addColorStop(1, 'rgba(127,231,255,0)')
+      ctx.fillStyle = g
+      ctx.beginPath()
+      ctx.arc(x, y, sh.r * 1.8, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.strokeStyle = 'rgba(127,231,255,0.4)'
+      ctx.lineWidth = 3
+      ctx.beginPath()
+      ctx.moveTo(x, y)
+      ctx.quadraticCurveTo(x - Math.sign(sh.vx || 1) * 10, y + 6 + Math.sin(t * 9) * 3, x - Math.sign(sh.vx || 1) * 18, y + 2)
+      ctx.stroke()
+      break
+    }
+    case 'arrow': {
+      const a = Math.atan2(-sh.vy, sh.vx)
+      ctx.translate(x, y)
+      ctx.rotate(a)
+      ctx.strokeStyle = '#6d4c2b'
+      ctx.lineWidth = 1.4
+      line(ctx, [-12, 0], [8, 0])
+      ctx.fillStyle = '#cfd8dc'
+      ctx.beginPath()
+      ctx.moveTo(11, 0)
+      ctx.lineTo(7, -2.5)
+      ctx.lineTo(7, 2.5)
+      ctx.fill()
+      ctx.fillStyle = '#e0e0e0'
+      ctx.fillRect(-13, -2.5, 4, 1.4)
+      ctx.fillRect(-13, 1.1, 4, 1.4)
+      break
+    }
+    case 'ice':
+      ctx.fillStyle = 'rgba(190,235,255,0.9)'
+      for (let i = 0; i < 4; i++) {
+        const bx = x - dir * i * 9
+        const h = sh.r * (1.6 - i * 0.3)
+        ctx.beginPath()
+        ctx.moveTo(bx - 5, GY)
+        ctx.lineTo(bx, GY - h)
+        ctx.lineTo(bx + 5, GY)
+        ctx.fill()
+      }
+      break
+    case 'bolt': {
+      ctx.strokeStyle = sh.team === 0 ? '#bdf3ff' : '#fff59d'
+      ctx.shadowColor = '#ffe066'
+      ctx.shadowBlur = 16
+      ctx.lineWidth = 3
+      ctx.beginPath()
+      let bx = x
+      ctx.moveTo(bx, 0)
+      for (let yy = 20; yy <= GY; yy += 20) {
+        bx = x + (Math.sin(yy * 0.37 + t * 40) * 8)
+        ctx.lineTo(bx, yy)
+      }
+      ctx.stroke()
+      ctx.fillStyle = 'rgba(255,250,200,0.5)'
+      ctx.beginPath()
+      ctx.ellipse(x, GY, 26, 6, 0, 0, Math.PI * 2)
+      ctx.fill()
+      break
+    }
+    case 'ink':
+      ctx.fillStyle = tint ?? 'rgba(20,10,35,0.92)'
+      ctx.beginPath()
+      ctx.ellipse(x, y, sh.r * 0.5, sh.r * 1.2, 0, -Math.PI / 2, Math.PI / 2, dir < 0)
+      ctx.fill()
+      ctx.fillStyle = 'rgba(179,136,255,0.6)'
+      for (let i = 0; i < 4; i++) ctx.fillRect(x - dir * (6 + i * 7), y + Math.sin(t * 10 + i) * sh.r * 0.8, 3, 3)
+      break
+    case 'bone':
+      ctx.translate(x, y)
+      ctx.rotate(t * 8 + sh.x)
+      ctx.fillStyle = tint === '#1b1030' ? '#1b1030' : '#efe9d8'
+      ctx.fillRect(-7, -1.6, 14, 3.2)
+      for (const e of [-7, 7]) {
+        ctx.beginPath()
+        ctx.arc(e, -1.6, 2.2, 0, Math.PI * 2)
+        ctx.arc(e, 1.6, 2.2, 0, Math.PI * 2)
+        ctx.fill()
+      }
+      break
+    case 'firefly': {
+      const g = ctx.createRadialGradient(x, y, 0, x, y, 9)
+      g.addColorStop(0, 'rgba(250,255,190,1)')
+      g.addColorStop(0.35, 'rgba(212,255,106,0.8)')
+      g.addColorStop(1, 'rgba(212,255,106,0)')
+      ctx.fillStyle = g
+      ctx.fillRect(x - 9, y - 9, 18, 18)
+      break
+    }
+    case 'crow': {
+      const flap = Math.sin(t * 22 + sh.x * 0.1) * 5
+      ctx.fillStyle = '#1a1a22'
+      ctx.beginPath()
+      ctx.ellipse(x, y, 6, 3.2, Math.atan2(-sh.vy, sh.vx), 0, Math.PI * 2)
+      ctx.fill()
+      ctx.strokeStyle = '#1a1a22'
+      ctx.lineWidth = 2
+      line(ctx, [x, y], [x - 6, y - 4 - flap])
+      line(ctx, [x, y], [x + 4, y - 4 - flap])
+      ctx.fillStyle = '#ff5252'
+      ctx.fillRect(x + Math.sign(sh.vx || 1) * 4, y - 1.5, 1.5, 1.5)
+      break
+    }
+    case 'geyser': {
+      const live = sh.age - (sh.delay ?? 0)
+      const h = Math.min(1, live * 6) * (sh.team === 0 ? 120 : 100)
+      const g = ctx.createLinearGradient(0, GY - h, 0, GY)
+      g.addColorStop(0, 'rgba(230,250,255,0.95)')
+      g.addColorStop(1, tint ? hexA(tint, 0.8) : 'rgba(80,180,210,0.85)')
+      ctx.fillStyle = g
+      ctx.beginPath()
+      ctx.moveTo(x - sh.r * 0.6, GY)
+      ctx.quadraticCurveTo(x - sh.r * 0.4, GY - h * 0.6, x - sh.r * 0.2 + Math.sin(t * 30) * 2, GY - h)
+      ctx.lineTo(x + sh.r * 0.2, GY - h)
+      ctx.quadraticCurveTo(x + sh.r * 0.4, GY - h * 0.6, x + sh.r * 0.6, GY)
+      ctx.fill()
+      ctx.fillStyle = 'rgba(255,255,255,0.8)'
+      for (let i = 0; i < 5; i++) ctx.fillRect(x + Math.sin(t * 9 + i) * sh.r * 0.7, GY - h - ((t * 120 + i * 13) % 20), 2, 2)
+      break
+    }
+    case 'tornado': {
+      ctx.strokeStyle = tint ? hexA(tint, 0.8) : 'rgba(200,240,190,0.8)'
+      ctx.lineWidth = 2
+      for (let i = 0; i < 9; i++) {
+        const yy = GY - i * 11
+        const w = 8 + i * 4.5
+        ctx.beginPath()
+        ctx.ellipse(x + Math.sin(t * 6 + i) * 4, yy, w, 3 + i * 0.4, 0, t * 12 + i, t * 12 + i + Math.PI * 1.4)
+        ctx.stroke()
+      }
+      break
+    }
     case 'star':
       ctx.translate(x, y)
       ctx.rotate(t * 20)
@@ -1019,7 +1543,8 @@ function drawShot(ctx: CanvasRenderingContext2D, sh: Shot, cam: number, t: numbe
     case 'wave': {
       ctx.shadowColor = '#bfe9ff'
       ctx.shadowBlur = 14
-      ctx.fillStyle = sh.lifesteal ? 'rgba(200,170,255,0.9)' : 'rgba(225,245,255,0.92)'
+      if (tint) ctx.shadowColor = tint
+      ctx.fillStyle = tint ? hexA(tint, 0.85) : sh.lifesteal ? 'rgba(200,170,255,0.9)' : 'rgba(225,245,255,0.92)'
       ctx.beginPath()
       ctx.ellipse(x, y, sh.r * 0.45, sh.r * 1.25, 0, -Math.PI / 2, Math.PI / 2, dir < 0)
       ctx.ellipse(x - dir * sh.r * 0.25, y, sh.r * 0.25, sh.r * 1.1, 0, Math.PI / 2, -Math.PI / 2, dir > 0)
@@ -1070,6 +1595,132 @@ function drawShot(ctx: CanvasRenderingContext2D, sh: Shot, cam: number, t: numbe
     }
   }
   ctx.restore()
+}
+
+// ─── Urns, chests and pick-ups ─────────────────────────────────────────
+
+function drawProps(ctx: CanvasRenderingContext2D, s: Sim, cam: number) {
+  for (const p of s.props) {
+    if (p.broken) continue
+    const x = p.x - cam + (p.shake > 0 ? Math.sin(p.shake * 80) * 2 : 0)
+    if (x < -30 || x > vw + 30) continue
+    ctx.save()
+    ctx.fillStyle = 'rgba(0,0,0,0.3)'
+    ctx.beginPath()
+    ctx.ellipse(x, GY + 2, 13, 3, 0, 0, Math.PI * 2)
+    ctx.fill()
+    if (p.kind === 'urn') {
+      const g = ctx.createLinearGradient(x - 9, 0, x + 9, 0)
+      g.addColorStop(0, '#6d3f22')
+      g.addColorStop(0.45, '#b9773f')
+      g.addColorStop(1, '#5a3219')
+      ctx.fillStyle = g
+      ctx.beginPath()
+      ctx.moveTo(x - 5, GY - 22)
+      ctx.quadraticCurveTo(x - 13, GY - 12, x - 7, GY)
+      ctx.lineTo(x + 7, GY)
+      ctx.quadraticCurveTo(x + 13, GY - 12, x + 5, GY - 22)
+      ctx.closePath()
+      ctx.fill()
+      ctx.fillStyle = '#3e2412'
+      ctx.fillRect(x - 6, GY - 24, 12, 3)
+      ctx.strokeStyle = 'rgba(255,230,180,0.35)'
+      ctx.lineWidth = 1
+      line(ctx, [x - 8, GY - 12], [x + 8, GY - 12])
+    } else {
+      // A red-lacquered treasure chest with gold bands, glinting.
+      ctx.fillStyle = '#8e1b1b'
+      ctx.beginPath()
+      ctx.roundRect(x - 14, GY - 18, 28, 18, 2)
+      ctx.fill()
+      ctx.fillStyle = '#b71c1c'
+      ctx.beginPath()
+      ctx.ellipse(x, GY - 18, 14, 6, 0, Math.PI, 0)
+      ctx.fill()
+      ctx.fillStyle = '#ffd54f'
+      ctx.fillRect(x - 14, GY - 12, 28, 2)
+      ctx.fillRect(x - 2, GY - 16, 4, 7)
+      const glint = (s.t * 0.8) % 2
+      if (glint < 1) {
+        ctx.globalCompositeOperation = 'lighter'
+        const gx = x - 14 + glint * 28
+        const rg = ctx.createRadialGradient(gx, GY - 16, 0, gx, GY - 16, 8)
+        rg.addColorStop(0, 'rgba(255,240,180,0.9)')
+        rg.addColorStop(1, 'rgba(255,240,180,0)')
+        ctx.fillStyle = rg
+        ctx.fillRect(gx - 8, GY - 24, 16, 16)
+      }
+      // A soft beacon so it is noticed from afar.
+      ctx.globalCompositeOperation = 'lighter'
+      const b = ctx.createLinearGradient(0, GY - 90, 0, GY - 18)
+      b.addColorStop(0, 'rgba(255,215,80,0)')
+      b.addColorStop(1, `rgba(255,215,80,${0.18 + 0.08 * Math.sin(s.t * 3)})`)
+      ctx.fillStyle = b
+      ctx.fillRect(x - 10, GY - 90, 20, 72)
+    }
+    ctx.restore()
+  }
+}
+
+function drawDrops(ctx: CanvasRenderingContext2D, s: Sim, cam: number) {
+  for (const d of s.drops) {
+    const x = d.x - cam
+    const y = GY - d.y - 4
+    ctx.save()
+    if (d.kind === 'coin') {
+      // A gold ryō oval with a square hole, spinning.
+      const w = 4 * Math.abs(Math.cos(s.t * 6 + d.x))
+      ctx.fillStyle = '#ffca28'
+      ctx.strokeStyle = '#a17312'
+      ctx.lineWidth = 0.8
+      ctx.beginPath()
+      ctx.ellipse(x, y, Math.max(0.8, w), 5, 0, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.stroke()
+    } else if (d.kind === 'heal') {
+      ctx.fillStyle = '#fafafa'
+      ctx.beginPath()
+      ctx.moveTo(x, y - 7)
+      ctx.lineTo(x - 7, y + 4)
+      ctx.lineTo(x + 7, y + 4)
+      ctx.closePath()
+      ctx.fill()
+      ctx.fillStyle = '#263238'
+      ctx.fillRect(x - 4, y, 8, 4)
+    } else if (d.kind === 'ink') {
+      const g = ctx.createRadialGradient(x, y, 0, x, y, 8)
+      g.addColorStop(0, '#e3f2fd')
+      g.addColorStop(0.5, '#42a5f5')
+      g.addColorStop(1, 'rgba(66,165,245,0)')
+      ctx.fillStyle = g
+      ctx.fillRect(x - 8, y - 8, 16, 16)
+    } else {
+      // Found gear: a slowly turning, glowing treasure.
+      const by = y - 10 + Math.sin(s.t * 3) * 3
+      ctx.globalCompositeOperation = 'lighter'
+      const g = ctx.createRadialGradient(x, by, 0, x, by, 22)
+      g.addColorStop(0, 'rgba(255,240,170,0.9)')
+      g.addColorStop(1, 'rgba(255,200,80,0)')
+      ctx.fillStyle = g
+      ctx.fillRect(x - 22, by - 22, 44, 44)
+      ctx.globalCompositeOperation = 'source-over'
+      ctx.font = '14px system-ui, sans-serif'
+      ctx.textAlign = 'center'
+      ctx.fillText(d.gear && isSword(d.gear) ? '🗡️' : '🛡️', x, by + 5)
+    }
+    ctx.restore()
+  }
+}
+
+/** Night stages: darkness, with light around the hero and the lanterns of the backdrop. */
+function night(ctx: CanvasRenderingContext2D, s: Sim, cam: number) {
+  const hx = s.hero.x - cam
+  const hy = GY - s.hero.y - 34
+  const g = ctx.createRadialGradient(hx, hy, 30, hx, hy, 190)
+  g.addColorStop(0, 'rgba(6,8,30,0)')
+  g.addColorStop(1, 'rgba(6,8,30,0.72)')
+  ctx.fillStyle = g
+  ctx.fillRect(0, 0, vw, VH)
 }
 
 function drawFx(ctx: CanvasRenderingContext2D, s: Sim, cam: number) {
@@ -1173,11 +1824,24 @@ function hud(ctx: CanvasRenderingContext2D, s: Sim, level: number) {
   ctx.fillText(`${Math.ceil(h.hp)} / ${h.maxHp}`, 40, 14)
   const full = s.meter >= 100
   bar(ctx, 36, 18, 90, 5, s.meter / 100, full ? (Math.floor(s.t * 6) % 2 ? '#fff176' : s.sword.color) : '#64b5f6')
+  const el = s.arts.element ? ART_BY_ID[`el:${s.arts.element}`] : undefined
+  if (el) {
+    ctx.font = '8px system-ui, sans-serif'
+    ctx.fillText(el.icon, 27, 24)
+  }
+  if (s.barrier > 0) bar(ctx, 36, 26, 60 * Math.min(1, s.barrier / (h.maxHp * 0.21)), 3, 1, '#4dd0e1')
   if (full) {
     ctx.font = 'bold 7px system-ui, sans-serif'
     ctx.fillStyle = '#fff176'
     ctx.strokeText('SPECIAL!', 130, 24)
     ctx.fillText('SPECIAL!', 130, 24)
+  }
+  if (s.stage.mod) {
+    const m = MOD_INFO[s.stage.mod]
+    ctx.font = 'bold 7px system-ui, sans-serif'
+    ctx.fillStyle = '#ffd54f'
+    ctx.strokeText(`${m.icon} ${m.name}`, 8, 40)
+    ctx.fillText(`${m.icon} ${m.name}`, 8, 40)
   }
   ctx.textAlign = 'right'
   ctx.font = 'bold 9px system-ui, sans-serif'
@@ -1219,8 +1883,21 @@ function hud(ctx: CanvasRenderingContext2D, s: Sim, level: number) {
     }
     ctx.globalAlpha = 1
   }
-  // Off-screen foe arrows.
+  // Off-screen foe arrows, and a gold one toward an unopened chest.
   const cam = camOf(s)
+  for (const p of s.props) {
+    if (p.broken || p.kind !== 'chest') continue
+    const x = p.x - cam
+    if (x >= 0 && x <= vw) continue
+    const left = x < 0
+    const ax = left ? 6 : vw - 6
+    ctx.fillStyle = `rgba(255,213,79,${0.6 + 0.4 * Math.sin(s.t * 5)})`
+    ctx.beginPath()
+    ctx.moveTo(ax, GY - 8)
+    ctx.lineTo(ax + (left ? 9 : -9), GY - 15)
+    ctx.lineTo(ax + (left ? 9 : -9), GY - 1)
+    ctx.fill()
+  }
   for (const f of s.foes) {
     if (f.dead) continue
     const x = f.x - cam
@@ -1260,14 +1937,21 @@ export function draw(ctx: CanvasRenderingContext2D, s: Sim, level: number, width
   if (shake) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake)
   scenery(ctx, s.stage.world, camX, s.t)
   drawPuffs(ctx, camX, s.stage.world)
+  drawProps(ctx, s, camX)
   const all = [...s.foes.filter((f) => f.dead), ...s.foes.filter((f) => !f.dead), s.hero]
   for (const f of all) drawGhosts(ctx, s, f, camX)
   for (const f of all) drawFighter(ctx, s, f, camX)
   for (const sh of s.shots) drawShot(ctx, sh, camX, s.t)
+  drawDrops(ctx, s, camX)
   drawFx(ctx, s, camX)
   foreground(ctx, s.stage.world, camX, s.t)
+  if (s.stage.mod === 'night') night(ctx, s, camX)
   ctx.restore()
   vignette(ctx, s)
+  if (s.flashT > 0) {
+    ctx.fillStyle = `rgba(255,255,255,${Math.min(0.6, s.flashT * 2)})`
+    ctx.fillRect(0, 0, vw, VH)
+  }
   bossEntrance(ctx, s)
   hud(ctx, s, level)
 }

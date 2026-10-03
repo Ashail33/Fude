@@ -556,3 +556,191 @@ kbd {
   color: var(--muted);
   font-size: 0.8rem;
 }
+
+/* ── Later worlds and the Ink Abyss ─────────────────────────────────── */
+.nj-w5 {
+  --wc: #4fc3a1;
+}
+.nj-w6 {
+  --wc: #7fe7ff;
+}
+.nj-w7 {
+  --wc: #cfe3f5;
+}
+.nj-w8 {
+  --wc: #f2c94c;
+}
+.nj-w9 {
+  --wc: #b388ff;
+}
+.nj-abyss {
+  --wc: #3d2a5c;
+  background: linear-gradient(135deg, rgba(27, 16, 48, 0.9), rgba(8, 6, 14, 0.9));
+}
+.nj-abyss .nj-stage-row {
+  grid-template-columns: repeat(6, 1fr);
+}
+.nj-stage-tag {
+  position: absolute;
+  bottom: 2px;
+  left: 4px;
+  font-size: 0.7rem;
+  font-weight: 400;
+}
+
+/* ── Armoury: sub-tabs, found gear, armour ──────────────────────────── */
+.nj-subtabs {
+  display: flex;
+  gap: 6px;
+}
+.nj-subtabs button {
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.25);
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.nj-subtabs button.on {
+  border-color: var(--accent, #f7c948);
+  background: rgba(247, 201, 72, 0.15);
+}
+.nj-found-note {
+  margin: 0;
+  font-size: 0.8rem;
+}
+.nj-blade.found {
+  border: 1px solid rgba(255, 213, 79, 0.55);
+  box-shadow: inset 0 0 18px rgba(255, 213, 79, 0.08);
+}
+.nj-blade.found.unowned {
+  opacity: 0.8;
+}
+.nj-armour-art svg {
+  width: 44px;
+  height: 44px;
+  filter: drop-shadow(0 0 4px var(--blade));
+}
+.nj-armour.unowned .nj-armour-art {
+  filter: grayscale(0.6) brightness(0.8);
+}
+
+/* ── Ink Arts ───────────────────────────────────────────────────────── */
+.nj-arts-page {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.nj-arts-head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.nj-arts-head .btn {
+  align-self: flex-start;
+}
+.nj-points {
+  font-size: 1.4rem;
+  color: #ffd54f;
+}
+.nj-arts-group h3 {
+  margin: 0 0 2px;
+}
+.nj-arts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+.nj-art {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  gap: 4px 10px;
+  padding: 8px;
+  border-radius: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.28);
+}
+.nj-art.known {
+  border-color: var(--art);
+}
+.nj-art.on {
+  box-shadow: 0 0 0 2px var(--art), 0 0 16px var(--art);
+}
+.nj-art-icon {
+  grid-row: 1 / 3;
+  font-size: 1.6rem;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  filter: grayscale(0.7);
+}
+.nj-art.known .nj-art-icon {
+  filter: none;
+  background: color-mix(in srgb, var(--art) 22%, transparent);
+}
+.nj-art-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.nj-art-body small {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+.nj-art-act {
+  grid-column: 2;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.nj-pips {
+  display: flex;
+  gap: 4px;
+}
+.nj-pips i {
+  width: 14px;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.15);
+}
+.nj-pips i.on {
+  background: var(--art);
+}
+.nj-res-list .nj-found {
+  font-size: 1.05rem;
+}
+
+/* ── Controls: ▼ under the arrows ───────────────────────────────────── */
+.nj-dpad {
+  display: grid;
+  grid-template-columns: 64px 54px 64px;
+  grid-template-rows: 46px 46px;
+  gap: 6px;
+}
+.nj-dpad .nj-pad:first-child {
+  grid-column: 1;
+  grid-row: 1 / 3;
+  height: 100%;
+}
+.nj-dpad .nj-pad:last-child {
+  grid-column: 3;
+  grid-row: 1 / 3;
+  height: 100%;
+}
+.nj-pad.down {
+  grid-column: 2;
+  grid-row: 2;
+  width: 100%;
+  height: 100%;
+  font-size: 1.1rem;
+}
+.nj-unfound {
+  color: #ffd54f;
+  opacity: 0.75;
+  font-weight: 700;
+  font-size: 0.9rem;
+}

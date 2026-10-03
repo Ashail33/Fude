@@ -17,8 +17,8 @@
 import { JOURNEY } from '../data/journey'
 import { REGIONS } from '../data/regions'
 import type { HamletBonus } from '../engine/hamlet'
-import { flagOf, hasKeyItem, regionUnlocked, type PlayerState } from '../engine/store'
-import { STAGES_PER_WORLD } from './ninja/data'
+import { flagOf, hasKeyItem, regionUnlocked, setState, type PlayerState } from '../engine/store'
+import { FIRST_WORLDS, freshNinja, gearName, giveGear, isSword, STAGE_COUNT, STAGES_PER_WORLD, type CacheLoot, type GearId } from './ninja/data'
 
 export type GameId = 'dojo' | 'valley' | 'bridge'
 
@@ -40,11 +40,16 @@ export const WHERE: Record<GameId, { jp: string; en: string }> = {
 
 // ─── The Ink Dojo's worlds follow the journey ──────────────────────────
 
-/** Place on the road (0-based) a Stick Ninja world needs: Village, Fields, Shrine, Hot springs, Snow temple. */
-const WORLD_NEEDS = [0, 1, 3, 5, 7]
+/**
+ * Place on the road (0-based) a Stick Ninja world needs: Village, Fields,
+ * Shrine, Hot springs, Snow temple; then the later worlds with the Castle
+ * town, Snow temple, Cloud capital and the Tower. (The Ink Abyss follows the
+ * stages themselves.)
+ */
+const WORLD_NEEDS = [0, 1, 3, 5, 7, 6, 7, 8, 9, 9]
 
 export function ninjaWorldOpen(s: PlayerState, world: number): boolean {
-  const need = JOURNEY[Math.min(WORLD_NEEDS[world] ?? 0, JOURNEY.length - 1)]
+  const need = JOURNEY[Math.min(WORLD_NEEDS[Math.min(world, WORLD_NEEDS.length - 1)] ?? 0, JOURNEY.length - 1)]
   return world === 0 || regionUnlocked(s, need)
 }
 
@@ -56,6 +61,8 @@ export function ninjaWorldGate(world: number) {
 
 /** A stage is playable when the save has reached it and the story has opened its world. */
 export function ninjaStageOpen(s: PlayerState, index: number): boolean {
+  // The Ink Abyss opens with the original campaign's last world.
+  if (index >= STAGE_COUNT) return ninjaWorldOpen(s, FIRST_WORLDS - 1)
   return ninjaWorldOpen(s, Math.floor(index / STAGES_PER_WORLD))
 }
 
@@ -77,3 +84,19 @@ export function dojoBlessing(s: PlayerState): HamletBonus {
 }
 
 export const addBonus = (a: HamletBonus, b: HamletBonus): HamletBonus => ({ hp: a.hp + b.hp, mp: a.mp + b.mp, atk: a.atk + b.atk, magic: a.magic + b.magic })
+
+// ─── Secret caches on the journey (see story/tales/ninjaCaches.ts) ──────
+
+/** Bank what a secret cache held into the Stick Ninja save, and say what it was. */
+export function claimCache(loot: CacheLoot): { jp: string; en: string } {
+  if ('scroll' in loot) {
+    setState((s) => {
+      const n = s.ninja ?? freshNinja()
+      return { ...s, ninja: { ...n, scrolls: (n.scrolls ?? 0) + 1 } }
+    })
+    return { jp: '📜 ひでんの まきもの！ ぼうにんじゃの「すみの わざ」が ひとつ ふえた。', en: '📜 A secret Ink Scroll! One more Ink Arts point for Stick Ninja.' }
+  }
+  const g = loot.gear as GearId
+  setState((s) => ({ ...s, ninja: giveGear(s.ninja ?? freshNinja(), g) }))
+  return { jp: `${isSword(g) ? '🗡️' : '🛡️'} ぼうにんじゃの そうび「${gearName(g)}」を みつけた！`, en: `${isSword(g) ? '🗡️' : '🛡️'} Stick Ninja gear: the ${gearName(g)}! Wear it in the dojo’s Armoury.` }
+}
