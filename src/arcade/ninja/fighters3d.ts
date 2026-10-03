@@ -121,7 +121,8 @@ export class Fighters3D {
   private hemi = new THREE.HemisphereLight(0xffffff, 0x404858, 1.4)
   private sun = new THREE.DirectionalLight(0xfff2dd, 1.6)
   private rim = new THREE.DirectionalLight(0xbfd8ff, 0.9)
-  private insts = new Map<number, Inst>()
+  /** (public for dev checks) */
+  readonly insts = new Map<number, Inst>()
   /** Models that loaded without a usable skeleton (they stay stick figures). */
   private rigless = new Set<string>()
   /** Fighters drawn in 3D this frame (draw.ts skips their stick bodies). */
@@ -206,6 +207,14 @@ export class Fighters3D {
       const cast = CAST3D[f.kind]
       if (!cast) continue
       let inst = this.insts.get(f.uid)
+      // Fighter ids restart with every fight: never pose a model from a fight that's over.
+      if (inst && inst.fighter !== f) {
+        if (inst.cast.id === cast.id && inst.cast === cast) inst.fighter = f
+        else {
+          this.drop(f.uid)
+          inst = undefined
+        }
+      }
       if (!inst) {
         const made = this.make(f, cast)
         if (!made) continue
@@ -311,6 +320,12 @@ export class Fighters3D {
         m.transparent = true
         m.opacity = (i.cast.opacity ?? 1) * fade
       }
+    } else {
+      root.rotation.z = 0
+      for (const { m } of i.mats) {
+        m.transparent = i.cast.opacity !== undefined
+        m.opacity = i.cast.opacity ?? 1
+      }
     }
 
     // Hit flash, frost, the inky shadow of the special.
@@ -340,6 +355,11 @@ export class Fighters3D {
       if (i.blade && f.kind === 'hero') (i.blade.material as THREE.MeshToonMaterial).color.set(s.sword.color)
     }
     void Y
+  }
+
+  /** Forget every model (a new fight is starting). */
+  clear() {
+    for (const uid of [...this.insts.keys()]) this.drop(uid)
   }
 
   dispose() {
