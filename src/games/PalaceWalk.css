@@ -58,6 +58,11 @@
   color: var(--muted);
   font-size: 0.9rem;
 }
+.pw-ask {
+  margin: 0;
+  font-weight: 700;
+  color: var(--gold, #f5c84b);
+}
 .pw-cue {
   margin: 0;
   font-size: 1.12rem;

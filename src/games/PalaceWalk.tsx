@@ -8,7 +8,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { GameFrame, Intro, T } from '../components/ui'
 import { HdImage } from '../art/hd'
 import { REGION_BY_ID, regionMap } from '../data/regions'
-import { cueOf, episodeCue, recallQuestion, roomOf, storyOf, walkMemories, type RecallQ } from '../engine/palace'
+import { cueOf, episodeCue, recallAsk, recallQuestion, roomOf, storyOf, walkMemories, type RecallQ } from '../engine/palace'
 import { ensureStories } from '../engine/palaceAI'
 import { sfx } from '../engine/sfx'
 import { speak } from '../engine/speech'
@@ -153,6 +153,11 @@ export default function PalaceWalk({ activity, params, onFinish, onExit }: GameP
               {stop.personal && <span className="pw-own"> ✨</span>}
             </div>
             {episodeCue(p, q.memory.item) && <p className="pw-episode">📍 {episodeCue(p, q.memory.item)}</p>}
+            {!picked && (
+              <p className="pw-ask">
+                ❓ <T en={recallAsk(q, cueOf(p, q.memory)).en} jp={recallAsk(q, cueOf(p, q.memory)).jp} />
+              </p>
+            )}
             <p className="pw-cue">{picked ? storyOf(p, q.memory) : cueOf(p, q.memory)}</p>
             {picked && (
               <div className={`pw-answer pop ${picked === q.answer.id ? 'good' : 'bad'}`}>

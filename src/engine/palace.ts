@@ -257,6 +257,20 @@ export function cueOf(s: PlayerState, m: Memory): string {
   return out
 }
 
+const ASK: Record<string, { jp: string; en: string }> = {
+  kana: { jp: 'この えに かくれている かなは どれ？', en: 'Which kana is hidden in this picture?' },
+  word: { jp: 'この えに かくれている ことばは どれ？', en: 'Which word is hidden in this picture?' },
+  kanji: { jp: 'この えに かくれている かんじは どれ？', en: 'Which kanji is hidden in this picture?' },
+  grammar: { jp: 'この えが あらわす ぶんぽうは どれ？', en: 'Which grammar pattern does this picture show?' },
+}
+
+/** The question a recall asks, spelled out (the picture alone doesn't say what to pick). */
+export function recallAsk(q: RecallQ, cue: string): { jp: string; en: string } {
+  const a = ASK[q.answer.kind] ?? { jp: 'この えに かくれているのは どれ？', en: 'Which one is hidden in this picture?' }
+  const hint = /\b[A-Z]{2,}\b/.test(cue) ? ' (The word in CAPITALS sounds like it.)' : ''
+  return { jp: a.jp, en: a.en + hint }
+}
+
 export interface RecallQ {
   memory: Memory
   answer: ItemInfo

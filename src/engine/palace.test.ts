@@ -6,7 +6,7 @@ import { KANJI } from '../data/kanjiList'
 import { VOCAB } from '../data/vocab'
 import { getMap } from '../world/maps'
 import { describeItem, item } from './items'
-import { cueOf, episodeCue, homeOf, LOCI, retell, roomLoci, roomOf, storyOf } from './palace'
+import { cueOf, episodeCue, homeOf, LOCI, recallAsk, recallQuestion, retell, roomLoci, roomOf, storyOf } from './palace'
 import { freshState } from './store'
 
 /** What each room must hold. */
@@ -137,5 +137,25 @@ describe('stories follow the item', () => {
       expect(story[0]).toBe(story[0].toUpperCase())
       expect(cueOf(at(map, anchor), ka)).not.toContain('か')
     }
+  })
+})
+
+describe('recall questions say what they ask', () => {
+  it('names the kind of thing to pick, for every memory', () => {
+    const s = freshState()
+    for (const l of LOCI)
+      for (const m of l.memories) {
+        const q = recallQuestion(s, m)
+        if (!q) continue
+        const ask = recallAsk(q, cueOf(s, m))
+        expect(ask.en).toMatch(/^Which (kana|word|kanji|grammar pattern|one)\b/)
+        expect(ask.jp).toMatch(/どれ？$/)
+      }
+  })
+
+  it('points at the sound clue when the picture has one', () => {
+    const s = freshState()
+    const m = LOCI.flatMap((l) => l.memories).find((x) => /\b[A-Z]{2,}\b/.test(cueOf(s, x)))!
+    expect(recallAsk(recallQuestion(s, m)!, cueOf(s, m)).en).toContain('CAPITALS')
   })
 })
