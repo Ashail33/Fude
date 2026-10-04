@@ -1,0 +1,122 @@
+/* Hannya's ring of frozen masks, and the tears that fall once her mask cracks. */
+.hn-masks {
+  position: absolute;
+  inset: -18%;
+  pointer-events: none;
+}
+
+.hn-mask {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 14%;
+  height: 18%;
+  margin: -9% 0 0 -7%;
+  border-radius: 50% 50% 46% 46%;
+  background:
+    radial-gradient(ellipse 18% 6% at 32% 42%, #2b1d24 0 95%, transparent 100%),
+    radial-gradient(ellipse 18% 6% at 68% 42%, #2b1d24 0 95%, transparent 100%),
+    radial-gradient(ellipse 14% 6% at 50% 76%, #c43a5a 0 95%, transparent 100%),
+    linear-gradient(#fbf6ec, #e9dfcf);
+  box-shadow: 0 0 10px rgba(196, 58, 90, 0.45);
+  transform: rotate(calc(var(--i) * 72deg - 90deg)) translateX(290%) rotate(calc(var(--i) * -72deg + 90deg));
+  animation: hn-hover 2.4s ease-in-out infinite;
+  animation-delay: calc(var(--i) * 0.3s);
+}
+
+.hn-p1 .hn-mask {
+  box-shadow: 0 0 12px rgba(232, 162, 92, 0.6);
+}
+
+.hn-p2 .hn-mask {
+  opacity: 0.55;
+  box-shadow: 0 0 14px rgba(155, 231, 255, 0.7);
+}
+
+@keyframes hn-hover {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -6px;
+  }
+}
+
+.hn-tears {
+  position: absolute;
+  inset: 0;
+}
+
+.hn-tears b {
+  position: absolute;
+  left: calc(42% + var(--i) * 7%);
+  top: 46%;
+  width: 6px;
+  height: 9px;
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  background: rgba(155, 231, 255, 0.9);
+  animation: hn-tear 2.2s ease-in infinite;
+  animation-delay: calc(var(--i) * 0.7s);
+}
+
+@keyframes hn-tear {
+  from {
+    translate: 0 0;
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  to {
+    translate: 0 60px;
+    opacity: 0;
+  }
+}
+
+.hn-face {
+  font-size: 3rem;
+  line-height: 1.1;
+  margin: 0.2rem 0;
+  animation: hn-pop 0.4s ease-out;
+}
+
+@keyframes hn-pop {
+  from {
+    scale: 0.6;
+    opacity: 0;
+  }
+  to {
+    scale: 1;
+    opacity: 1;
+  }
+}
+
+.hn-line {
+  font-size: 1.15em;
+}
+
+.hn-hidden {
+  letter-spacing: 0.3em;
+  opacity: 0.7;
+}
+
+.hn-listen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-top: 0.5rem;
+}
+
+.hn-choices ruby rt {
+  font-size: 0.5em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hn-mask,
+  .hn-tears b,
+  .hn-face {
+    animation: none;
+  }
+}
