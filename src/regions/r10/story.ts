@@ -381,7 +381,7 @@ export const CONTENT: TaleContent[] = [
           ]
         }
         if (st === 3) return [c.say('ふうりんが あれば、たいこの 音の 中でも ことばが われないわ。がんばって。', 'With the word-chime, your words won’t break even inside the drumming. Good luck.')]
-        return [c.say('ひがしの さいごの かいだんの 上に、そうぞうの とうが ある。…きっと だいじょうぶ。わたしは そう 思う。', 'Up the last stair in the east stands the Tower of Creation. …You’ll be all right. I really think so.')]
+        return [c.say('ひがしの かいだんを おりると、えきの ある 町に つく。とうは その ずっと さき。…きっと だいじょうぶ。わたしは そう 思う。', 'Down the eastern stair is a town with a railway station. The Tower is far beyond it. …You’ll be all right. I really think so.')]
       },
       'co-hakase': (c) => {
         const st = c.stage('r10-shattered')

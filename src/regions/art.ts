@@ -5,8 +5,10 @@ import { ART as R7 } from './r7/art'
 import { ART as R8 } from './r8/art'
 import { ART as R9 } from './r9/art'
 import { ART as R10 } from './r10/art'
+import { ART as R11 } from './r11/art'
+import { ART as R12 } from './r12/art'
 
-const ALL: RegionArt[] = [R6, R7, R8, R9, R10]
+const ALL: RegionArt[] = [R6, R7, R8, R9, R10, R11, R12]
 const merge = <K extends keyof RegionArt>(k: K) => Object.assign({}, ...ALL.map((a) => a[k] ?? {})) as NonNullable<RegionArt[K]>
 
 export const PACK_ASSETS = ALL.flatMap((a) => a.assets)

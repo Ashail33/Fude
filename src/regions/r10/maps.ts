@@ -59,7 +59,7 @@ export const CLOUDS: MapSpec = {
   entities: [
     // ── the west gate, where the rainbow bridge lands
     { at: '[', id: 'c-amane', kind: 'npc', sprite: 'tennin', dir: 'down', name: { jp: 'てんにんの アマネ', en: 'Amane the Celestial' }, lines: [{ jp: 'ようこそ、雲の… みやこ… ことば… われて…', en: 'Welcome to the Cloud… capital… words… breaking…' }] },
-    { at: ']', id: 'c-sign', kind: 'sign', tile: 'sign', name: { jp: 'かんばん', en: 'Signpost' }, lines: [{ jp: 'にし：にじの はし（雪の 寺へ）。ひがし：さいごの かいだん（そうぞうの とうへ）。', en: 'West: the rainbow bridge (to the Snow Temple). East: the last stair (to the Tower of Creation).' }, { jp: 'きた：ほしの やかた・かみなりの たいこどの。みなみ：そらの にわ。', en: 'North: the star observatory and the thunder-drum hall. South: the sky garden.' }] },
+    { at: ']', id: 'c-sign', kind: 'sign', tile: 'sign', name: { jp: 'かんばん', en: 'Signpost' }, lines: [{ jp: 'にし：にじの はし（雪の 寺へ）。ひがし：くだりの かいだん（えきまちへ）。', en: 'West: the rainbow bridge (to the Snow Temple). East: the stair down (to the Station Town).' }, { jp: 'きた：ほしの やかた・かみなりの たいこどの。みなみ：そらの にわ。', en: 'North: the star observatory and the thunder-drum hall. South: the sky garden.' }] },
     { at: '{', id: 'c-rainbow', kind: 'landmark', tile: 'statue', word: 'niji', name: { jp: 'にじの はしら', en: 'Rainbow Pillar' }, lines: [{ jp: 'にじの はしの はしら。七つの 色が、ゆっくり まわって いる。', en: 'The pillar of the rainbow bridge. Seven colours turn slowly around it.' }] },
     // ── the weather-readers' terrace
     { at: '1', id: 'c-shepherd', kind: 'activity', sprite: 'child', dir: 'left', wander: 1, activities: ['r10-words-1'], name: { jp: '雲かいの ソラタ', en: 'Sorata the Cloud-Herder' }, lines: [{ jp: '雲を… かってるんだ。晴れ、くもり、きり… 天気の ことば、おしえる…よ！', en: 'I herd… clouds. Clear, cloudy, fog… I’ll teach you… weather words!' }] },

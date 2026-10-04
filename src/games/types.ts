@@ -64,6 +64,8 @@ export interface GameParams {
   'boss-nurarihyon': Record<string, never>
   'boss-yukionna': Record<string, never>
   'boss-raijin': Record<string, never>
+  'boss-nopperabo': Record<string, never>
+  'boss-hannya': Record<string, never>
 }
 
 export type GameKey = keyof GameParams

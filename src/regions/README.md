@@ -1,7 +1,7 @@
 # Region packs
 
-The journey runs through ten regions. The original five live in the core
-files (`src/data`, `src/world/maps`, `src/story/tales`, …). The five newer
+The journey runs through twelve regions. The original five live in the core
+files (`src/data`, `src/world/maps`, `src/story/tales`, …). The seven newer
 ones, which sit between the Shrine and the Tower, are **region packs**.
 Each pack is one folder, `src/regions/rN/`, and the core registries merge
 it in, so a region can be written without touching anything else.
@@ -19,7 +19,9 @@ it in, so a region can be written without touching anything else.
 | 7 | **8** | The Castle Town (城下町) | `castletown` | polite everyday talk: directions, shopping, likes and wants, giving and receiving, keigo basics |
 | 8 | **9** | The Snowbound Temple (雪の寺) | `snowtemple` | about 60 more kanji, with on/kun readings and compounds |
 | 9 | **10** | The Cloud Capital (雲の都) | `clouds` | N4 grammar: plain form, comparisons, potential, conditionals, reasons, 〜と思う, 〜つもり |
-| 10 | 5 | The Tower of Creation (創造の塔) | `tower` | casting sentences, free expression; the finale |
+| 10 | **11** | The Chattering Station Town (おしゃべりの駅町) | `ekimae` | everyday words, casual spoken Japanese, listening to real conversation |
+| 11 | **12** | The Valley of Hearts (こころの谷) | `kokoro` | feelings: emotion words, onomatopoeia, saying how you and others feel |
+| 12 | 5 | The Tower of Creation (創造の塔) | `tower` | casting sentences, free expression; the finale |
 
 A region's **id is stable**: saves, activity ids and story flags all key on
 it. Its **place on the road** comes from `data/journey.ts`, built from
@@ -161,7 +163,9 @@ their level.
   - steam;
   - the pause before a polite reply (間);
   - the hush of falling snow;
-  - the quiet before thunder.
+  - the quiet before thunder;
+  - the greeting, the little words between strangers and friends;
+  - the feeling between happy and sad.
 
   Together they lead to the name she finally chooses for the quiet,
   "Shizuka" (memory X, at the Tower).

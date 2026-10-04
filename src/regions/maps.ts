@@ -6,5 +6,7 @@ import { MAPS as R7 } from './r7/maps'
 import { MAPS as R8 } from './r8/maps'
 import { MAPS as R9 } from './r9/maps'
 import { MAPS as R10 } from './r10/maps'
+import { MAPS as R11 } from './r11/maps'
+import { MAPS as R12 } from './r12/maps'
 
-export const PACK_MAPS: MapSpec[] = [...R6, ...R7, ...R8, ...R9, ...R10].filter((m) => LIVE_PACKS.has(m.region))
+export const PACK_MAPS: MapSpec[] = [...R6, ...R7, ...R8, ...R9, ...R10, ...R11, ...R12].filter((m) => LIVE_PACKS.has(m.region))

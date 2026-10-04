@@ -37,7 +37,7 @@ const isEnemy = (sprite: string) => (ENEMY_SPRITES as readonly string[]).include
 const SKIP_HOLD_MS = 650
 
 /** Illustrated backdrop for the story backdrops that match a region. */
-const BG_HD: Partial<Record<Backdrop, string>> = { village: 'battle-village', fields: 'battle-fields', forest: 'battle-forest', shrine: 'battle-shrine', tower: 'battle-tower', 'night-hill': 'intro-3', dawn: 'ending', harbour: 'battle-harbour', onsen: 'battle-onsen', castletown: 'battle-castletown', snowtemple: 'battle-snowtemple', clouds: 'battle-clouds' }
+const BG_HD: Partial<Record<Backdrop, string>> = { village: 'battle-village', fields: 'battle-fields', forest: 'battle-forest', shrine: 'battle-shrine', tower: 'battle-tower', 'night-hill': 'intro-3', dawn: 'ending', harbour: 'battle-harbour', onsen: 'battle-onsen', castletown: 'battle-castletown', snowtemple: 'battle-snowtemple', clouds: 'battle-clouds', ekimae: 'battle-ekimae', kokoro: 'battle-kokoro' }
 
 /**
  * The illustration behind step `i`: a full scene still (the characters are

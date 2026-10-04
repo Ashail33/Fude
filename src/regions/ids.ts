@@ -6,7 +6,7 @@
  */
 
 /** New regions, in the order they sit on the road (between the Shrine and the Tower). */
-export const PACK_REGIONS = [6, 7, 8, 9, 10] as const
+export const PACK_REGIONS = [6, 7, 8, 9, 10, 11, 12] as const
 
 /** Walking characters added by the packs (pixel sprites in rN/sprites.ts). */
 export const PACK_CHARACTER_SPRITES = [
@@ -20,6 +20,10 @@ export const PACK_CHARACTER_SPRITES = [
   'snowchild',
   'tennin', // r10 cloud capital
   'scholar',
+  'stationmaster', // r11 station town
+  'grocer',
+  'maskmaker', // r12 valley of hearts
+  'dancer',
 ] as const
 
 /** Monsters and bosses added by the packs (32×32 pixel sprites in rN/sprites.ts). */
@@ -34,6 +38,10 @@ export const PACK_ENEMY_SPRITES = [
   'yuki-onna',
   'raiju', // r10
   'raijin',
+  'yamabiko', // r11
+  'nopperabo',
+  'menrei', // r12
+  'hannya',
 ] as const
 
 /** Cutscene speakers the packs define (names and sprites in rN/story.ts). */
@@ -43,17 +51,19 @@ export const PACK_SPEAKERS = [
   'tadashi', 'kiku', 'sen', 'nurarihyon', // r8
   'kuu', 'yuki', 'genta', 'yukionna', // r9
   'amane', 'hakase', 'raitaro', 'raijin', // r10
+  'tetsu', 'mari', 'pon', 'nopperabo', // r11
+  'kaede', 'ren', 'hotaru', 'hannya', // r12
 ] as const
 export type PackSpeaker = (typeof PACK_SPEAKERS)[number]
 
 /** Boss fight game ids (components in rN/Boss.tsx). */
-export const PACK_BOSSES = ['boss-umibozu', 'boss-yamanba', 'boss-nurarihyon', 'boss-yukionna', 'boss-raijin'] as const
+export const PACK_BOSSES = ['boss-umibozu', 'boss-yamanba', 'boss-nurarihyon', 'boss-yukionna', 'boss-raijin', 'boss-nopperabo', 'boss-hannya'] as const
 export type PackBoss = (typeof PACK_BOSSES)[number]
 
 /** Overworld music per new region. */
-export const PACK_TRACKS = ['harbour', 'onsen', 'castletown', 'snowtemple', 'clouds'] as const
+export const PACK_TRACKS = ['harbour', 'onsen', 'castletown', 'snowtemple', 'clouds', 'ekimae', 'kokoro'] as const
 export type PackTrack = (typeof PACK_TRACKS)[number]
 
 /** Cutscene backdrops per new region (one per region's main map). */
-export const PACK_BACKDROPS = ['harbour', 'onsen', 'castletown', 'snowtemple', 'clouds'] as const
+export const PACK_BACKDROPS = ['harbour', 'onsen', 'castletown', 'snowtemple', 'clouds', 'ekimae', 'kokoro'] as const
 export type PackBackdrop = (typeof PACK_BACKDROPS)[number]

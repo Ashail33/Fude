@@ -41,21 +41,20 @@ export const WHERE: Record<GameId, { jp: string; en: string }> = {
 // ─── The Ink Dojo's worlds follow the journey ──────────────────────────
 
 /**
- * Place on the road (0-based) a Stick Ninja world needs: Village, Fields,
- * Shrine, Hot springs, Snow temple; then the later worlds with the Castle
- * town, Snow temple, Cloud capital and the Tower. (The Ink Abyss follows the
- * stages themselves.)
+ * The region a Stick Ninja world needs (by id, so new regions on the road
+ * don't shift them): Village, Fields, Shrine, Hot springs, Snow temple; then
+ * the later worlds with the Castle town, Snow temple, Cloud capital and the
+ * Tower. (The Ink Abyss follows the stages themselves.)
  */
-const WORLD_NEEDS = [0, 1, 3, 5, 7, 6, 7, 8, 9, 9]
+const WORLD_NEEDS = [1, 2, 4, 7, 9, 8, 9, 10, 5, 5]
 
 export function ninjaWorldOpen(s: PlayerState, world: number): boolean {
-  const need = JOURNEY[Math.min(WORLD_NEEDS[Math.min(world, WORLD_NEEDS.length - 1)] ?? 0, JOURNEY.length - 1)]
-  return world === 0 || regionUnlocked(s, need)
+  return world === 0 || regionUnlocked(s, ninjaWorldGate(world)?.id ?? JOURNEY[0])
 }
 
 /** The region whose arrival opens a world (for the locked card). */
 export function ninjaWorldGate(world: number) {
-  const id = JOURNEY[Math.min(WORLD_NEEDS[world] ?? 0, JOURNEY.length - 1)]
+  const id = WORLD_NEEDS[Math.min(world, WORLD_NEEDS.length - 1)] ?? JOURNEY[0]
   return REGIONS.find((r) => r.id === id)
 }
 

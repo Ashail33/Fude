@@ -137,6 +137,17 @@ export const DIORAMAS: Record<Backdrop, Diorama> = {
     rows: ['....................', '...AAAA......AAAA...', 'QQyCCCCyyyyyyCCCCyQQ', 'QyyyyyyySSSSyyyyyyyQ', 'QQQyyyySSSSSSyyyQQQQ'],
     base: '..yQQ',
   },
+  ekimae: {
+    sky: 'linear-gradient(180deg, #4f8fd8 0%, #a6d0f2 55%, #f5ead2 100%)',
+    rows: ['..AAAA.....AAAA.....', 'K.CCCC..m..CCCC..K..', 'pppNHpppppppNaNppppp', 'pppppppppppppppppppp', 'pppppppppppppppppppp'],
+    base: '..ppp',
+  },
+  kokoro: {
+    sky: 'linear-gradient(180deg, #2f2a5c 0%, #8a5a9c 40%, #f29a7a 80%, #ffd28a 100%)',
+    stars: true,
+    rows: ['...m....m....m....m.', 'b..RRRR....RRRR...b.', 'GGhNHGGppppGGhNHGGGG', 'GGGGGGGppppGGGGGGGGG', 'GGGGGGppppppGGGGGGGG'],
+    base: 'GGppG',
+  },
   dawn: {
     sky: 'linear-gradient(180deg, #3d4a8c 0%, #c7a3f0 35%, #f7a8c4 70%, #ffe066 100%)',
     rows: ['....................', '...K.........K......', '..gggfgggggggggfgg..', 'gfgggggfggggfgggggfg', 'ggfggggggfgggggggggg'],

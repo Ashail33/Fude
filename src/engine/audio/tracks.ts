@@ -418,5 +418,45 @@ const clouds: TrackDef = {
   ],
 }
 
-export const TRACKS: Record<TrackId, TrackDef> = { title, village, fields, forest, shrine, tower, battle, boss, victory, shop, game, harbour, onsen, castletown, snowtemple, clouds }
+// ─── ekimae ─ the station town: bright and bustling, a little city-pop; F major.
+//     A chirpy pulse lead over walking bass, a station-chime bell at the turn.
+const ekiProg = 'F Dm Bb C F Am Bb C Dm Am Bb F Gm C F F'
+const ekiTune = `A5:.5 C6:.5 A5:.5 G5:.5 F5:1 G5:1 | A5:1 F5:.5 D5:.5 F5:2 | D5:.5 F5:.5 G5:.5 A5:.5 Bb5:1 A5:1 | G5:3 r:1 |
+  A5:.5 C6:.5 D6:1 C6:1 A5:1 | G5:.5 A5:.5 F5:1 E5:2 | D5:1 F5:.5 G5:.5 A5:1 Bb5:1 | C6:3 r:1 |
+  D6:1 C6:.5 A5:.5 G5:1 F5:1 | E5:.5 F5:.5 A5:1 C6:2 | Bb5:1 A5:.5 G5:.5 F5:1 D5:1 | F5:3 r:1 |
+  G5:1 A5:.5 Bb5:.5 C6:1 A5:1 | G5:.5 F5:.5 D5:1 C5:2 | D5:.5 F5:.5 G5:1 A5:1 G5:1 | F5:3 r:1`
+const ekimae: TrackDef = {
+  bpm: 124,
+  loop: true,
+  channels: [
+    { inst: 'pulse25', vol: 0.1, vib: 6, detune: 5, gate: 0.75, seq: join(ekiTune, ch(ekiProg, 5, '0:.5 1 2 1 0:1 2:1')), intro: 'r:2 F5:.5 A5 C6 F6' },
+    { inst: 'flute', vol: 0.11, vib: 10, pan: -0.2, seq: join(rests(16), ekiTune) },
+    { inst: 'harp', vol: 0.07, pan: 0.35, seq: join(ch(ekiProg, 4, '0:.5 2 1 2 0 2 1 2'), ch(ekiProg, 4, '0:.5 1 2 3 2 1 2 1')) },
+    { inst: 'pad', vol: 0.035, seq: join(pads(ekiProg, 3), pads(ekiProg, 3)) },
+    { inst: 'tri', vol: 0.22, gate: 0.6, seq: join(ch(ekiProg, 2, '0:1 2:1 3:1 2:1'), ch(ekiProg, 2, '0:.5 0:.5 2:1 3:1 2:1')) },
+    { inst: 'bell', vol: 0.1, seq: join('C5:1 A4:1 F4:2', rests(15), 'C5:1 A4:1 F4:2', rests(15)) },
+    { inst: 'noise', vol: 0.1, seq: join(`(T:.5 h:.5 s:.5 h:.5 T:.5 T:.5 s:.5 h:.5 |)x16`, `(T:.5 h:.5 s:.5 o:.5 T:.5 h:.5 s:.5 h:.5 |)x16`) },
+  ],
+}
+
+// ─── kokoro ─ the valley of hearts: tender, a festival at dusk; A minor turning to C.
+//     A koto and flute duet; festival drums swell on the second pass.
+const kokoroProg = 'Am F C G Am F G E Am F C G F G C C'
+const kokoroTune = `E5:1.5 D5:.5 C5:1 A4:1 | C5:1 D5:1 E5:2 | G5:1 E5:.5 D5:.5 C5:1 D5:1 | E5:3 r:1 |
+  A5:1.5 G5:.5 E5:1 D5:1 | C5:1 D5:.5 E5:.5 A4:2 | B4:1 C5:1 D5:1 E5:1 | G#4:3 r:1 |
+  A4:1 C5:1 E5:1.5 G5:.5 | A5:1 G5:.5 E5:.5 D5:2 | C5:1 D5:1 E5:1 G5:1 | E5:3 r:1 |
+  F5:1 E5:.5 D5:.5 C5:1 A4:1 | G4:1 A4:.5 C5:.5 D5:2 | E5:1 D5:1 C5:1 D5:1 | C5:4`
+const kokoro: TrackDef = {
+  bpm: 84,
+  loop: true,
+  channels: [
+    { inst: 'koto', vol: 0.18, pan: 0.2, echo: { beats: 1, vol: 0.25 }, seq: join(kokoroTune, ch(kokoroProg, 4, '0:.5 1 2 1 0 2 1 2')) },
+    { inst: 'flute', vol: 0.12, vib: 18, pan: -0.15, seq: join(rests(16), kokoroTune) },
+    { inst: 'pad', vol: 0.04, seq: join(pads(kokoroProg, 3), pads(kokoroProg, 4)) },
+    { inst: 'tri', vol: 0.18, gate: 0.85, seq: join(ch(kokoroProg, 2, '0:2 2:2'), ch(kokoroProg, 2, '0:1 2:1 3:1 2:1')) },
+    { inst: 'noise', vol: 0.07, seq: join(`(r:4 |)x16`, `(T:1 r:.5 T:.5 h:1 T:1 |)x16`) },
+  ],
+}
+
+export const TRACKS: Record<TrackId, TrackDef> = { title, village, fields, forest, shrine, tower, battle, boss, victory, shop, game, harbour, onsen, castletown, snowtemple, clouds, ekimae, kokoro }
 export const TRACK_IDS = Object.keys(TRACKS) as TrackId[]

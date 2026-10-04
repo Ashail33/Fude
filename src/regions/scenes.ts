@@ -9,6 +9,8 @@ import { SCENES as R7 } from './r7/scenes'
 import { SCENES as R8 } from './r8/scenes'
 import { SCENES as R9 } from './r9/scenes'
 import { SCENES as R10 } from './r10/scenes'
+import { SCENES as R11 } from './r11/scenes'
+import { SCENES as R12 } from './r12/scenes'
 
 const ALL: [number, RegionScenes][] = [
   [6, R6],
@@ -16,6 +18,8 @@ const ALL: [number, RegionScenes][] = [
   [8, R8],
   [9, R9],
   [10, R10],
+  [11, R11],
+  [12, R12],
 ]
 const live = ALL.filter(([id]) => LIVE_PACKS.has(id)).map(([, s]) => s)
 export const PACK_SCENES = live.flatMap((s) => s.scenes)

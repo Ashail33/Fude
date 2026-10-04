@@ -6,6 +6,8 @@ import { BATTLE as R7 } from './r7/battle'
 import { BATTLE as R8 } from './r8/battle'
 import { BATTLE as R9 } from './r9/battle'
 import { BATTLE as R10 } from './r10/battle'
+import { BATTLE as R11 } from './r11/battle'
+import { BATTLE as R12 } from './r12/battle'
 
 const ALL: [number, RegionBattle][] = [
   [6, R6],
@@ -13,6 +15,8 @@ const ALL: [number, RegionBattle][] = [
   [8, R8],
   [9, R9],
   [10, R10],
+  [11, R11],
+  [12, R12],
 ]
 const live = new Set(PACK_DATA.map((d) => d.region.id))
 /** Region id → random-encounter pool (built packs only). */

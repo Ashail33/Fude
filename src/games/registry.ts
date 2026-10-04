@@ -29,6 +29,8 @@ const loaders: Record<GameKey, Loader> = {
   'boss-nurarihyon': () => import('../regions/r8/Boss') as Promise<{ default: ComponentType<GameProps> }>,
   'boss-yukionna': () => import('../regions/r9/Boss') as Promise<{ default: ComponentType<GameProps> }>,
   'boss-raijin': () => import('../regions/r10/Boss') as Promise<{ default: ComponentType<GameProps> }>,
+  'boss-nopperabo': () => import('../regions/r11/Boss') as Promise<{ default: ComponentType<GameProps> }>,
+  'boss-hannya': () => import('../regions/r12/Boss') as Promise<{ default: ComponentType<GameProps> }>,
 }
 
 const cache = new Map<GameKey, LazyExoticComponent<ComponentType<GameProps>>>()
@@ -68,4 +70,6 @@ export const GAME_META: Record<GameKey, { name: string; jp: string; icon: string
   'boss-nurarihyon': { name: 'Boss', jp: 'ボス', icon: '🏯', skill: 'Polite speech' },
   'boss-yukionna': { name: 'Boss', jp: 'ボス', icon: '❄️', skill: 'Kanji' },
   'boss-raijin': { name: 'Boss', jp: 'ボス', icon: '⚡', skill: 'Grammar' },
+  'boss-nopperabo': { name: 'Boss', jp: 'ボス', icon: '😶', skill: 'Listening' },
+  'boss-hannya': { name: 'Boss', jp: 'ボス', icon: '👺', skill: 'Feelings' },
 }
