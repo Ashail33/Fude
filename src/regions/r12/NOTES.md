@@ -1,6 +1,10 @@
 # Region 12 notes (for the core)
 
-## 1. The Sealed Road needs a gate for region 12 (important)
+## 1. Done: the Sealed Road gate for region 12
+
+Added to `src/story/tales/road.ts` (the third part is four Shadow Trials from Master Sumi instead of the teahouse). The stopgap below now switches itself off.
+
+### The original note
 
 `activityUnlocked` keeps a boss locked until `wardOpen(s, 12)` is true. That
 is only set by a `GATES` entry in `src/story/tales/road.ts`, and there is no

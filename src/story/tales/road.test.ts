@@ -108,7 +108,7 @@ describe('the Sealed Road', () => {
   })
 
   it('the Tower’s last ward needs all three parts', () => {
-    setState((s) => ({ ...s, progress: Object.fromEntries(['r1-boss', 'r2-boss', 'r3-boss', 'r4-boss', 'r6-boss', 'r7-boss', 'r8-boss', 'r9-boss', 'r10-boss'].map((id) => [id, { stars: 1, best: 70, plays: 1, lastPlayed: 0 }])) }))
+    setState((s) => ({ ...s, progress: Object.fromEntries(['r1-boss', 'r2-boss', 'r3-boss', 'r4-boss', 'r6-boss', 'r7-boss', 'r8-boss', 'r9-boss', 'r10-boss', 'r11-boss', 'r12-boss'].map((id) => [id, { stars: 1, best: 70, plays: 1, lastPlayed: 0 }])) }))
     talk('tp-chimera')
     expect(taleStage(getState(), roadTale(5))).toBe(0)
     finish('fk5-kaguya')

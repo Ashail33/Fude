@@ -72,6 +72,7 @@ const firstScroll = (c: Ctx) => (c.s().ninja?.cleared ?? 0) >= 1
 const bridge = (n: number) => (c: Ctx) => (c.s().arcade?.stick ?? 0) >= n
 const paddy = (c: Ctx) => Object.values(c.s().hamlet?.plots ?? {}).some((p) => p?.id === 'paddy')
 const manor = (n: number) => (c: Ctx) => !!c.s().hamlet && manorLevel(c.s().hamlet!) >= n
+const trials = (n: number) => (c: Ctx) => (c.s().ninja?.trials ?? 0) >= n
 const teahouse = (c: Ctx) => !!c.s().hamlet && levelOf(c.s().hamlet!, 'teahouse') >= 1
 /** Side tales a part waits on (checked by the tests: a typo would block the road). */
 export const NEEDED_TALES = new Set<string>()
@@ -451,6 +452,88 @@ export const GATES: Gate[] = [
     bring: ['ふたつ そろったら、くもの ごてんの らいじんへ', 'Take two of them to Raijin in the cloud hall'],
     key: item('song-drum', 'Rain-Song Drum', 'あまうたの たいこ', 'たいこ', '🪘', 'Beat it and the thunder sings along instead of shouting.'),
     word: 'taiko',
+  },
+  // ── 11 · The Chattering Station Town ─────────────────────────────
+  {
+    region: 11,
+    boss: 'p-nopperabo',
+    activity: 'r11-boss',
+    title: 'The Sealed Road: A Lantern That Says Hello',
+    jp: 'ふうじられた みち：あいさつの ちょうちん',
+    summary: 'At the end of platform one, a smooth, blank stillness swallows every word before it is spoken.',
+    ward: [
+      ['…なにを 言っても、のっぺりと きえて しまう！', '…Whatever you say just smooths away into nothing!'],
+      ['だれかに「おはよう」って 言える あかりが あれば…', 'If only we had a light that could say “good morning” to someone…'],
+      ['わらの ひもと、うめの はなびらと、たけの ほね。それで「あいさつの ちょうちん」が できる！', 'Sandal straw, a plum petal and a bamboo frame: that makes a Greeting Lantern!'],
+    ],
+    parts: [
+      {
+        item: item('sandal-straw', 'Sandal Straw', 'ぞうりの わら', 'わら', '🪢', 'A twist of straw from a sandal that found its way home.'),
+        from: 'e-grandma',
+        ready: tale('fk11-bakezori'),
+        give: [['ぞうりを つれて かえって くれた おれいだよ。この わら、ちょうちんの ひもに なさい。', 'Thanks for bringing my sandal home. Use this straw for your lantern’s cord.']],
+        hint: ['ホームの まいごの ぞうりを、おうちに かえして あげよう。', 'Take the lost sandal on the platform home.'],
+      },
+      {
+        item: item('plum-petal', 'Flying Plum Petal', 'とびうめの はなびら', 'はなびら', '🌸', 'A petal that still flies east on its own.'),
+        from: 'fk10-plum',
+        ready: tale('fk10-tobiume'),
+        give: [['ひがしの 風に のせて、あなたの ことばも とどきますように。', 'May the east wind carry your words, too.']],
+        hint: ['くもの みやこの そらの にわで、とびうめの うたを おもいだそう。（くもの みやこに もどろう）', 'Help Tobiume remember her poem, back in the Cloud Capital’s sky garden.'],
+      },
+      {
+        item: item('bamboo-frame', 'Bamboo Lantern Frame', 'たけの ほね', 'ほね', '🎋', 'Hayato bent it from his longest bridge pole. Light enough to carry a voice.'),
+        from: 'fo-hayato',
+        ready: bridge(40),
+        give: [['40ぽん！？ もう ぼくより うまいよ… この たけで、ちょうちんの ほねを つくったんだ。', 'Forty?! You’re better than me now… I made a lantern frame from this bamboo.']],
+        hint: ['ハヤトの「ぼうわたり」で 40ぽん わたって みせよう！（もりの きのこの くぼち）', 'Cross forty pillars on Hayato’s Bamboo Bridge (Mushroom Hollow, in the Forest)!'],
+      },
+    ],
+    gather: ['ちょうちんの ざいりょう：ぞうりの わら（アパートの フミさん）・とびうめの はなびら（くもの みやこ）・たけの ほね（もりの ハヤト）', 'Gather the lantern: sandal straw (Grandma Fumi, at the apartments), a plum petal (back in the Cloud Capital) and a bamboo frame (Hayato, in the Forest)'],
+    bring: ['ふたつ そろったら、一ばんせんの のっぺらぼうへ', 'Take two of them to Nopperabō on platform one'],
+    key: item('hello-lantern', 'Greeting Lantern', 'あいさつの ちょうちん', 'ちょうちん', '🏮', 'Hold it up and say hello: the light reaches even a face with no face.'),
+    word: 'ohayou',
+  },
+  // ── 12 · The Valley of Hearts ─────────────────────────────────────
+  {
+    region: 12,
+    boss: 'ks-hannya',
+    activity: 'r12-boss',
+    title: 'The Sealed Road: A Mask With No Face',
+    jp: 'ふうじられた みち：かおの ない めん',
+    summary: 'Hannya’s rage has frozen the kagura hall: no feeling can get through.',
+    ward: [
+      ['ぶたいが こおりで おおわれて いる… きもちが とどかない！', 'The stage is sealed in ice… no feeling can reach it!'],
+      ['こおった きもちを とかすには、あたたかい ものが いるね。', 'To thaw frozen feelings, we need something warm.'],
+      ['うりの おまもりと、あまいみずと、かげの すみ。それで「えがおの ちょうちん」が できる！', 'A melon charm, sweet water and shadow ink: that makes a Smiling Lantern!'],
+    ],
+    parts: [
+      {
+        item: item('melon-charm', 'Melon Charm', 'うりの おまもり', 'おまもり', '🍈', 'Grandma Chiyo’s charm. Warm as a kept promise.'),
+        from: 'kf-obaa',
+        ready: tale('fk12-amanojaku'),
+        give: [['あの 子が くれた ことばの おれいだよ。もって おいき。', 'A thank-you for the words that child gave me. Take it.']],
+        hint: ['チヨおばあさんの いえの、はんたいの 子を たすけよう。', 'Help the backwards child at Grandma Chiyo’s farmhouse.'],
+      },
+      {
+        item: item('sweet-water', 'Sweet Falls Water', 'あまいみず', 'みず', '🫗', 'Water from Yōrō Falls. It tastes of kindness.'),
+        from: 'fk7-sanpei',
+        ready: tale('fk7-yoro'),
+        give: [['ようろうの たきの みずじゃ。こころが やわらかく なるぞ。', 'Water from Yōrō Falls. It softens the heart.']],
+        hint: ['ゆのさとの サンペイさんの たきの はなしを おわらせよう。（ゆのさとに もどろう）', 'Finish Grandpa Sanpei’s waterfall tale (back at the Hot-Spring Hollow).'],
+      },
+      {
+        item: item('trial-ink', 'Shadow Trial Ink', 'しれんの すみ', 'すみ', '🏯', 'Ink pressed from four shadow trials. It runs warm, like a heart beating fast.'),
+        from: 'vb-sumi',
+        ready: trials(4),
+        give: [SUMI_GIVES, ['かげの しれんを よっつ こえたな。はしって、とんで、ドキドキした こころの すみじゃ。', 'You passed four Shadow Trials. Ink from a heart that ran, leapt and pounded.']],
+        hint: ['スミせんせいの「かげの しれん」を よっつ クリアしよう！（むらの たけやぶ）', 'Clear four of Master Sumi’s Shadow Trials (the Village’s bamboo grove)!'],
+      },
+    ],
+    gather: ['ちょうちんの ざいりょう：うりの おまもり（チヨおばあさん）・あまいみず（ゆのさとの サンペイ）・しれんの すみ（むらの スミせんせい）', 'Gather the lantern: a melon charm (Grandma Chiyo), sweet falls water (Sanpei, back at the Hot-Spring Hollow) and shadow trial ink (Master Sumi, in the Village)'],
+    bring: ['ふたつ そろったら、かぐらでんの はんにゃへ', 'Take two of them to Hannya in the kagura hall'],
+    key: item('smile-lantern', 'Smiling Lantern', 'えがおの ちょうちん', 'ちょうちん', '🏮', 'A paper lantern with a painted smile. Frozen faces thaw in its light.'),
+    word: 'egao',
   },
   // ── 5 · The Tower of Babel (the end of the road) ──────────────────
   {

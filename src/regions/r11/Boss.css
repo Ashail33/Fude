@@ -1,0 +1,119 @@
+/* Nopperabō: the blank line you have to hear, sound rings while it speaks, and the stolen faces. */
+.np-veil {
+  position: absolute;
+  inset: -16%;
+  pointer-events: none;
+}
+
+.np-waves {
+  position: absolute;
+  inset: 0;
+}
+
+.np-waves b {
+  position: absolute;
+  left: 50%;
+  top: 34%;
+  width: 30%;
+  height: 30%;
+  margin: -15% 0 0 -15%;
+  border: 2px solid rgba(199, 163, 240, 0.8);
+  border-radius: 50%;
+  animation: np-ring 1.4s ease-out infinite;
+  animation-delay: calc(var(--i) * 0.45s);
+}
+
+@keyframes np-ring {
+  from {
+    scale: 0.6;
+    opacity: 0.9;
+  }
+  to {
+    scale: 2.6;
+    opacity: 0;
+  }
+}
+
+.np-mask {
+  position: absolute;
+  left: 50%;
+  top: 40%;
+  font-size: 1.6rem;
+  font-style: normal;
+  filter: grayscale(1) opacity(0.7);
+  transform: rotate(calc(var(--i) * 120deg - 90deg)) translateX(230%) rotate(calc(var(--i) * -120deg + 90deg));
+  animation: np-drift 3.2s ease-in-out infinite;
+  animation-delay: calc(var(--i) * 0.6s);
+  transition: filter 0.6s;
+}
+
+.np-mask-back {
+  filter: none;
+}
+
+@keyframes np-drift {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -6px;
+  }
+}
+
+.np-line {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  min-height: 3.4rem;
+  justify-content: center;
+}
+
+.np-blank {
+  font-size: 1.6rem;
+  letter-spacing: 0.2em;
+  color: var(--muted, #a9adc7);
+  filter: blur(0.5px);
+}
+
+.np-jp {
+  font-size: 1.5rem;
+  animation: np-fade 0.5s ease-out;
+}
+
+.np-kana {
+  font-size: 0.9rem;
+  opacity: 0.75;
+}
+
+.np-en {
+  font-size: 0.9rem;
+}
+
+@keyframes np-fade {
+  from {
+    opacity: 0;
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    filter: none;
+  }
+}
+
+.np-tools {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 0.4rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .np-waves b,
+  .np-mask,
+  .np-jp {
+    animation: none;
+  }
+}
