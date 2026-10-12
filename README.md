@@ -17,6 +17,33 @@ npm test           # unit tests (vitest)
 
 Everything runs in the browser. Progress is saved to `localStorage`, and you can export or import the save from Settings. No backend is needed.
 
+## Android app
+
+Every push builds an Android app and publishes it on the repository's
+**Releases** page. To install it on an Android phone:
+
+1. On the phone, open
+   **https://github.com/ashail33/fude/releases/latest/download/kotoba-no-maho.apk**
+   (or open the repo's Releases page and tap `kotoba-no-maho.apk`).
+2. Open the downloaded file. If Android asks, allow your browser to install
+   unknown apps, then tap **Install**.
+3. To update, download and install the newer APK the same way. Your progress
+   is kept.
+
+The app holds the whole game, so it works offline. It speaks and listens
+through the phone's own speech engine: Google's speech services with a
+Japanese voice give the best results (Settings › Text-to-speech on most
+phones). The app keeps its own save. To bring your progress over from the
+website, use **Export save** in the website's Settings, then **Import save**
+(or **Paste save**) in the app's Settings.
+
+To build it yourself: `npm run build && npx cap sync android`, then
+`cd android && ./gradlew assembleRelease` (needs JDK 21 and the Android
+SDK). After changing the icon, run `node scripts/android-icons.mjs`. The APK
+is signed with `android/app/sideload.keystore`, a key kept in the repo on
+purpose so every build installs over the last one. Use a private key of your
+own before publishing to the Play Store.
+
 ## The world
 
 | Region | Teaches | Games |

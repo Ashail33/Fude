@@ -1,6 +1,7 @@
 import { toHiragana, toKatakana } from 'wanakana'
 import { pickJaVoice, ttsParams } from './audio/voices'
 import { getState } from './store'
+import { native, nativeCanListen, nativeHasJapanese, nativeListen, nativeSay, nativeVoices } from './nativeSpeech'
 
 /**
  * Text-to-speech in Japanese via the Web Speech API. Pass a `speaker`
@@ -8,7 +9,8 @@ import { getState } from './store'
  * their own pitch and rate (times the learner's speech-rate setting) and a
  * man's / woman's system voice, spread across the installed Japanese
  * voices so characters of the same gender still differ (see
- * ./audio/voices.ts).
+ * ./audio/voices.ts). In the Android app the same calls go through the
+ * phone's own speech engines instead (./nativeSpeech).
  */
 let jaVoice: SpeechSynthesisVoice | null | undefined
 let allVoices: SpeechSynthesisVoice[] = []
@@ -35,11 +37,11 @@ if (typeof speechSynthesis !== 'undefined') {
 }
 
 export function canSpeak(): boolean {
-  return typeof speechSynthesis !== 'undefined'
+  return native || typeof speechSynthesis !== 'undefined'
 }
 
 export function hasJapaneseVoice(): boolean {
-  return !!pickVoice()
+  return native ? nativeHasJapanese() : !!pickVoice()
 }
 
 /**
@@ -50,6 +52,10 @@ export function hasJapaneseVoice(): boolean {
 export function speak(text: string, opts: { rate?: number; force?: boolean; speaker?: string } = {}): Promise<void> {
   const { settings } = getState()
   if (!canSpeak() || (!settings.voice && !opts.force)) return Promise.resolve()
+  if (native) {
+    const t = ttsParams(opts.speaker, nativeVoices(), settings.speechRate)
+    return nativeSay(text, opts.rate ?? (opts.speaker ? t.rate : settings.speechRate), opts.speaker ? t.pitch : 1, t.voice)
+  }
   return new Promise((resolve) => {
     speechSynthesis.cancel()
     const u = new SpeechSynthesisUtterance(text)
@@ -97,7 +103,7 @@ function recognitionCtor(): (new () => AnyRecognition) | null {
 }
 
 export function canListen(): boolean {
-  return !!recognitionCtor()
+  return native ? nativeCanListen() : !!recognitionCtor()
 }
 
 /**
@@ -105,6 +111,7 @@ export function canListen(): boolean {
  * alternatives (best first), or rejects with an error string.
  */
 export function listen(timeoutMs = 7000): { promise: Promise<RecognitionAlt[]>; cancel: () => void } {
+  if (native) return nativeListen(timeoutMs)
   const Ctor = recognitionCtor()
   if (!Ctor) return { promise: Promise.reject(new Error('Speech recognition is not supported in this browser')), cancel: () => {} }
   const rec = new Ctor()

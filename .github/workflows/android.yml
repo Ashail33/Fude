@@ -1,0 +1,55 @@
+name: Android app
+
+# Builds the Android app (the game in a native shell) and publishes it as a
+# GitHub Release, so the latest APK is always at
+# https://github.com/<owner>/<repo>/releases/latest/download/kotoba-no-maho.apk
+on:
+  push:
+    branches: [ccr-993271e5-0o8k80, main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+      - run: npm ci
+      # the web game, with its art and 3D models fetched as usual
+      - run: npm run build
+      - run: npx cap sync android
+      - name: Build the APK
+        working-directory: android
+        env:
+          APP_VERSION_CODE: ${{ github.run_number }}
+          APP_VERSION_NAME: 1.${{ github.run_number }}
+        run: ./gradlew assembleRelease --no-daemon
+      - run: cp android/app/build/outputs/apk/release/app-release.apk kotoba-no-maho.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kotoba-no-maho-apk
+          path: kotoba-no-maho.apk
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "android-v1.${{ github.run_number }}" kotoba-no-maho.apk \
+            --target "${{ github.sha }}" \
+            --title "言葉の魔法 for Android 1.${{ github.run_number }}" \
+            --latest \
+            --notes "Tap **kotoba-no-maho.apk** below on your Android phone to download it, then open it to install (allow installs from your browser if asked). Installing a newer version keeps your save. Built from ${{ github.sha }}."

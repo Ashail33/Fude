@@ -4,6 +4,7 @@ import { T } from '../components/ui'
 import { getMusicVolume, setMusicVolume } from '../engine/music'
 import { fxQuality, setFxQuality, type FxQuality } from '../fx/quality'
 import { canListen, canSpeak, hasJapaneseVoice, speak } from '../engine/speech'
+import { native } from '../engine/nativeSpeech'
 import { exportSave, immersionOf, importSave, resetProgress, setState, updateSettings, usePlayer, type Settings as S } from '../engine/store'
 
 const IMMERSION: [S['immersion'], string, string][] = [
@@ -24,6 +25,14 @@ export default function Settings() {
   const fileRef = useRef<HTMLInputElement>(null)
 
   const download = () => {
+    // the Android app can't save a downloaded file: hand the save over as text instead
+    if (native) {
+      void navigator.clipboard
+        ?.writeText(exportSave())
+        .then(() => setMsg('Save copied ✔ Paste it into a note or a message to keep it.'))
+        .catch(() => setMsg('Could not copy the save on this phone.'))
+      return
+    }
     const blob = new Blob([exportSave()], { type: 'application/json' })
     const a = document.createElement('a')
     a.href = URL.createObjectURL(blob)
@@ -198,18 +207,38 @@ export default function Settings() {
         <span className="win-title">
           <T en="Save data" jp="セーブ" />
         </span>
-        <p className="muted small">Progress is saved automatically in this browser. Export it to move between devices.</p>
+        <p className="muted small">
+          {native
+            ? 'Progress is saved automatically in this app. To bring a save over from the website, export it there, then Import it here (or copy and paste it).'
+            : 'Progress is saved automatically in this browser. Export it to move between devices or into the Android app.'}
+        </p>
         <div className="row">
           <button type="button" className="btn btn-sm" onClick={download}>
-            ⬇️ Export save
+            {native ? '📋 Copy save' : '⬇️ Export save'}
           </button>
           <button type="button" className="btn btn-sm" onClick={() => fileRef.current?.click()}>
             ⬆️ Import save
           </button>
+          <button
+            type="button"
+            className="btn btn-sm"
+            onClick={() => {
+              const text = prompt('Paste your save here:')
+              if (!text) return
+              try {
+                importSave(text)
+                setMsg('Save imported ✔')
+              } catch (err) {
+                setMsg(`Import failed: ${(err as Error).message}`)
+              }
+            }}
+          >
+            📋 Paste save
+          </button>
           <input
             ref={fileRef}
             type="file"
-            accept="application/json"
+            accept="application/json,text/plain,.json,application/octet-stream"
             hidden
             onChange={async (e) => {
               const f = e.target.files?.[0]

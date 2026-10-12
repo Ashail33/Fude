@@ -15,6 +15,10 @@
     "art:fetch": "node --experimental-strip-types --no-warnings --import ./scripts/ts-resolve.mjs scripts/fetch-art.mjs"
   },
   "dependencies": {
+    "@capacitor-community/speech-recognition": "^7.0.1",
+    "@capacitor-community/text-to-speech": "^8.0.2",
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/core": "^8.5.3",
     "@types/three": "^0.186.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
@@ -23,6 +27,7 @@
     "wanakana": "^5.3.1"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.3",
     "@gltf-transform/core": "^4.5.1",
     "@gltf-transform/functions": "^4.5.1",
     "@types/node": "^24.13.3",
