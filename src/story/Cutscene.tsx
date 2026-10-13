@@ -12,7 +12,7 @@ import { preloadRegionHd } from '../battle/hd'
 import { REGIONS } from '../data/regions'
 import { playMusic } from '../engine/music'
 import { sfx } from '../engine/sfx'
-import { speak } from '../engine/speech'
+import { lineKey, hasRecording, playLine, stopLine } from '../engine/voiceLines'
 import { voices } from '../engine/voice'
 import { getState, immersionOf, markScene, usePlayer } from '../engine/store'
 import { SceneBackdrop } from './Backdrop'
@@ -134,16 +134,21 @@ export function Cutscene({ id, onDone }: CutsceneProps) {
       if (voices.cry(SPEAKERS[who].sprite) && who === step.who) leads.current.set(i, voices.cryLead(SPEAKERS[who].sprite))
     }
     const lead = leads.current.get(i) ?? 0
-    if (!step.jp) return
+    if (!step.jp || !scene) return
     const text = speechText(step, getState().name)
     const speaker = step.who ? SPEAKERS[step.who].sprite : undefined
+    // the recorded voice when there is one, else the device voice
+    const key = lineKey(scene.id, i)
     if (!lead) {
-      void speak(text, { speaker })
-      return
+      void playLine(key, text, speaker)
+      return stopLine
     }
-    const id = setTimeout(() => void speak(text, { speaker }), lead)
-    return () => clearTimeout(id)
-  }, [i, step])
+    const id = setTimeout(() => void playLine(key, text, speaker), lead)
+    return () => {
+      clearTimeout(id)
+      stopLine()
+    }
+  }, [i, step, scene])
 
   useEffect(() => {
     if (!typing || isPause) return
@@ -151,10 +156,11 @@ export function Cutscene({ id, onDone }: CutsceneProps) {
     const t = setTimeout(() => {
       setShown((n) => n + 1)
       const ch = primary[shown]
-      if (ch) voices.talk(voiceId, ch, shown)
+      // (no typing blips over a recorded voice)
+      if (ch && !(scene && hasRecording(lineKey(scene.id, i)) && getState().settings.voice)) voices.talk(voiceId, ch, shown)
     }, perChar)
     return () => clearTimeout(t)
-  }, [typing, shown, primary, step, isPause, voiceId])
+  }, [typing, shown, primary, step, isPause, voiceId, scene, i])
 
   const next = useCallback(() => {
     if (!scene) return
