@@ -40,3 +40,6 @@ public/models/.sources.json
 public/props/*.glb
 public/tex/*.jpg
 .claude/worktrees/
+
+# processed HD art is made at build time from art-src/sources.json
+public/art/hd/*/
